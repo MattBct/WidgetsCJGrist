@@ -49,7 +49,8 @@ function createCalendar(events, resources){
             next: 'Suivant ›',
             timeGridWeek: 'Vue Semaine',
             timeGridDay: 'Vue Jour',
-            dayGridMonth: 'Vue Mois'
+            dayGridMonth: 'Vue Mois',
+            resourceTimeGridDay: 'Vue par salle'
         },
 
 

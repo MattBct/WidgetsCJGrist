@@ -9,6 +9,7 @@ grist.ready({
 });
 
 grist.onRecords((records) => {
+    console.log('onRecords triggered');
     console.log('Records in the table:', records);
 
     if (records.length > 0) {
@@ -30,6 +31,8 @@ function getResources(records){
             }
         })
     });
+
+    console.log('Ressources trouvées :', resources);
     return resources;
 }
 

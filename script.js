@@ -5,8 +5,8 @@ const COLONNES_LIEUX = [
 ]
 
 const COLONNES_DATE = [
-    "RDV_1",
-    "RDV_2",
+    "Creneau_RDV_1",
+    "Creneau_RDV_2",
 ]
 
 const DUREE_RDV_DEFAULT = {

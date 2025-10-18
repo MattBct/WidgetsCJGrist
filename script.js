@@ -24,7 +24,7 @@ grist.onRecords((records) => {
     console.log('Records in the table:', records);
 
     if (records.length > 0) {
-        editCalendar(calendar, records, getResources(records));
+        editCalendar(calendar, getEventsInfos(records), getResources(records));
     }
     else {
         console.log('Pas d\'événements à afficher dans le calendrier.');

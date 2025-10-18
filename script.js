@@ -1,7 +1,21 @@
-grist.ready({
-    requiredAccess: 'read table'
-  });
+const { createApp, ref } = Vue
 
-grist.onRecords((records) => {
-console.log(records);
-});
+createApp({
+    setup() {
+        const message = ref('')
+        grist.ready({
+            requiredAccess: 'read table'
+        });
+
+        grist.onRecords((records) => {
+            message.value = records;
+        });
+
+        return {
+            message
+        }
+    }
+}).mount('#app')
+
+
+

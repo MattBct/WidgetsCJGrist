@@ -5,6 +5,6 @@ body {
 }
 
 .ec-day {
-    min-height: fit-content;
+    min-height: fit-content !important;
 }
 /* Style des resources */

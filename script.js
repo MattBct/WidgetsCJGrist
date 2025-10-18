@@ -4,6 +4,10 @@ const COLONNES_LIEUX = [
     "Lieu_RDV_2",
 ]
 
+const DUREE_RDV_DEFAULT = {
+    minutes: 30
+}
+
 const calendar = createCalendar([], []);
 
 grist.ready({
@@ -37,6 +41,23 @@ function getResources(records){
     return resources;
 }
 
+function getEventsInfos(records){
+    const events = [];
+    records.forEach(element => {
+        const event = {
+            id: element['id'],
+            title: element['Patient'] || 'Rendez-vous',
+            start: element['Date et heure de rendez-vous'],
+            resourceId: element['Lieu_RDV_1'],
+            color: element['Couleur']
+        };
+        events.push(event);
+    });
+
+    return events;
+}
+
+
 
 function createCalendar(events, resources){
     const calendarEl = document.getElementById(CALENDAR_ID);
@@ -66,7 +87,7 @@ function createCalendar(events, resources){
         events: events,
         
         firstDay: 1,  
-        slotDuration: '01:00', 
+        slotDuration: DUREE_RDV_DEFAULT, 
         displayEventEnd: true,
         slotEventOverlap: false, // Permet le chevauchement des événements dans les créneaux horaires
 

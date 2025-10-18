@@ -26,8 +26,8 @@ function getResources(records){
     records.forEach(element => {
         COLONNES_LIEUX.forEach(colonne => {
             const lieu = element[colonne];
-            if(lieu && !resources.find(r => r === lieu)){
-                resources.push(lieu);
+            if(lieu && !resources.find(r => r.id === lieu)){
+                resources.push({ id: lieu, title: lieu });
             }
         })
     });

@@ -1,20 +1,230 @@
 const CALENDAR_ID = 'calendar'
-const COLONNES_LIEUX = [
-    "Lieu_RDV_1",
-    "Lieu_RDV_2",
+
+const CRENEAUX_RDV = [
+    {
+        date: "Creneau_RDV_1",
+        lieu: "Lieu_RDV_1",
+        ordre: 1,
+        backgroundColor: "#CDD6DD",
+    },
+    {
+        date: "Creneau_RDV_2",
+        lieu: "Lieu_RDV_2",
+        ordre: 2,
+        backgroundColor: "#CCFBFE"
+    },
+
 ]
 
-const COLONNES_DATE = [
-    "Creneau_RDV_1",
-    "Creneau_RDV_2",
+const CHRONOLOGIE = [
+    {
+        label: "RDV initial",
+        ordre: 1,
+        emoji: "🥇"
+    },
+    {
+        label: "RDV de restitution",
+        ordre: 2,
+        emoji: "🥈"
+    },
 ]
+
 
 const DUREE_RDV_DEFAULT = {
     minutes: 30
 }
 
-const calendar = createCalendar([], []);
+const sampleDossiersAnonymises = [
+  {
+    "id": 1,
+    "Patient": "Patient_001",
+    "Statut": "Annulé",
+    "Mail_patient": "patient001@example.com",
+    "Telephone_patient": "",
+    "Visioconference": false,
+    "Etudiants_option": [],
+    "Commentaires": "",
+    "Autres_etudiants": [],
+    "Formulaire_usager": null,
+    "Type_de_RDV": "Grand public",
+    "Lieu_RDV_2": "Palais - Salle de travail enseignants",
+    "Creneau_RDV_2": "2025-10-30T15:30:00.000Z",
+    "Avocats_presents": null,
+    "Motif_du_RDV": "Droit du Travail (licenciement pour inaptitude physique)",
+    "Origine": "",
+    "Pieces_jointes_patient": null,
+    "Lieu_RDV_1": "Palais - Commissions",
+    "Creneau_RDV_1": "Annulé"
+  },
+  {
+    "id": 2,
+    "Patient": "Patient_002",
+    "Statut": "Annulé",
+    "Mail_patient": "patient002@example.com",
+    "Telephone_patient": "",
+    "Visioconference": false,
+    "Etudiants_option": {
+      "name": "InvalidTypedValue",
+      "message": "RefList",
+      "details": "Etudiant_001"
+    },
+    "Commentaires": "",
+    "Autres_etudiants": {
+      "name": "InvalidTypedValue",
+      "message": "RefList",
+      "details": "Etudiant_002"
+    },
+    "Formulaire_usager": null,
+    "Type_de_RDV": "Grand public",
+    "Lieu_RDV_2": "",
+    "Creneau_RDV_2": null,
+    "Avocats_presents": null,
+    "Motif_du_RDV": "Droit pénal (agression) ",
+    "Origine": "",
+    "Pieces_jointes_patient": null,
+    "Lieu_RDV_1": "",
+    "Creneau_RDV_1": null
+  },
+  {
+    "id": 3,
+    "Patient": "Patient_003",
+    "Statut": "Premier rendez-vous",
+    "Mail_patient": "patient003@example.com",
+    "Telephone_patient": "",
+    "Visioconference": false,
+    "Etudiants_option": [],
+    "Commentaires": "",
+    "Autres_etudiants": [],
+    "Formulaire_usager": null,
+    "Type_de_RDV": "Grand public",
+    "Lieu_RDV_2": "Palais - Assesseurs",
+    "Creneau_RDV_2": "2025-11-20T18:30:00.000Z",
+    "Avocats_presents": null,
+    "Motif_du_RDV": "Droit immo (litige avec bail solidaire)",
+    "Origine": "",
+    "Pieces_jointes_patient": null,
+    "Lieu_RDV_1": "Palais - Assesseurs",
+    "Creneau_RDV_1": "2025-11-06T18:30:00.000Z"
+  },
+  {
+    "id": 4,
+    "Patient": "Patient_004",
+    "Statut": "Premier rendez-vous",
+    "Mail_patient": "patient004@example.com",
+    "Telephone_patient": "",
+    "Visioconference": false,
+    "Etudiants_option": [],
+    "Commentaires": "",
+    "Autres_etudiants": [],
+    "Formulaire_usager": null,
+    "Type_de_RDV": "Grand public",
+    "Lieu_RDV_2": "Palais - Formation continue",
+    "Creneau_RDV_2": "2025-11-27T18:30:00.000Z",
+    "Avocats_presents": null,
+    "Motif_du_RDV": "Droit du travail",
+    "Origine": "",
+    "Pieces_jointes_patient": null,
+    "Lieu_RDV_1": "Palais - Formation continue",
+    "Creneau_RDV_1": "2025-11-06T18:30:00.000Z"
+  },
+  {
+    "id": 5,
+    "Patient": "Patient_005",
+    "Statut": "Premier rendez-vous",
+    "Mail_patient": "patient005@example.com",
+    "Telephone_patient": "",
+    "Visioconference": true,
+    "Etudiants_option": [],
+    "Commentaires": "",
+    "Autres_etudiants": [],
+    "Formulaire_usager": null,
+    "Type_de_RDV": "Grand public",
+    "Lieu_RDV_2": "Palais - N/A",
+    "Creneau_RDV_2": "2025-11-20T18:00:00.000Z",
+    "Avocats_presents": null,
+    "Motif_du_RDV": "Droit des étrangers (pb droit immobilier)",
+    "Origine": "",
+    "Pieces_jointes_patient": null,
+    "Lieu_RDV_1": "Palais - N/A",
+    "Creneau_RDV_1": "2025-11-06T18:00:00.000Z"
+  },
+  {
+    "id": 6,
+    "Patient": "Patient_006",
+    "Statut": "Premier rendez-vous",
+    "Mail_patient": "patient006@example.com",
+    "Telephone_patient": "",
+    "Visioconference": false,
+    "Etudiants_option": [],
+    "Commentaires": "",
+    "Autres_etudiants": [],
+    "Formulaire_usager": null,
+    "Type_de_RDV": "Grand public",
+    "Lieu_RDV_2": "Palais - Assesseurs",
+    "Creneau_RDV_2": "2025-11-27T17:00:00.000Z",
+    "Avocats_presents": null,
+    "Motif_du_RDV": "Litige suite fermage",
+    "Origine": "",
+    "Pieces_jointes_patient": null,
+    "Lieu_RDV_1": "Palais - Commissions",
+    "Creneau_RDV_1": "2025-11-06T17:00:00.000Z"
+  },
+  {
+    "id": 7,
+    "Patient": "Patient_007",
+    "Statut": "Premier rendez-vous",
+    "Mail_patient": "patient007@example.com",
+    "Telephone_patient": "",
+    "Visioconference": false,
+    "Etudiants_option": [],
+    "Commentaires": "Le patient a envoyé des documents - écrire à cliniquejuridique@univ-lyon3.fr pour que je vous les envoie",
+    "Autres_etudiants": [],
+    "Formulaire_usager": "4",
+    "Type_de_RDV": "Grand public",
+    "Lieu_RDV_2": "Palais - Commissions",
+    "Creneau_RDV_2": "2025-11-06T18:00:00.000Z",
+    "Avocats_presents": null,
+    "Motif_du_RDV": "Aide relecture statuts d'une SEL",
+    "Origine": "",
+    "Pieces_jointes_patient": null,
+    "Lieu_RDV_1": "Palais - Commissions",
+    "Creneau_RDV_1": "2025-10-23T17:00:00.000Z"
+  },
+  {
+    "id": 8,
+    "Patient": "Patient_008",
+    "Statut": "Second rendez-vous",
+    "Mail_patient": "patient008@example.com",
+    "Telephone_patient": "",
+    "Visioconference": false,
+    "Etudiants_option": {
+      "name": "InvalidTypedValue",
+      "message": "RefList",
+      "details": "Etudiant_003, Etudiant_004, Etudiant_005"
+    },
+    "Commentaires": "",
+    "Autres_etudiants": {
+      "name": "InvalidTypedValue",
+      "message": "RefList",
+      "details": "Etudiant_006"
+    },
+    "Formulaire_usager": "2",
+    "Type_de_RDV": "Etudiants",
+    "Lieu_RDV_2": "Manufacture - 119",
+    "Creneau_RDV_2": "2025-10-21T16:00:00.000Z",
+    "Avocats_presents": null,
+    "Motif_du_RDV": "Litige avec bailleur",
+    "Origine": "Formulaire web",
+    "Pieces_jointes_patient": null,
+    "Lieu_RDV_1": "Manufacture - 119",
+    "Creneau_RDV_1": "2025-10-07T16:00:00.000Z"
+  }
+]
 
+
+const calendar = createCalendar(getEventsInfos(sampleDossiersAnonymises), getResources(sampleDossiersAnonymises));
+
+/*
 grist.ready({
     requiredAccess: 'read table'
 });
@@ -29,13 +239,15 @@ grist.onRecords((records) => {
     else {
         console.log('Pas d\'événements à afficher dans le calendrier.');
     }
-});
+});*/
+
+
 
 function getResources(records){
     const resources = [];
     records.forEach(element => {
-        COLONNES_LIEUX.forEach(colonne => {
-            const lieu = element[colonne];
+        CRENEAUX_RDV.forEach(colonne => {
+            const lieu = element[colonne.lieu];
             if(lieu && !resources.find(r => r.id === lieu)){
                 resources.push({ id: lieu, title: lieu });
             }
@@ -46,11 +258,41 @@ function getResources(records){
     return resources;
 }
 
+function isValidDateStringISO(value) {
+    if (typeof value !== 'string') return false;      
+    const s = value.trim();
+    if (!s) return false;                             
+    const ts = Date.parse(s);                         
+    return Number.isFinite(ts);
+}
+
 function getEventsInfos(records){
     const events = [];
-    records.forEach(dossier => {
-        console.log('Traitement du dossier :', dossier['Patient']);
-        console.log('Date :', dossier[COLONNES_DATE[0]])
+    CRENEAUX_RDV.forEach(creneau => {
+       records.forEach(dossier => {
+        if(!isValidDateStringISO(dossier[creneau.date])){
+            console.log(`Date invalide pour le dossier ID ${dossier['id']} et le créneau ${creneau.date} :`, dossier[creneau.date]);
+            return ;
+        }
+
+        events.push({
+            title: `${dossier['Patient']}`,
+            start: new Date(dossier[creneau.date]),
+            end: new Date(new Date(dossier[creneau.date]).getTime() + (DUREE_RDV_DEFAULT.minutes * 60000)),
+            resourceIds: [dossier[creneau.lieu], ],
+            allDay: false,
+            backgroundColor: creneau.backgroundColor,
+            textColor: '#000000',
+            editable: false,
+            startEditable: false,
+            durationEditable: false,
+            extendedProps: {
+                ordre: creneau.ordre,
+            }
+
+        })
+
+       })
     });
 
     console.log('Événements trouvés :', events);
@@ -71,7 +313,7 @@ function createCalendar(events, resources){
             timeGridWeek: 'Vue Semaine',
             timeGridDay: 'Vue Jour',
             dayGridMonth: 'Vue Mois',
-            resourceTimeGridDay: 'Vue par salle'
+            resourceTimeGridDay: 'Vue par salle',
         },
 
 
@@ -85,9 +327,22 @@ function createCalendar(events, resources){
         view: 'dayGridMonth', 
         resources: resources,
         events: events,
+        editable: false,
+        selectable: false,
+
+        eventContent: (eventInfo)=>{
+            return {
+            html: `
+                <div>
+                    <i>${eventInfo.timeText}</i> - ${CHRONOLOGIE.find(c => c.ordre === eventInfo.event.extendedProps.ordre).emoji} <b>${eventInfo.event.title}</b>
+                </div>
+            `
+        };
+        },
         
         firstDay: 1,  
         slotDuration: DUREE_RDV_DEFAULT, 
+        height: '100%',
         displayEventEnd: true,
         slotEventOverlap: false, // Permet le chevauchement des événements dans les créneaux horaires
 

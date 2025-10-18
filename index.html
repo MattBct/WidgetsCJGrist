@@ -1,15 +1,19 @@
 <html lang="fr-fr">
   <head>
+    <meta charset="utf-8">
     <title>Hello world</title>
     <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@event-calendar/build@4.7.0/dist/event-calendar.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@event-calendar/build@4.7.0/dist/event-calendar.min.js"></script>
+
+    <link rel="stylesheet" href="main.css">
+
   </head>
+
   <body>
-    <div id="app">
-      <pre id="test">
-
-      </pre>
-    </div>
-
+      <div id="widget" style="max-width: 100%; padding: 15px;">
+        <div id="calendar"></div>
+      </div>
     <script src="script.js"></script>
   </body>
 </html>

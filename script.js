@@ -4,6 +4,8 @@ const COLONNES_LIEUX = [
     "Lieu_RDV_2",
 ]
 
+const calendar = createCalendar([], []);
+
 grist.ready({
     requiredAccess: 'read table'
 });
@@ -13,11 +15,10 @@ grist.onRecords((records) => {
     console.log('Records in the table:', records);
 
     if (records.length > 0) {
-        createCalendar([], getResources(records));
+        editCalendar(calendar, records, getResources(records));
     }
     else {
         console.log('Pas d\'événements à afficher dans le calendrier.');
-        createCalendar([], []);
     }
 });
 
@@ -73,4 +74,14 @@ function createCalendar(events, resources){
             end: new Date('2026-05-31')
         }
     });
+
+    return calendar;
+}
+
+function editCalendar(calendar, events, ressources){
+    // Fonctionnalité d'édition du calendrier à implémenter
+    console.log('editCalendar called with events:', events, 'and resources:', ressources);
+    calendar.setOption('events', events);
+    calendar.setOption('resources', ressources);
+    return calendar;
 }

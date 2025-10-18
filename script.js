@@ -4,6 +4,11 @@ const COLONNES_LIEUX = [
     "Lieu_RDV_2",
 ]
 
+const COLONNES_DATE = [
+    "RDV_1",
+    "RDV_2",
+]
+
 const DUREE_RDV_DEFAULT = {
     minutes: 30
 }
@@ -43,17 +48,30 @@ function getResources(records){
 
 function getEventsInfos(records){
     const events = [];
-    records.forEach(element => {
-        const event = {
-            id: element['id'],
-            title: element['Patient'] || 'Rendez-vous',
-            start: element['Date et heure de rendez-vous'],
-            resourceId: element['Lieu_RDV_1'],
-            color: element['Couleur']
-        };
-        events.push(event);
+    records.forEach(dossier => {
+        COLONNES_DATE.forEach((col_date)=>{
+            const date = new Date(dossier[col_date]);
+
+            //Vérification que la date est valide
+            if(!isNaN(date.getTime())){
+                events.push({
+                    id: dossier['id'],
+                    title: dossier['Patient'] || 'Patient inconnu',
+                    start: date,
+                    resourceIds: ()=>{
+                        //Retourne le premier lieu non vide correspondant à la date
+                        COLONNES_LIEUX.forEach((col_lieu)=>{
+                            if(dossier[col_lieu]){
+                                return [dossier[col_lieu]];
+                            }
+                        })
+                    },
+                });
+            }
+        })
     });
 
+    console.log('Événements trouvés :', events);
     return events;
 }
 

@@ -1,4 +1,8 @@
 const CALENDAR_ID = 'calendar'
+const COLONNES_LIEUX = [
+    "Lieu_RDV_1",
+    "Lieu_RDV_2",
+]
 
 grist.ready({
     requiredAccess: 'read table'
@@ -8,7 +12,7 @@ grist.onRecords((records) => {
     console.log('Records in the table:', records);
 
     if (records.length > 0) {
-        createCalendar(records, []);
+        createCalendar([], getResources(records));
     }
     else {
         console.log('Pas d\'événements à afficher dans le calendrier.');
@@ -17,6 +21,16 @@ grist.onRecords((records) => {
 });
 
 function getResources(records){
+    const resources = [];
+    records.forEach(element => {
+        COLONNES_LIEUX.forEach(colonne => {
+            const lieu = element[colonne];
+            if(lieu && !resources.find(r => r === lieu)){
+                resources.push(lieu);
+            }
+        })
+    });
+    return resources;
 }
 
 
@@ -38,7 +52,7 @@ function createCalendar(events, resources){
         headerToolbar: {
             start: 'prev,next today',
             center: 'title',
-            end: 'dayGridMonth,timeGridWeek,timeGridDay'
+            end: 'dayGridMonth,timeGridWeek,timeGridDay,resourceTimeGridDay'
         },
 
 

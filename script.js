@@ -3,7 +3,5 @@ grist.ready({
 });
 
 grist.onRecords((records) => {
-    document.getElementById('test').innerHTML = records;
+    console.log('Records in the table:', records);
 });
-
-

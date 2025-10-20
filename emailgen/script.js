@@ -128,6 +128,7 @@ function onLoadPage() {
 }
 
 function handleRecordChange(newRecord) {
+    //Set le max de la date + déclenche un handleselect
     const dateSelect = document.getElementById(EXPIRATION_DATE_ID);
     dateSelect.max = newRecord.datetimeRDV_1.toISOString().split('T')[0];
 
@@ -136,6 +137,7 @@ function handleRecordChange(newRecord) {
 }
 
 function renderEmailPreview(record, index) {
+    //Génère l'email
     const contentDiv = document.getElementById(CONTENT_ID);
     console.log(record, getExpirationDateTime());
     contentDiv.innerHTML = EMAILS[index].body(
@@ -178,6 +180,7 @@ grist.ready(
     }
 );
 grist.onRecord(function(record) {
+    console.log("Record", record)
     handleRecordChange(record);
     activeRecord = record;
 });

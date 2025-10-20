@@ -182,7 +182,9 @@ grist.onRecord(function(record) {
     activeRecord = record;
 });
 
-onLoadPage(activeRecord);
+if(activeRecord){
+    onLoadPage(activeRecord);
+}   
 
 const sampleData = {
     Patient: "John Doe",

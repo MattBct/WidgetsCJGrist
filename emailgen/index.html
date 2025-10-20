@@ -1,0 +1,70 @@
+<html>
+  <head>
+      <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+      <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+      <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/base/reset.css,npm/daisyui@5/base/rootscrolllock.css,npm/daisyui@5/base/properties.css,npm/daisyui@5/base/rootscrollgutter.css,npm/daisyui@5/base/scrollbar.css,npm/daisyui@5/base/svg.css,npm/daisyui@5/base/rootcolor.css,npm/daisyui@5/components/card.css,npm/daisyui@5/components/menu.css,npm/daisyui@5/components/fieldset.css,npm/daisyui@5/components/toggle.css,npm/daisyui@5/components/checkbox.css,npm/daisyui@5/components/button.css,npm/daisyui@5/components/select.css,npm/daisyui@5/components/input.css,npm/daisyui@5/theme/light.css" rel="stylesheet" type="text/css" />
+      <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+      <title>Email Generator</title>
+
+      <style>
+        :root {
+          --color-primary: #C03737;
+          --color-primary-content: #FFFFFF;
+          --color-muted: #f8caca;
+          --color-muted-content: #000000;
+        }
+        
+
+        mark {
+          background: #fae285b3;
+          padding: .22rem;
+          padding-left: 0px;
+        }
+
+        .dateMail {
+          background-color: var(--color-muted);
+          color: var(--color-muted-content);
+          padding: .22rem;
+        }
+      </style>
+  </head>
+  <body class="p-4">
+    <div id="widget" class="p-4 bg-100 shadow-md">
+      <div id="headbar" class="mb-8">
+        <h1 class="text-3xl font-bold">Générateur d'Email</h1>
+        <h2 class="text-sm font-light">À partir du RDV sélectionné</h2>
+      </div>
+
+      <div id="toolbar" class="flex flex-row gap-10 items-center">
+        <button id="generateEmailBtn" class="btn btn-primary btn-md">Copier l'email</button>
+        <div id="optionsToolbarWrapper" class="px-1 py-3 rounded-md flex flex-row items-center gap-4 w-full">
+
+          <div id="optionsToolbar" class="flex flex-row gap-12 items-center w-full">
+            <select class="select" id="select-email">
+              <option disabled selected>Modèle d'email</option>
+            </select>
+
+            <div class="flex flex-row gap-3 items-center">
+              <span class="text-sm text-gray-500">Date d'expiration du courriel</span>
+              <div class="flex flex-row gap-1 items-center">
+                <input type="date" class="input" id="expiration-date"/>
+                <input type="time" class="input" id="expiration-time"/>
+              </div>
+              
+            </div>
+
+          </div>
+
+
+        </div>
+      </div>
+
+      <div id="content">
+
+      </div>
+
+
+      <script src="./script.js" defer></script>
+
+  </body>
+</html>

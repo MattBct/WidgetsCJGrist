@@ -35,8 +35,8 @@ const EMAILS = [
             </p>
             <p>Si ces rendez-vous ne vous conviennent pas, n'hésitez pas à nous contacter par retour de mail pour convenir d'autres créneaux.</p>
             <p>Si vous ne pouvez pas vous présenter à ce rendez-vous, merci de nous en informer au plus vite par retour de mail. </p>
-            <p>Pour transmettre des documents relatifs à votre situation en amont de votre rendez-vous, n'hésitez pas à nous les transmettre par retour de courriel.
-            Nous restons bien sûr à votre entière disposition pour toute question ou information complémentaire.
+            <p>Pour transmettre des documents relatifs à votre situation en amont de votre rendez-vous, n'hésitez pas à nous les transmettre par retour de courriel.</p>
+            <p>Nous restons bien sûr à votre entière disposition pour toute question ou information complémentaire.</p>
             </p>
             
             <div class='mt-3'>
@@ -65,8 +65,6 @@ class DateTimeObject {
 }
 
 
-
-
 function handleSelectEmailChange(event) {
     const selectedEmailId = parseInt(event.target.value);
     const selectedEmailIndex = EMAILS.findIndex(email => email.id === selectedEmailId);
@@ -79,9 +77,14 @@ function isValidDate(value) {
    return value instanceof Date && !isNaN(value.getTime());
 }
 
-function setDefaultExpirationTime() {
-    const now = new Date();
-    now.setDate(now.getDate() + EXPIRATION_DELTA_DAYS);
+function setDefaultExpirationTime(rdvDate=null) {
+    if(rdvDate){
+        const now = new Date(rdvDate);
+    }
+    else{
+        const now = new Date(); 
+        now.setDate(now.getDate() + EXPIRATION_DELTA_DAYS);
+    }
     const defaultDate = now.toISOString().split('T')[0];
     const defaultTime = "17:00";
 
@@ -131,6 +134,7 @@ function handleRecordChange(newRecord) {
     //Set le max de la date + déclenche un handleselect
     const dateSelect = document.getElementById(EXPIRATION_DATE_ID);
     dateSelect.max = newRecord.datetimeRDV_1.toISOString().split('T')[0];
+    setDefaultExpirationTime(newRecord.datetimeRDV_1);
 
     const selectEmail = document.getElementById(SELECT_EMAIL_ID);  
     handleSelectEmailChange({target: selectEmail});

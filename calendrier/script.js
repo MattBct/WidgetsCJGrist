@@ -301,6 +301,7 @@ function isValidDateStringISO(value) {
     console.log('Vérification de la validité de la date :', value);
     if (typeof value !== 'string') return false;      
     const s = value.trim();
+    console.log('Chaîne de date après trim :', s);
     if (!s) return false;                             
     const ts = Date.parse(s); 
     console.log('Timestamp obtenu :', ts);                        

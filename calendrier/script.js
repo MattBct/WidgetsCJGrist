@@ -378,6 +378,7 @@ function createCalendar(events, resources){
         };
         },
         
+        titleFormat: { year: 'numeric', month: 'long', day: 'long' },
         firstDay: 1,  
         slotDuration: DUREE_RDV_DEFAULT, 
         height: '100%',

@@ -180,10 +180,10 @@ grist.ready(
     }
 );
 grist.onRecord(function(record, mappings) {
-    mappedRecord = grist.mapColumnNames(record) 
-    console.log("Mapped record", record)
-    handleRecordChange(record);
-    activeRecord = record;
+    const mappedRecord = grist.mapColumnNames(record) 
+    console.log("Mapped record", mappedRecord)
+    handleRecordChange(mappedRecord);
+    activeRecord = mappedRecord;
 });
 
 onLoadPage();

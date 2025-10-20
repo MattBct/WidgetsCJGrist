@@ -113,8 +113,7 @@ function eventsOnChange() {
         handleSelectEmailChange({target: selectEmail});
     });
 }
-function onLoadPage(record) {
-    handleRecordChange(record)
+function onLoadPage() {
     const selectEmail = document.getElementById(SELECT_EMAIL_ID);
     EMAILS.forEach(email => {
         const option = document.createElement("option");
@@ -133,6 +132,7 @@ function handleRecordChange(newRecord) {
     dateSelect.max = newRecord.datetimeRDV_1.toISOString().split('T')[0];
 
     const selectEmail = document.getElementById(SELECT_EMAIL_ID);  
+    handleSelectEmailChange({target: selectEmail});
 }
 
 function renderEmailPreview(record, index) {
@@ -182,9 +182,8 @@ grist.onRecord(function(record) {
     activeRecord = record;
 });
 
-if(activeRecord){
-    onLoadPage(activeRecord);
-}   
+onLoadPage();
+  
 
 const sampleData = {
     Patient: "John Doe",

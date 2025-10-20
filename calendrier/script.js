@@ -86,10 +86,12 @@ grist.ready({
 
 grist.onRecords((records) => {
     console.log('onRecords triggered');
-    console.log('Records in the table:', records);
+    const mappedRecords = grist.mapColumnNames(records); 
+    console.log('Mapped records in the table:', mappedRecords);
 
-    if (records.length > 0) {
-        editCalendar(calendar, getEventsInfos(records), getResources(records));
+
+    if (mappedRecords.length > 0) {
+        editCalendar(calendar, getEventsInfos(mappedRecords), getResources(mappedRecords));
     }
     else {
         console.log('Pas d\'événements à afficher dans le calendrier.');

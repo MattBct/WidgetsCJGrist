@@ -1,4 +1,6 @@
 const CALENDAR_ID = 'calendar'
+const TITRE_NAME_COLUMN = new Column("Titre", "Titre du RDV", false, "Text", "Titre affiché dans le calendrier", false);
+
 
 class Column {
     constructor(name, title, optionnal, type, description, allowMultiple){
@@ -252,7 +254,9 @@ const sampleDossiersAnonymises = [
 const calendar = createCalendar([], []);
 
 const buildGristColumns = () => {
-    const columns = [];
+    const columns = [
+        TITRE_NAME_COLUMN,
+    ];
     CRENEAUX_RDV.forEach(creneau => {
         console.log('Ajout des colonnes pour le créneau :', creneau);
         for (const [_, value] of Object.entries(creneau.cols)) {

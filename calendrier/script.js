@@ -249,7 +249,7 @@ const sampleDossiersAnonymises = [
 ]
 
 
-const calendar = createCalendar(getEventsInfos(sampleDossiersAnonymises), getResources(sampleDossiersAnonymises));
+const calendar = createCalendar([], []);
 
 const buildGristColumns = () => {
     const columns = [];

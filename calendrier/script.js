@@ -1,15 +1,42 @@
 const CALENDAR_ID = 'calendar'
 
+class Column {
+    constructor(name, title, optionnal, type, description, allowMultiple){
+        this.name = name;
+        this.title = title;
+        this.optionnal = optionnal;
+        this.type = type;
+        this.description = description;
+        this.allowMultiple = allowMultiple;
+    }
+}
+
+class DateColumn extends Column {
+    constructor(name, title, optionnal = false, description = ''){
+        super(name, title, optionnal, 'DateTime', description, false);
+    }
+}
+
+class LieuColumn extends Column {
+    constructor(name, title, optionnal = false, description = ''){
+        super(name, title, optionnal, 'Choice', description, false);
+    }
+}
+
 const CRENEAUX_RDV = [
     {
-        date: "Creneau_RDV_1",
-        lieu: "Lieu_RDV_1",
+        cols: {
+            date: new DateColumn("Creneau_RDV_1", "Créneau RDV 1"),
+            lieu: new LieuColumn("Lieu_RDV_1", "Lieu RDV 1"),
+        },
         ordre: 1,
         backgroundColor: "#CDD6DD",
     },
     {
-        date: "Creneau_RDV_2",
-        lieu: "Lieu_RDV_2",
+        cols: {
+            date: new DateColumn("Creneau_RDV_2", "Créneau RDV 2"),
+            lieu: new LieuColumn("Lieu_RDV_2", "Lieu RDV 2"),
+        },
         ordre: 2,
         backgroundColor: "#CCFBFE"
     },
@@ -224,9 +251,19 @@ const sampleDossiersAnonymises = [
 
 const calendar = createCalendar(getEventsInfos(sampleDossiersAnonymises), getResources(sampleDossiersAnonymises));
 
-/*
+const buildGristColumns = () => {
+    const columns = [];
+    CRENEAUX_RDV.forEach(creneau => {
+        creneau.cols.forEach(col => {
+            columns.push(col);
+        });
+    });
+    return columns;
+}
+
 grist.ready({
-    requiredAccess: 'read table'
+    requiredAccess: 'read table',
+    columns: buildGristColumns()
 });
 
 grist.onRecords((records) => {
@@ -239,15 +276,15 @@ grist.onRecords((records) => {
     else {
         console.log('Pas d\'événements à afficher dans le calendrier.');
     }
-});*/
+});
 
 
 
 function getResources(records){
     const resources = [];
     records.forEach(element => {
-        CRENEAUX_RDV.forEach(colonne => {
-            const lieu = element[colonne.lieu];
+        CRENEAUX_RDV.forEach(creneau => {
+            const lieu = element[creneau.cols.lieu.name];
             if(lieu && !resources.find(r => r.id === lieu)){
                 resources.push({ id: lieu, title: lieu });
             }
@@ -270,16 +307,16 @@ function getEventsInfos(records){
     const events = [];
     CRENEAUX_RDV.forEach(creneau => {
        records.forEach(dossier => {
-        if(!isValidDateStringISO(dossier[creneau.date])){
-            console.log(`Date invalide pour le dossier ID ${dossier['id']} et le créneau ${creneau.date} :`, dossier[creneau.date]);
+        if(!isValidDateStringISO(dossier[creneau.cols.date.name])){
+            console.log(`Date invalide pour le dossier ID ${dossier['id']} et le créneau ${creneau.cols.date.title} :`, dossier[creneau.cols.date.name]);
             return ;
         }
 
         events.push({
             title: `${dossier['Patient']}`,
-            start: new Date(dossier[creneau.date]),
-            end: new Date(new Date(dossier[creneau.date]).getTime() + (DUREE_RDV_DEFAULT.minutes * 60000)),
-            resourceIds: [dossier[creneau.lieu], ],
+            start: new Date(dossier[creneau.cols.date.name]),
+            end: new Date(new Date(dossier[creneau.cols.date.name]).getTime() + (DUREE_RDV_DEFAULT.minutes * 60000)),
+            resourceIds: [dossier[creneau.cols.lieu.name]],
             allDay: false,
             backgroundColor: creneau.backgroundColor,
             textColor: '#000000',

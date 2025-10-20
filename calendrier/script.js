@@ -254,7 +254,8 @@ const calendar = createCalendar([], []);
 const buildGristColumns = () => {
     const columns = [];
     CRENEAUX_RDV.forEach(creneau => {
-        for (const [_, value] in Object.entries(creneau.cols)) {
+        console.log('Ajout des colonnes pour le créneau :', creneau);
+        for (const [_, value] of Object.entries(creneau.cols)) {
             columns.push(value);
         }
     });

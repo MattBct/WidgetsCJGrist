@@ -258,6 +258,7 @@ const buildGristColumns = () => {
             columns.push(creneau.cols[value]);
         }
     });
+    console.log('Colonnes Grist construites :', columns);
     return columns;
 }
 
@@ -296,10 +297,12 @@ function getResources(records){
 }
 
 function isValidDateStringISO(value) {
+    console.log('Vérification de la validité de la date :', value);
     if (typeof value !== 'string') return false;      
     const s = value.trim();
     if (!s) return false;                             
-    const ts = Date.parse(s);                         
+    const ts = Date.parse(s); 
+    console.log('Timestamp obtenu :', ts);                        
     return Number.isFinite(ts);
 }
 

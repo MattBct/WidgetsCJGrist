@@ -297,23 +297,15 @@ function getResources(records){
     return resources;
 }
 
-function isValidDateStringISO(value) {
-    console.log(typeof value);
-    console.log('Vérification de la validité de la date :', value);
-    if (typeof value !== 'string') return false;      
-    const s = value.trim();
-    console.log('Chaîne de date après trim :', s);
-    if (!s) return false;                             
-    const ts = Date.parse(s); 
-    console.log('Timestamp obtenu :', ts);                        
-    return Number.isFinite(ts);
+function isValidDate(value) {
+   return value instanceof Date && !isNaN(value.getTime());
 }
 
 function getEventsInfos(records){
     const events = [];
     CRENEAUX_RDV.forEach(creneau => {
        records.forEach(dossier => {
-        if(!isValidDateStringISO(dossier[creneau.cols.date.name])){
+        if(!isValidDate(dossier[creneau.cols.date.name])){
             console.log(`Date invalide pour le dossier ID ${dossier['id']} et le créneau ${creneau.cols.date.title} :`, dossier[creneau.cols.date.name]);
             return ;
         }

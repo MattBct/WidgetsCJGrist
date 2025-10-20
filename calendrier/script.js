@@ -1,7 +1,3 @@
-const CALENDAR_ID = 'calendar'
-const TITRE_NAME_COLUMN = new Column("Titre", "Titre du RDV", false, "Text", "Titre affiché dans le calendrier", false);
-
-
 class Column {
     constructor(name, title, optionnal, type, description, allowMultiple){
         this.name = name;
@@ -25,6 +21,9 @@ class LieuColumn extends Column {
     }
 }
 
+
+const CALENDAR_ID = 'calendar'
+const TITRE_NAME_COLUMN = new Column("Titre", "Titre du RDV", false, "Text", "Titre affiché dans le calendrier", false);
 const CRENEAUX_RDV = [
     {
         cols: {

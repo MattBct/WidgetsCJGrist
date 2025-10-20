@@ -255,7 +255,7 @@ const buildGristColumns = () => {
     const columns = [];
     CRENEAUX_RDV.forEach(creneau => {
         for (const [_, value] in Object.entries(creneau.cols)) {
-            columns.push(creneau.cols[_]);
+            columns.push(value);
         }
     });
     console.log('Colonnes Grist construites :', columns);

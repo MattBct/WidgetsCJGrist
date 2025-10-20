@@ -371,7 +371,7 @@ function createCalendar(events, resources){
         eventContent: (eventInfo)=>{
             return {
             html: `
-                <div style='font-size: 0.9em; overflow: scroll;'>
+                <div style='font-size: 0.9em; overflow: hidden;' title='${eventInfo.event.title}'>
                     <i>${eventInfo.timeText}</i> - ${CHRONOLOGIE.find(c => c.ordre === eventInfo.event.extendedProps.ordre).emoji} <b>${eventInfo.event.title}</b>
                 </div>
             `

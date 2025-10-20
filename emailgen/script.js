@@ -179,8 +179,9 @@ grist.ready(
         columns: GRIST_COLUMNS
     }
 );
-grist.onRecord(function(record) {
-    console.log("Record", record)
+grist.onRecord(function(record, mappings) {
+    mappedRecord = grist.mapColumnNames(record) 
+    console.log("Mapped record", record)
     handleRecordChange(record);
     activeRecord = record;
 });

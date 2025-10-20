@@ -298,6 +298,7 @@ function getResources(records){
 }
 
 function isValidDateStringISO(value) {
+    console.log(typeof value);
     console.log('Vérification de la validité de la date :', value);
     if (typeof value !== 'string') return false;      
     const s = value.trim();

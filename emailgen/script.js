@@ -82,7 +82,7 @@ function isValidDate(value) {
 function setDefaultExpirationTime(rdvDate=null) {
     const now = new Date()
     if(rdvDate && isValidDate(rdvDate)){
-        now = now.setDate(rdvDate)
+        now.setDate(rdvDate)
     }
     else{
         now.setDate(now.getDate() + EXPIRATION_DELTA_DAYS);

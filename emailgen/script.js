@@ -68,6 +68,8 @@ class DateTimeObject {
 function handleSelectEmailChange(event) {
     const selectedEmailId = parseInt(event.target.value);
     const selectedEmailIndex = EMAILS.findIndex(email => email.id === selectedEmailId);
+    document.getElementById(EXPIRATION_TIME_ID).disabled = !EMAILS[selectedEmailIndex].expirationTime;
+    document.getElementById(EXPIRATION_DATE_ID).disabled = !EMAILS[selectedEmailIndex].expirationTime;
     if (selectedEmailIndex !== -1) {
         renderEmailPreview(activeRecord, selectedEmailIndex);
     }
@@ -78,11 +80,11 @@ function isValidDate(value) {
 }
 
 function setDefaultExpirationTime(rdvDate=null) {
-    if(rdvDate){
-        const now = new Date(rdvDate);
+    const now = new Date()
+    if(rdvDate && isValidDate(rdvDate)){
+        now = now.setDate(rdvDate)
     }
     else{
-        const now = new Date(); 
         now.setDate(now.getDate() + EXPIRATION_DELTA_DAYS);
     }
     const defaultDate = now.toISOString().split('T')[0];

@@ -217,6 +217,13 @@ const displayError = (message) => {
 </div>`;
 }
 
+function handleCopy(event) {
+    event.preventDefault();
+    event.clipboardData.setData('text/html', document.getElementById(CONTENT_ID).innerHTML);
+    event.clipboardData.setData('text/plain', document.getElementById(CONTENT_ID).textContent);
+    event.target.blur();
+}
+
 /*const sampleData = {
     Patient: "John Doe",
     datetimeRDV_1: new Date("2005-10-20T10:30:00"),

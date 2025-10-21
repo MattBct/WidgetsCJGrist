@@ -182,7 +182,7 @@ class DateTimeObject {
 
 
 function handleSelectEmailChange(event) {
-    resetError();
+    reset();
     try {
         const selectedEmailId = parseInt(event.target.value);
         const selectedEmailIndex = EMAILS.findIndex(email => email.id === selectedEmailId);

@@ -78,10 +78,11 @@ class DateTimeObject {
 function handleSelectEmailChange(event) {
     const selectedEmailId = parseInt(event.target.value);
     const selectedEmailIndex = EMAILS.findIndex(email => email.id === selectedEmailId);
-    document.getElementById(EXPIRATION_TIME_ID).disabled = !EMAILS[selectedEmailIndex].expirationTime;
-    document.getElementById(EXPIRATION_DATE_ID).disabled = !EMAILS[selectedEmailIndex].expirationTime;
+
     if (selectedEmailIndex !== -1) {
         renderEmailPreview(activeRecord, selectedEmailIndex);
+        document.getElementById(EXPIRATION_TIME_ID).disabled = !EMAILS[selectedEmailIndex].expirationTime;
+        document.getElementById(EXPIRATION_DATE_ID).disabled = !EMAILS[selectedEmailIndex].expirationTime;
     }
 }
 
@@ -155,7 +156,8 @@ function handleRecordChange(newRecord) {
 function renderEmailPreview(record, index) {
     //Génère l'email
     const contentDiv = document.getElementById(CONTENT_ID);
-    console.log(record, getExpirationDateTime());
+
+    
     contentDiv.innerHTML = EMAILS[index].body(
         record.Patient,
         DateTimeObject.fromObjectDT(record.datetimeRDV_1),
@@ -167,6 +169,7 @@ function renderEmailPreview(record, index) {
 }
 
 let activeRecord = null;
+
 const GRIST_COLUMNS = [{
     name: "Patient",
     title: "Nom du patient",
@@ -202,6 +205,8 @@ const GRIST_COLUMNS = [{
     label: "Lieu du rendez-vous 2",
     description: "Utilisé pour remplir le contenu de l'email",
 }]
+
+
 grist.ready(
     {
         requiredAccess: 'read table',
@@ -225,8 +230,14 @@ grist.onRecord(function(record, mappings) {
         return
     }
 
-    handleRecordChange(mappedRecord);
     activeRecord = mappedRecord;
+    try {
+        handleRecordChange(mappedRecord);
+    }
+    catch (error) {
+        displayError(error);
+        console.error(error);
+    }
 });
 
   

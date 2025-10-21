@@ -282,7 +282,7 @@ function renderEmailPreview(record, index) {
         {...record, expiration_datetime: getExpirationDateTime()}
     );
     
-    destinataireSpan.innerHTML = `${record.nomPatient} <${record.email}>`;
+    destinataireSpan.innerHTML = `${record.nomPatient} - <i>${record.email}</i>`;
     subjectSpan.innerHTML = EMAILS[index].objet(record);
 
     //N'appeler la fonction de génération de lien que si le HTML est set

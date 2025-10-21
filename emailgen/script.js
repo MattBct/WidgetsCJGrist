@@ -300,7 +300,7 @@ grist.ready(
     }
 );
 grist.onRecord(function(record, mappings) {
-    resetError();
+    reset();
     let mappedRecord = grist.mapColumnNames(record) 
     console.log("Mapped record", mappedRecord)
     if(isValidDate(mappedRecord.datetimeRDV_1) === false || isValidDate(mappedRecord.datetimeRDV_2) === false){

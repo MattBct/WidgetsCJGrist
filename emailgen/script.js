@@ -111,7 +111,7 @@ const EMAILS = [
             <p>Merci d'avoir pris rendez-vous avec la Clinique juridique de la Faculté de Droit de l'Université Jean Moulin Lyon 3.</p>
             <p>Nous vous rappelons que la Clinique juridique <strong>ne peut pas intervenir si vous êtes déjà suivi par un professionnel du droit</strong> (avocat, notaire, etc.).</p>
 
-            <div style='margin-top: 2.5rem; font-weight: bold;'>
+            <div style='margin-top: 1.5rem; font-weight: bold;'>
                 <div style='margin-top: 1rem;'>
                     <p>Nous pouvons vous proposer un rendez-vous le <strong class='dateMail'>${record.datetimeRDV_1.date} à ${record.datetimeRDV_1.time}</strong>. Ce premier rendez-vous vous permettra d'exposer votre situation et vos questions.</p>
                     <p>Le lieu de ce premier rendez-vous est : ${record.lieuRDV_1}.</p>

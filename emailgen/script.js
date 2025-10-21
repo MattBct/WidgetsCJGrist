@@ -367,7 +367,7 @@ const setOpenLink = (email) => {
         displayError(err);
         return ;
     }
-    document.getElementById(LINK_BUTTON_OPEN_ID).href = `mailto:${email}?subject=${encodeURIComponent(document.getElementById(SUBJECT_ID).innerHTML)}&body=${encodeURIComponent(document.getElementById(CONTENT_ID).innerHTML)}`;
+    document.getElementById(LINK_BUTTON_OPEN_ID).href = `mailto:${email}?subject=${encodeURIComponent(document.getElementById(SUBJECT_ID).innerHTML)}&body=${encodeURIComponent(document.getElementById(CONTENT_ID).innerText)}`;
 }
 
 function handleCopy(event) {

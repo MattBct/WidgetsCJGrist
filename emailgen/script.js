@@ -275,7 +275,7 @@ grist.onRecord(function(record, mappings) {
 
     activeRecord = mappedRecord;
     try {
-        handleRecordChange(mappedRecord);
+        handleRecordChange(mappedRecord.datetimeRDV_1_dt);
     }
     catch (error) {
         displayError(error);

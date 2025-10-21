@@ -208,7 +208,7 @@ function renderEmailPreview(record, index) {
 let activeRecord = null;
 
 const GRIST_COLUMNS = [{
-    name: "Patient",
+    name: "nomPatient",
     title: "Nom du patient",
     type: "Text",
 }, 

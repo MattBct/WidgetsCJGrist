@@ -129,7 +129,7 @@ function getEventsInfos(records){
         }
 
         events.push({
-            title: `${dossier['Patient']}`,
+            title: `${dossier[TITRE_NAME_COLUMN.name]}`,
             start: new Date(dossier[creneau.cols.date.name]),
             end: new Date(new Date(dossier[creneau.cols.date.name]).getTime() + (DUREE_RDV_DEFAULT.minutes * 60000)),
             resourceIds: [dossier[creneau.cols.lieu.name]],

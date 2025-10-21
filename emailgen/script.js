@@ -183,6 +183,12 @@ class DateTimeObject {
 
 function handleSelectEmailChange(event) {
     reset();
+    if(activeRecord === null){
+        const error = "Aucun RDV selectionné";
+        displayError(error);
+        console.error(error);
+        return;
+    }
     try {
         const selectedEmailId = parseInt(event.target.value);
         const selectedEmailIndex = EMAILS.findIndex(email => email.id === selectedEmailId);
@@ -307,6 +313,7 @@ grist.onRecord(function(record, mappings) {
         const error = "Dates invalide sur le RDV sélectionné";
         displayError(error);
         console.error(error);
+        activeRecord = null;
         return
     }
     else {
@@ -317,6 +324,7 @@ grist.onRecord(function(record, mappings) {
 
     if(mappedRecord.lieuRDV_1 === '' || mappedRecord.lieuRDV_2 === ''){
         const error = "Lieu vide sur le RDV sélectionné";
+        activeRecord = null;
         displayError(error);
         console.error(error);
         return
@@ -327,6 +335,7 @@ grist.onRecord(function(record, mappings) {
         handleRecordChange(mappedRecord.datetimeRDV_1_dt);
     }
     catch (error) {
+        activeRecord = null;
         displayError(error);
         console.error(error);
     }

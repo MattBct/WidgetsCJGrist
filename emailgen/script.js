@@ -71,7 +71,7 @@ class DateTimeObject {
             return new DateTimeObject("Erreur de date", "Erreur de temps");
         }
 
-        return new DateTimeObject(obj.toLocaleDateString('fr-FR'), obj.toLocaleTimeString('fr-FR'));
+        return new DateTimeObject(obj.toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }), obj.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }));
     }
     
 }

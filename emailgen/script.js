@@ -241,6 +241,7 @@ grist.ready(
     }
 );
 grist.onRecord(function(record, mappings) {
+    resetError();
     const mappedRecord = grist.mapColumnNames(record) 
     console.log("Mapped record", mappedRecord)
     if(isValidDate(mappedRecord.datetimeRDV_1) === false || isValidDate(mappedRecord.datetimeRDV_2) === false){
@@ -276,6 +277,10 @@ const displayError = (message) => {
   </svg>
   <span>Erreur sur la ligne de RDV sélectionnée : ${message}</span>
 </div>`;
+}
+
+const resetError = () => {
+    document.getElementById(CONTENT_ID).innerHTML = "";
 }
 
 function handleCopy(event) {

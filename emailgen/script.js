@@ -185,7 +185,7 @@ function onLoadPage() {
 
 }
 
-function handleRecordChange(newRecord) {
+function handleRecordChange(datetime_RDV1) {
     //Set le max de la date + déclenche un handleselect
     const dateSelect = document.getElementById(EXPIRATION_DATE_ID);
     dateSelect.max = newRecord.datetimeRDV_1.toISOString().split('T')[0];
@@ -261,6 +261,7 @@ grist.onRecord(function(record, mappings) {
         return
     }
     else {
+        mappedRecord.datetimeRDV_1_dt = structuredClone(mappedRecord.datetimeRDV_1);
         mappedRecord.datetimeRDV_1 = DateTimeObject.fromObjectDT(mappedRecord.datetimeRDV_1);
         mappedRecord.datetimeRDV_2 = DateTimeObject.fromObjectDT(mappedRecord.datetimeRDV_2);
     }

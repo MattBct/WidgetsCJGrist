@@ -188,8 +188,8 @@ function onLoadPage() {
 function handleRecordChange(datetime_RDV1) {
     //Set le max de la date + déclenche un handleselect
     const dateSelect = document.getElementById(EXPIRATION_DATE_ID);
-    dateSelect.max = newRecord.datetimeRDV_1.toISOString().split('T')[0];
-    setDefaultExpirationTime(newRecord.datetimeRDV_1);
+    dateSelect.max = datetime_RDV1.toISOString().split('T')[0];
+    setDefaultExpirationTime(datetime_RDV1);
 
     const selectEmail = document.getElementById(SELECT_EMAIL_ID);  
     handleSelectEmailChange({target: selectEmail});

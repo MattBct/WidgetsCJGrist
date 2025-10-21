@@ -106,14 +106,24 @@ class DateTimeObject {
 
 
 function handleSelectEmailChange(event) {
-    const selectedEmailId = parseInt(event.target.value);
-    const selectedEmailIndex = EMAILS.findIndex(email => email.id === selectedEmailId);
-
-    if (selectedEmailIndex !== -1) {
-        renderEmailPreview(activeRecord, selectedEmailIndex);
-        document.getElementById(EXPIRATION_TIME_ID).disabled = !EMAILS[selectedEmailIndex].expirationTime;
-        document.getElementById(EXPIRATION_DATE_ID).disabled = !EMAILS[selectedEmailIndex].expirationTime;
+    resetError();
+    try {
+        const selectedEmailId = parseInt(event.target.value);
+        const selectedEmailIndex = EMAILS.findIndex(email => email.id === selectedEmailId);
+    
+        if (selectedEmailIndex !== -1) {
+            renderEmailPreview(activeRecord, selectedEmailIndex);
+            document.getElementById(EXPIRATION_TIME_ID).disabled = !EMAILS[selectedEmailIndex].expirationTime;
+            document.getElementById(EXPIRATION_DATE_ID).disabled = !EMAILS[selectedEmailIndex].expirationTime;
+        }
     }
+
+    catch (error) {
+        const err = "Une erreur s'est produite lors de la mise à jour du template d'email";
+        displayError(err);
+        console.error(err);
+    }
+    
 }
 
 function isValidDate(value) {

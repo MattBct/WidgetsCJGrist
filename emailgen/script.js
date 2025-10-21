@@ -90,7 +90,7 @@ function isValidDate(value) {
 }
 
 function setDefaultExpirationTime(rdvDate=null) {
-    const now = new Date()
+    let now = new Date()
     if(rdvDate && isValidDate(rdvDate)){
         now = rdvDate;
     }

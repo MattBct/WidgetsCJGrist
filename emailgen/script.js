@@ -348,17 +348,17 @@ const reset = () => {
     document.getElementById(DESTINATAIRE_ID).innerHTML = "";
     document.getElementById(SUBJECT_ID).innerHTML = "";
     document.getElementById(LINK_BUTTON_OPEN_ID).href = "#";
-    document.getElementById(LINK_BUTTON_OPEN_ID).disabled = "true";
 }
 
 const setOpenLink = (email) => {
     //Fonctionne sur la prévisualisation uniquement
     if(document.getElementById(SUBJECT_ID).innerHTML === "" || document.getElementById(SUBJECT_ID).innerHTML ===""){
-        document.getElementById(LINK_BUTTON_OPEN_ID).disabled = true;
+        const err = "Pas de sujet ou de contenu";
+        console.error(err);
+        displayError(err);
         return ;
     }
     document.getElementById(LINK_BUTTON_OPEN_ID).href = `mailto:${email}?subject=${encodeURIComponent(document.getElementById(SUBJECT_ID).innerHTML)}&body=${encodeURIComponent(document.getElementById(CONTENT_ID).innerHTML)}`;
-    document.getElementById(LINK_BUTTON_OPEN_ID).disabled = false;
 }
 
 function handleCopy(event) {

@@ -13,6 +13,9 @@ const SELECT_EMAIL_ID = "select-email";
 const EXPIRATION_DATE_ID = "expiration-date";
 const EXPIRATION_TIME_ID = "expiration-time";
 const BTN_COPY_ID = "copyEmailBtn";
+const DESTINATAIRE_ID = "destinataire";
+const SUBJECT_ID = "subject";
+const LINK_BUTTON_OPEN_ID = "openMailLink";
 
 const EXPIRATION_DELTA_DAYS = 3;
 
@@ -271,11 +274,20 @@ function handleRecordChange(datetime_RDV1) {
 function renderEmailPreview(record, index) {
     //Génère l'email
     const contentDiv = document.getElementById(CONTENT_ID);
+    const destinataireSpan = document.getElementById(DESTINATAIRE_ID);
+    const subjectSpan = document.getElementById(SUBJECT_ID);
 
     
     contentDiv.innerHTML = EMAILS[index].body(
         {...record, expiration_datetime: getExpirationDateTime()}
     );
+    
+    destinataireSpan.innerHTML = `${record.nomPatient} <${record.email}>`;
+    subjectSpan.innerHTML = EMAILS[index].objet(record);
+
+    //N'appeler la fonction de génération de lien que si le HTML est set
+    setOpenLink(record.email);
+
 }
 
 
@@ -331,8 +343,22 @@ const displayError = (message) => {
 </div>`;
 }
 
-const resetError = () => {
+const reset = () => {
     document.getElementById(CONTENT_ID).innerHTML = "";
+    document.getElementById(DESTINATAIRE_ID).innerHTML = "";
+    document.getElementById(SUBJECT_ID).innerHTML = "";
+    document.getElementById(LINK_BUTTON_OPEN_ID).href = "#";
+    document.getElementById(LINK_BUTTON_OPEN_ID).disabled = "true";
+}
+
+const setOpenLink = (email) => {
+    //Fonctionne sur la prévisualisation uniquement
+    if(document.getElementById(SUBJECT_ID).innerHTML === "" || document.getElementById(SUBJECT_ID).innerHTML ===""){
+        document.getElementById(LINK_BUTTON_OPEN_ID).disabled = "true";
+        return ;
+    }
+    document.getElementById(LINK_BUTTON_OPEN_ID).href = `mailto:${record.email}?subject=${encodeURIComponent(document.getElementById(SUBJECT_ID).innerHTML)}&body=${document.getElementById(SUBJECT_ID).innerHTML}`;
+    document.getElementById(LINK_BUTTON_OPEN_ID).disabled = false;
 }
 
 function handleCopy(event) {

@@ -196,8 +196,8 @@ function handleSelectEmailChange(event) {
 
     catch (error) {
         const err = "Une erreur s'est produite lors de la mise à jour du template d'email";
-        displayError(err);
-        console.error(err);
+        displayError(err + " : " + error);
+        console.error(err + " : " + error);
     }
     
 }
@@ -357,7 +357,7 @@ const setOpenLink = (email) => {
         document.getElementById(LINK_BUTTON_OPEN_ID).disabled = "true";
         return ;
     }
-    document.getElementById(LINK_BUTTON_OPEN_ID).href = `mailto:${record.email}?subject=${encodeURIComponent(document.getElementById(SUBJECT_ID).innerHTML)}&body=${document.getElementById(SUBJECT_ID).innerHTML}`;
+    document.getElementById(LINK_BUTTON_OPEN_ID).href = `mailto:${email}?subject=${encodeURIComponent(document.getElementById(SUBJECT_ID).innerHTML)}&body=${document.getElementById(SUBJECT_ID).innerHTML}`;
     document.getElementById(LINK_BUTTON_OPEN_ID).disabled = false;
 }
 

@@ -160,24 +160,37 @@ let activeRecord = null;
 const GRIST_COLUMNS = [{
     name: "Patient",
     title: "Nom du patient",
-    type: "Choice",
-}, {
+    type: "Text",
+}, 
+
+{
+    name: "email",
+    title: "Email du patient",
+    type: "Text",
+    description: "Utilisé pour générer le lien vers l'envoi d'email"
+}
+
+{
     name: "datetimeRDV_1",
     title: "Date et heure du rendez-vous 1",
     type: "DateTime",
+    description: "Utilisé pour remplir le contenu de l'email et ajuster la date de l'expiration",
 }, {
     name: "lieuRDV_1",
     title: "Lieu du rendez-vous 1",
     type: "Choice",
+    description: "Utilisé pour remplir le contenu de l'email",
 }, {
     name: "datetimeRDV_2",
     title: "Date et heure du rendez-vous 2",
     type: "DateTime",
+    description: "Utilisé pour remplir le contenu de l'email",
 }, {
     name: "lieuRDV_2",
     title: "Lieu du rendez-vous 2",
-    type: "Text",
-    label: "Lieu du rendez-vous 2"
+    type: "Choice",
+    label: "Lieu du rendez-vous 2",
+    description: "Utilisé pour remplir le contenu de l'email",
 }]
 grist.ready(
     {

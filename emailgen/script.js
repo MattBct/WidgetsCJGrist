@@ -168,7 +168,7 @@ const GRIST_COLUMNS = [{
     title: "Email du patient",
     type: "Text",
     description: "Utilisé pour générer le lien vers l'envoi d'email"
-}
+},
 
 {
     name: "datetimeRDV_1",

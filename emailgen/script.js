@@ -206,7 +206,6 @@ grist.onRecord(function(record, mappings) {
     activeRecord = mappedRecord;
 });
 
-onLoadPage();
   
 const displayError = (message) => {
     document.getElementById(CONTENT_ID).innerHTML = `
@@ -218,10 +217,12 @@ const displayError = (message) => {
 </div>`;
 }
 
-const sampleData = {
+/*const sampleData = {
     Patient: "John Doe",
     datetimeRDV_1: new Date("2005-10-20T10:30:00"),
     lieuRDV_1: "Lieu 1",
     datetimeRDV_2: new Date("2005-10-27T10:30:00"),
     lieuRDV_2: "Lieu 2",
-};
+};*/
+
+onLoadPage();

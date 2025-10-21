@@ -354,7 +354,7 @@ const reset = () => {
 const setOpenLink = (email) => {
     //Fonctionne sur la prévisualisation uniquement
     if(document.getElementById(SUBJECT_ID).innerHTML === "" || document.getElementById(SUBJECT_ID).innerHTML ===""){
-        document.getElementById(LINK_BUTTON_OPEN_ID).disabled = "true";
+        document.getElementById(LINK_BUTTON_OPEN_ID).disabled = true;
         return ;
     }
     document.getElementById(LINK_BUTTON_OPEN_ID).href = `mailto:${email}?subject=${encodeURIComponent(document.getElementById(SUBJECT_ID).innerHTML)}&body=${document.getElementById(SUBJECT_ID).innerHTML}`;

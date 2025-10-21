@@ -252,13 +252,17 @@ grist.ready(
 );
 grist.onRecord(function(record, mappings) {
     resetError();
-    const mappedRecord = grist.mapColumnNames(record) 
+    let mappedRecord = grist.mapColumnNames(record) 
     console.log("Mapped record", mappedRecord)
     if(isValidDate(mappedRecord.datetimeRDV_1) === false || isValidDate(mappedRecord.datetimeRDV_2) === false){
         const error = "Dates invalide sur le RDV sélectionné";
         displayError(error);
         console.error(error);
         return
+    }
+    else {
+        mappedRecord.datetimeRDV_1 = DateTimeObject.fromObjectDT(mappedRecord.datetimeRDV_1);
+        mappedRecord.datetimeRDV_2 = DateTimeObject.fromObjectDT(mappedRecord.datetimeRDV_2);
     }
 
     if(mappedRecord.lieuRDV_1 === '' || mappedRecord.lieuRDV_2 === ''){

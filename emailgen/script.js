@@ -357,7 +357,7 @@ const setOpenLink = (email) => {
         document.getElementById(LINK_BUTTON_OPEN_ID).disabled = true;
         return ;
     }
-    document.getElementById(LINK_BUTTON_OPEN_ID).href = `mailto:${email}?subject=${encodeURIComponent(document.getElementById(SUBJECT_ID).innerHTML)}&body=${document.getElementById(CONTENT_ID).innerHTML}`;
+    document.getElementById(LINK_BUTTON_OPEN_ID).href = `mailto:${email}?subject=${encodeURIComponent(document.getElementById(SUBJECT_ID).innerHTML)}&body=${encodeURIComponent(document.getElementById(CONTENT_ID).innerHTML)}`;
     document.getElementById(LINK_BUTTON_OPEN_ID).disabled = false;
 }
 

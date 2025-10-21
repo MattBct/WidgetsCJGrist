@@ -16,10 +16,67 @@ const BTN_COPY_ID = "copyEmailBtn";
 
 const EXPIRATION_DELTA_DAYS = 3;
 
-const rappelEmailContent = (record) => `<p>Bonjour ${record.nomPatient},</p>
+
+const CRENEAUX_RDV_RELANCE = [
+    {
+        id: 1,
+        label: "RDV 1",
+        columnDateTimeName: "datetimeRDV_1",
+        columnLieuName: "lieuRDV_1",
+    },
+    {
+        id: 2,
+        label: "RDV 2",
+        columnDateTimeName: "datetimeRDV_2",
+        columnLieuName: "lieuRDV_2",
+    }
+]
+
+const GRIST_COLUMNS = [{
+    name: "nomPatient",
+    title: "Nom du patient",
+    type: "Text",
+}, 
+
+{
+    name: "email",
+    title: "Email du patient",
+    type: "Text",
+    description: "Utilisé pour générer le lien vers l'envoi d'email"
+},
+
+{
+    name: "datetimeRDV_1",
+    title: "Date et heure du rendez-vous 1",
+    type: "DateTime",
+    description: "Utilisé pour remplir le contenu de l'email et ajuster la date de l'expiration",
+}, {
+    name: "lieuRDV_1",
+    title: "Lieu du rendez-vous 1",
+    type: "Choice",
+    description: "Utilisé pour remplir le contenu de l'email",
+}, {
+    name: "datetimeRDV_2",
+    title: "Date et heure du rendez-vous 2",
+    type: "DateTime",
+    description: "Utilisé pour remplir le contenu de l'email",
+}, {
+    name: "lieuRDV_2",
+    title: "Lieu du rendez-vous 2",
+    type: "Choice",
+    label: "Lieu du rendez-vous 2",
+    description: "Utilisé pour remplir le contenu de l'email",
+}]
+
+const findCreneauRDVIndex = (id)=> CRENEAUX_RDV_RELANCE.findIndex(creneauRDV => creneauRDV.id === id) ;
+
+const rappelEmailContent = (record, creneauRDVIndex) => {
+    const dateColumn = CRENEAUX_RDV_RELANCE[creneauRDVIndex].columnDateTimeName;
+    const lieuColumn = CRENEAUX_RDV_RELANCE[creneauRDVIndex].columnLieuName;
+    return `<p>Bonjour ${record.nomPatient},</p>
             <p>Nous nous permettons de vous écrire afin de vous rappeler que vous avez un rendez-vous le : <br/>
             
-            <strong>${record.datetimeRDV.date} à ${record.datetimeRDV.time} au ${record.lieuRDV} dans le cadre de votre suivi par la Clinique juridique de la Faculté de Droit de l'Université Jean Moulin Lyon 3.</strong></p>
+            <strong>${record[dateColumn].date} à ${record[dateColumn].time} au ${record[lieuColumn]} dans le cadre de votre suivi par la Clinique juridique de la Faculté de Droit de l'Université Jean Moulin Lyon 3.</strong></p>
             
             <mark>Si vous ne pouvez pas vous présenter à ce rendez-vous, merci de nous en informer au plus vite par retour de mail. </mark>
             
@@ -30,8 +87,12 @@ const rappelEmailContent = (record) => `<p>Bonjour ${record.nomPatient},</p>
                 <p>Bien cordialement,</p>
                 <p>La Clinique juridique de la Faculté de Droit de l'Université Jean Moulin Lyon 3</p>
             </div>
-            `
-const rappelEmailSubject = (record)=> `Rappel de votre rendez-vous ${record.datetimeRDV.date} ${record.datetimeRDV.time} - Clinique Juridique`
+            `}
+
+const rappelEmailSubject = (record, creneauRDVIndex)=> {
+    const dateTimeColumn = CRENEAUX_RDV_RELANCE[creneauRDVIndex].columnDateTimeName;
+    return `Rappel de votre rendez-vous ${record[dateTimeColumn].date} ${record[dateTimeColumn].time} - Clinique Juridique`
+}
 
 const EMAILS = [
     {
@@ -80,12 +141,23 @@ const EMAILS = [
         expirationTime: true,
         statusMatch: "Premier rendez-vous",
         label: "Relance premier rendez-vous",
-        objet: (record)=> rappelEmailSubject(record),
-        body: (record)=> rappelEmailContent(record.nomPatient, record.datetimeRDV, record.lieuRDV)
+        objet: (record)=> rappelEmailSubject(record, findCreneauRDVIndex(1)),
+        body: (record)=> rappelEmailContent(record, findCreneauRDVIndex(1)),
+        },
+        {
+        id: 3,
+        expirationTime: true,
+        statusMatch: "Premier rendez-vous",
+        label: "Relance second rendez-vous",
+        objet: (record)=> rappelEmailSubject(record, findCreneauRDVIndex(2)),
+        body: (record)=> rappelEmailContent(record, findCreneauRDVIndex(2)),
         },
 
             
 ]
+
+let activeRecord = null;
+
 
 class DateTimeObject {
     constructor(date = new Date(), time = "string") {
@@ -205,43 +277,7 @@ function renderEmailPreview(record, index) {
     );
 }
 
-let activeRecord = null;
 
-const GRIST_COLUMNS = [{
-    name: "nomPatient",
-    title: "Nom du patient",
-    type: "Text",
-}, 
-
-{
-    name: "email",
-    title: "Email du patient",
-    type: "Text",
-    description: "Utilisé pour générer le lien vers l'envoi d'email"
-},
-
-{
-    name: "datetimeRDV_1",
-    title: "Date et heure du rendez-vous 1",
-    type: "DateTime",
-    description: "Utilisé pour remplir le contenu de l'email et ajuster la date de l'expiration",
-}, {
-    name: "lieuRDV_1",
-    title: "Lieu du rendez-vous 1",
-    type: "Choice",
-    description: "Utilisé pour remplir le contenu de l'email",
-}, {
-    name: "datetimeRDV_2",
-    title: "Date et heure du rendez-vous 2",
-    type: "DateTime",
-    description: "Utilisé pour remplir le contenu de l'email",
-}, {
-    name: "lieuRDV_2",
-    title: "Lieu du rendez-vous 2",
-    type: "Choice",
-    label: "Lieu du rendez-vous 2",
-    description: "Utilisé pour remplir le contenu de l'email",
-}]
 
 
 grist.ready(

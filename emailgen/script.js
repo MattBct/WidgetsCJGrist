@@ -337,8 +337,8 @@ const resetError = () => {
 function handleCopy(event) {
     const html_content = document.getElementById(CONTENT_ID).innerHTML;
     const text_content = document.getElementById(CONTENT_ID).textContent;
-    const blobHTML = new Blob([html], { type: 'text/html' });
-    const blobText = new Blob([text], { type: 'text/plain' });
+    const blobHTML = new Blob([html_content], { type: 'text/html' });
+    const blobText = new Blob([text_content], { type: 'text/plain' });
     const item = new ClipboardItem({
         'text/html': blobHTML,
         'text/plain': blobText

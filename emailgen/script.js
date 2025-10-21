@@ -1,3 +1,13 @@
+/*
+TODO:
+- Tester le copier coller
+- Générer le lien d'envoi
+- Styliser l'objet
+- Styliser le contenu
+- Développer un nouveau modèle d'email
+*/
+
+
 const CONTENT_ID = "content";
 const SELECT_EMAIL_ID = "select-email";
 const EXPIRATION_DATE_ID = "expiration-date";

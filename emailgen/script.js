@@ -184,7 +184,7 @@ class DateTimeObject {
 function handleSelectEmailChange(event) {
     reset();
     if(activeRecord === null){
-        const error = "Aucun RDV selectionné";
+        const error = "Aucun RDV selectionné (activeRecord null)";
         displayError(error);
         console.error(error);
         return;

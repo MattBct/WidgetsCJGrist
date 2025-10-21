@@ -160,7 +160,7 @@ let activeRecord = null;
 const GRIST_COLUMNS = [{
     name: "Patient",
     title: "Nom du patient",
-    type: "Text",
+    type: "Choice",
 }, {
     name: "datetimeRDV_1",
     title: "Date et heure du rendez-vous 1",
@@ -168,7 +168,7 @@ const GRIST_COLUMNS = [{
 }, {
     name: "lieuRDV_1",
     title: "Lieu du rendez-vous 1",
-    type: "Text",
+    type: "Choice",
 }, {
     name: "datetimeRDV_2",
     title: "Date et heure du rendez-vous 2",

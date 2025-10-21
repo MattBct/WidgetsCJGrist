@@ -40,27 +40,27 @@ const EMAILS = [
         statusMatch: "Premier rendez-vous",
         label: "Proposition de RDV",
         objet: (record)=> "Proposition de créneaux de RDV - Clinique Juridique",
-        body: (nomPatient, datetimeRDV_1, lieuRDV_1, datetimeRDV_2, lieuRDV_2, expiration_datetime)=> {
+        body: (record)=> {
             return (
-            `<p>Bonjour ${nomPatient},</p>
+            `<p>Bonjour ${record.nomPatient},</p>
             <p>Merci d'avoir pris rendez-vous avec la Clinique juridique de la Faculté de Droit de l'Université Jean Moulin Lyon 3.</p>
             <p>Nous vous rappelons que la Clinique juridique <strong>ne peut pas intervenir si vous êtes déjà suivi par un professionnel du droit</strong> (avocat, notaire, etc.).</p>
 
             <div style='margin-top: 2.5rem; font-weight: bold;'>
                 <div style='margin-top: 1rem;'>
-                    <p>Nous pouvons vous proposer un rendez-vous le <strong class='dateMail'>${datetimeRDV_1.date} à ${datetimeRDV_1.time}</strong>. Ce premier rendez-vous vous permettra d'exposer votre situation et vos questions.</p>
-                    <p>Le lieu de ce premier rendez-vous est : ${lieuRDV_1}.</p>
+                    <p>Nous pouvons vous proposer un rendez-vous le <strong class='dateMail'>${record.datetimeRDV_1.date} à ${record.datetimeRDV_1.time}</strong>. Ce premier rendez-vous vous permettra d'exposer votre situation et vos questions.</p>
+                    <p>Le lieu de ce premier rendez-vous est : ${record.lieuRDV_1}.</p>
                 </div>
 
                 <div style='margin-top: 1rem;'>
-                    <p>Les cliniciens vous restitueront leur travail au cours d'un second rendez-vous le <strong class='dateMail'>${datetimeRDV_2.date} à ${datetimeRDV_2.time}</strong>.</p>
-                    <p>Le lieu de ce second rendez-vous est : ${lieuRDV_2}.</p>
+                    <p>Les cliniciens vous restitueront leur travail au cours d'un second rendez-vous le <strong class='dateMail'>${record.datetimeRDV_2.date} à ${record.datetimeRDV_2.time}</strong>.</p>
+                    <p>Le lieu de ce second rendez-vous est : ${record.lieuRDV_2}.</p>
                 </div>
             </div>
             
 
             <p style='font-weight: bold;'>
-                <mark>Merci de nous confirmer que ces créneaux vous conviennent par retour de mail. Ces propositions de rendez-vous sont valides jusqu'au ${expiration_datetime.date} à ${expiration_datetime.time}. Au-delà, ceux-ci seront attribués à d'autres patients.</mark>
+                <mark>Merci de nous confirmer que ces créneaux vous conviennent par retour de mail. Ces propositions de rendez-vous sont valides jusqu'au ${record.expiration_datetime.date} à ${record.expiration_datetime.time}. Au-delà, ceux-ci seront attribués à d'autres patients.</mark>
             </p>
             <p>Si ces rendez-vous ne vous conviennent pas, n'hésitez pas à nous contacter par retour de mail pour convenir d'autres créneaux.</p>
             <p>Si vous ne pouvez pas vous présenter à ce rendez-vous, merci de nous en informer au plus vite par retour de mail. </p>

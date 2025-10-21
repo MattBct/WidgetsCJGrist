@@ -256,10 +256,15 @@ const displayError = (message) => {
 }
 
 function handleCopy(event) {
-    event.preventDefault();
-    event.clipboardData.setData('text/html', document.getElementById(CONTENT_ID).innerHTML);
-    event.clipboardData.setData('text/plain', document.getElementById(CONTENT_ID).textContent);
-    event.target.blur();
+    const html_content = document.getElementById(CONTENT_ID).innerHTML;
+    const text_content = document.getElementById(CONTENT_ID).textContent;
+    const blobHTML = new Blob([html], { type: 'text/html' });
+    const blobText = new Blob([text], { type: 'text/plain' });
+    const item = new ClipboardItem({
+        'text/html': blobHTML,
+        'text/plain': blobText
+    });
+    navigator.clipboard.write([item]);
 }
 
 /*const sampleData = {

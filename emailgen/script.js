@@ -12,6 +12,8 @@ const CONTENT_ID = "content";
 const SELECT_EMAIL_ID = "select-email";
 const EXPIRATION_DATE_ID = "expiration-date";
 const EXPIRATION_TIME_ID = "expiration-time";
+const BTN_COPY_ID = "copyEmailBtn";
+
 const EXPIRATION_DELTA_DAYS = 3;
 
 const EMAILS = [
@@ -128,6 +130,8 @@ function eventsOnChange() {
         const selectEmail = document.getElementById(SELECT_EMAIL_ID);
         handleSelectEmailChange({target: selectEmail});
     });
+
+    document.getElementById(BTN_COPY_ID).addEventListener("click", handleCopy);
 }
 function onLoadPage() {
     const selectEmail = document.getElementById(SELECT_EMAIL_ID);

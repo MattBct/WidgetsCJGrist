@@ -9,8 +9,8 @@ const EMAILS = [
         id: 1,
         expirationTime: true,
         statusMatch: "Premier rendez-vous",
-        label: "Email Modèle 1",
-        objet: "Objet de l'email 1",
+        label: "Proposition de RDV",
+        objet: "Proposition de créneaux de RDV - Clinique Juridique",
         body: (nomPatient, datetimeRDV_1, lieuRDV_1, datetimeRDV_2, lieuRDV_2, expiration_datetime)=> {
             return (
             `<p>Bonjour ${nomPatient},</p>

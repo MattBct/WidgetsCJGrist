@@ -188,12 +188,29 @@ grist.ready(
 grist.onRecord(function(record, mappings) {
     const mappedRecord = grist.mapColumnNames(record) 
     console.log("Mapped record", mappedRecord)
+    if(isValidDate(mappedRecord.datetimeRDV_1) === false || isValidDate(mappedRecord.datetimeRDV_2) === false){
+        const error = "Dates invalide sur le RDV sélectionné";
+        displayError(error);
+        console.error(error);
+        return
+    }
+
+    if(mappedRecord.lieuRDV_1 === '' || mappedRecord.lieuRDV_2 === ''){
+        const error = "Lieu vide sur le RDV sélectionné";
+        displayError(error);
+        console.error(error);
+        return
+    }
+
     handleRecordChange(mappedRecord);
     activeRecord = mappedRecord;
 });
 
 onLoadPage();
   
+const displayError = (message) => {
+    document.getElementById(CONTENT_ID).innerHTML = `<div>Erreur sur le RDV sélectionné : ${message}</div>`;
+}
 
 const sampleData = {
     Patient: "John Doe",

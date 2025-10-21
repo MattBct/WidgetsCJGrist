@@ -76,7 +76,8 @@ const rappelEmailContent = (record, creneauRDVIndex) => {
     return `<p>Bonjour ${record.nomPatient},</p>
             <p>Nous nous permettons de vous écrire afin de vous rappeler que vous avez un rendez-vous le : <br/>
             
-            <strong>${record[dateColumn].date} à ${record[dateColumn].time} au ${record[lieuColumn]} dans le cadre de votre suivi par la Clinique juridique de la Faculté de Droit de l'Université Jean Moulin Lyon 3.</strong></p>
+            <strong>${record[dateColumn].date} à ${record[dateColumn].time} au ${record[lieuColumn]}</strong> 
+            <br/> dans le cadre de votre suivi par la Clinique juridique de la Faculté de Droit de l'Université Jean Moulin Lyon 3.</p>
             
             <mark>Si vous ne pouvez pas vous présenter à ce rendez-vous, merci de nous en informer au plus vite par retour de mail. </mark>
             

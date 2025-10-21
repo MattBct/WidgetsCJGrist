@@ -139,7 +139,7 @@ const EMAILS = [
         
         {
         id: 2,
-        expirationTime: true,
+        expirationTime: false,
         statusMatch: "Premier rendez-vous",
         label: "Relance premier rendez-vous",
         objet: (record)=> rappelEmailSubject(record, findCreneauRDVIndex(1)),
@@ -147,7 +147,7 @@ const EMAILS = [
         },
         {
         id: 3,
-        expirationTime: true,
+        expirationTime: false,
         statusMatch: "Premier rendez-vous",
         label: "Relance second rendez-vous",
         objet: (record)=> rappelEmailSubject(record, findCreneauRDVIndex(2)),

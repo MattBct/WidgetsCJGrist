@@ -16,6 +16,7 @@ const BTN_COPY_ID = "copyEmailBtn";
 const DESTINATAIRE_ID = "destinataire";
 const SUBJECT_ID = "subject";
 const LINK_BUTTON_OPEN_ID = "openMailLink";
+const RETOUR_EXP_URL = "https://grist.numerique.gouv.fr/o/docs/forms/eBiEf6eJmhhTN9EPSSU8hY/34";
 
 const EXPIRATION_DELTA_DAYS = 3;
 
@@ -156,6 +157,27 @@ const EMAILS = [
         objet: (record)=> rappelEmailSubject(record, findCreneauRDVIndex(2)),
         body: (record)=> rappelEmailContent(record, findCreneauRDVIndex(2)),
         },
+        {
+            id: 4,
+            expirationTime: false,
+            statusMatch: "Premier rendez-vous",
+            label: "Retour d'expérience",
+            objet: (record)=> "Retour d'expérience sur votre RDV - Clinique Juridique",
+            body: (record)=> {return (
+            `<p>Bonjour ${record.nomPatient},</p>
+            <p>Nous espèrons que vos rendez-vous avec la Clinique juridique vous ont été bénéfiques et que ceux-ci se sont bien déroulés.</p>
+            <p>Dans une perspective d'amélioration continue, vous pourrez trouver ci-après un formulaire anonyme pour nous faire part de vos remarques et suggestions sur votre expérience auprès de la Clinique juridique.</p>
+
+            <p><strong>Formulaire de retour d'expérience (moins d'1 minute à remplir) : <a href=${RETOUR_EXP_URL} target='_blank'>Je partage mon retour</a></strong></p>
+            
+            <div style='margin-top: 2rem;'>
+                <p>Bien cordialement,</p>
+                <p>La Clinique juridique de la Faculté de Droit de l'Université Jean Moulin Lyon 3</p>
+            </div>
+            `)}
+        
+        },
+    
 
             
 ]

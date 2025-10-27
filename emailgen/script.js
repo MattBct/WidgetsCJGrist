@@ -168,7 +168,7 @@ const EMAILS = [
             <p>Nous espèrons que vos rendez-vous avec la Clinique juridique vous ont été bénéfiques et que ceux-ci se sont bien déroulés.</p>
             <p>Dans une perspective d'amélioration continue, vous pourrez trouver ci-après un formulaire anonyme pour nous faire part de vos remarques et suggestions sur votre expérience auprès de la Clinique juridique.</p>
 
-            <p><strong>Formulaire de retour d'expérience (moins d'1 minute à remplir) : <a href=${RETOUR_EXP_URL} target='_blank'>Je partage mon retour</a></strong></p>
+            <p><strong>Formulaire de retour d'expérience (moins d'1 minute à remplir) : <a href=${RETOUR_EXP_URL} target='_blank'>${RETOUR_EXP_URL}</a></strong></p>
             
             <div style='margin-top: 2rem;'>
                 <p>Bien cordialement,</p>

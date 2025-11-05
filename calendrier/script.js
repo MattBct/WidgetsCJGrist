@@ -155,12 +155,26 @@ function getEventsInfos(records){
     return events;
 }
 
+function onEventClick(info){
+    console.log('Event clicked:', info.event);
+    const idDossier = info.event.extendedProps.idDossier;
+    if(idDossier){
+        grist.setCursorPos({
+            rowId: idDossier
+        });
+    } else {
+        console.warn('Aucun ID de dossier trouvé pour cet événement.');
+    }
+}
 
 
 function createCalendar(events, resources){
     const calendarEl = document.getElementById(CALENDAR_ID);
     const calendar = EventCalendar.create(calendarEl, {
         hiddenDays: [6,0],
+        eventClick: onEventClick,
+        
+        locale: 'fr',
 
         buttonText: {
             today: 'Aujourd’hui',

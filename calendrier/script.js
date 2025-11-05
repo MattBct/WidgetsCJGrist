@@ -99,6 +99,7 @@ grist.onRecords((records) => {
     }
 });
 
+const selectedEventId = null; // Variable pour stocker l'ID de l'événement sélectionné
 
 
 function getResources(records){
@@ -157,17 +158,24 @@ function getEventsInfos(records){
 }
 
 function onEventClick(info){
-    console.log('Event clicked:', info.event);
-    const idDossier = info.event.extendedProps.idDossier;
-    if(idDossier){
+    const idDossierGrist = info.event.extendedProps.idDossier; //ID de la ligne dans Grist (identifiant GRIST)
+    selectedEventId = info.event.id; // ID du calendrier (bibliothèque JS)
+    if(idDossierGrist){
         grist.setCursorPos({
-            rowId: idDossier
+            rowId: idDossierGrist
         });
+        calendar.setOption('eventClassNames', getClassForSelectedEvent);
     } else {
         console.warn('Aucun ID de dossier trouvé pour cet événement.');
     }
 }
 
+function getClassForSelectedEvent(info){
+    if(info.event.id === selectedEventId){
+        return 'event-selected';
+    }
+    return ;
+}
 
 function createCalendar(events, resources){
     const calendarEl = document.getElementById(CALENDAR_ID);

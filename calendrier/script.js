@@ -143,6 +143,7 @@ function getEventsInfos(records){
             durationEditable: false,
             extendedProps: {
                 ordre: creneau.ordre,
+                idDossier: dossier['id'],
             }
 
         })

@@ -128,6 +128,8 @@ function getEventsInfos(records){
             return ;
         }
 
+        console.log(dossier);
+
         events.push({
             title: `${dossier[TITRE_NAME_COLUMN.name]}`,
             start: new Date(dossier[creneau.cols.date.name]),

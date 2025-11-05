@@ -81,7 +81,8 @@ const buildGristColumns = () => {
 
 grist.ready({
     requiredAccess: 'read table',
-    columns: buildGristColumns()
+    columns: buildGristColumns(),
+    allowSelectBy: true,
 });
 
 grist.onRecords((records) => {

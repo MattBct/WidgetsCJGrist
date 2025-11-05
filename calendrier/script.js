@@ -99,7 +99,7 @@ grist.onRecords((records) => {
     }
 });
 
-const selectedEventId = null; // Variable pour stocker l'ID de l'événement sélectionné
+let selectedEventId = null; // Variable pour stocker l'ID de l'événement sélectionné
 
 
 function getResources(records){

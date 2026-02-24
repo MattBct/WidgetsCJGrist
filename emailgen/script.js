@@ -16,7 +16,7 @@ const BTN_COPY_ID = "copyEmailBtn";
 const DESTINATAIRE_ID = "destinataire";
 const SUBJECT_ID = "subject";
 const LINK_BUTTON_OPEN_ID = "openMailLink";
-const RETOUR_EXP_URL = "https://grist.numerique.gouv.fr/o/docs/forms/eBiEf6eJmhhTN9EPSSU8hY/34";
+const RETOUR_EXP_URL = "https://grist.numerique.gouv.fr/o/docs/forms/3aj3LBssvkETWoLPaoJps7/57";
 
 const EXPIRATION_DELTA_DAYS = 3;
 
@@ -128,8 +128,7 @@ const EMAILS = [
             <p style='font-weight: bold;'>
                 <mark>Merci de nous confirmer que ces créneaux vous conviennent par retour de mail. Ces propositions de rendez-vous sont valides jusqu'au ${record.expiration_datetime.date} à ${record.expiration_datetime.time}. Au-delà, ceux-ci seront attribués à d'autres patients.</mark>
             </p>
-            <p>Si ces rendez-vous ne vous conviennent pas, n'hésitez pas à nous contacter par retour de mail pour convenir d'autres créneaux.</p>
-            <p>Si vous ne pouvez pas vous présenter à ce rendez-vous, merci de nous en informer au plus vite par retour de mail. </p>
+            <p>Si ces rendez-vous ne vous conviennent pas ou si vous ne pouvez pas vous y présenter, contactez nous au plus vite par retour de mail pour convenir d'autres créneaux.</p>
             <p>Pour transmettre des documents relatifs à votre situation en amont de votre rendez-vous, n'hésitez pas à nous les transmettre par retour de courriel.</p>
             <p>Nous restons bien sûr à votre entière disposition pour toute question ou information complémentaire.</p>
             </p>
@@ -137,6 +136,11 @@ const EMAILS = [
             <div style='margin-top: 2rem;'>
                 <p>Bien cordialement,</p>
                 <p>La Clinique juridique de la Faculté de Droit de l'Université Jean Moulin Lyon 3</p>
+            </div>
+
+            <div style='margin-top: 2rem; '>
+                <p>Adresse et accès de la Manufacture des Tabacs (site de l'Université Jean Moulin Lyon 3) : 1, av. des Frères Lumières 69008 LYON</p>
+                <a href='https://www.univ-lyon3.fr/campus-de-la-manufacture-des-tabacs'>Accès et détails complémentaires</a>
             </div>
             `)}
         },

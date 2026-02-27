@@ -142,7 +142,18 @@ const generateTableBodyRows = (records, columns) => {
     return tableBodyRows
 }
 
+const datePicker = document.getElementById('datePicker');
+const dateLabel = document.getElementById('rdv_date_label');
 
+datePicker.addEventListener('change', () => {
+    dateLabel.innerHTML = new Date(datePicker.value).toLocaleDateString("fr-FR");
+    const dateSelected = new Date(datePicker.value);
+    const mappedData = grist.mapColumnNames(grist.records);
+    const tableRecords = generateTableRecordsFromGristRecords(mappedData, dateSelected);
+    document.getElementById('table_body').innerHTML = generateTableBodyRows(tableRecords, TABLE_COLUMNS);
+})
+
+datePicker.value = new Date().toISOString().split('T')[0];
 
 grist.onRecords((records) => {
     const mappedData = grist.mapColumnNames(records);

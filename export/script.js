@@ -144,7 +144,7 @@ const generateTableBodyRows = (records, columns) => {
 
 const datePicker = document.getElementById('datePicker');
 const dateLabel = document.getElementById('rdv_date_label');
-let dateSelected = new Date(datePicker.value);
+let dateSelected = new Date();
 dateLabel.innerHTML = "RDV du " + new Date(datePicker.value).toLocaleDateString("fr-FR");
 
 let mappedData = []
@@ -157,7 +157,7 @@ datePicker.addEventListener('change', () => {
     document.getElementById('table_body').innerHTML = generateTableBodyRows(tableRecords, TABLE_COLUMNS);
 })
 
-datePicker.value = new Date().toISOString().split('T')[0];
+datePicker.value = dateSelected.toISOString().split('T')[0];
 
 grist.onRecords((records) => {
     mappedData = grist.mapColumnNames(records);

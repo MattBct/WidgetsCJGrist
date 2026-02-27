@@ -159,7 +159,7 @@ grist.onRecords((records) => {
     const mappedData = grist.mapColumnNames(records);
     document.getElementById('table_head').innerHTML = generateTableHeadColumns(TABLE_COLUMNS);
     console.log("ALL RECORDS ", mappedData);
-    const tableRecords = generateTableRecordsFromGristRecords(mappedData, new Date('2026-01-27'));
+    const tableRecords = generateTableRecordsFromGristRecords(mappedData, datePicker.value);
     document.getElementById('table_body').innerHTML = generateTableBodyRows(tableRecords, TABLE_COLUMNS);
 })
 

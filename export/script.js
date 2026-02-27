@@ -144,23 +144,26 @@ const generateTableBodyRows = (records, columns) => {
 
 const datePicker = document.getElementById('datePicker');
 const dateLabel = document.getElementById('rdv_date_label');
+let dateSelected = new Date(datePicker.value);
 dateLabel.innerHTML = "RDV du " + new Date(datePicker.value).toLocaleDateString("fr-FR");
 
+let mappedData = []
+let tableRecords = []
+
 datePicker.addEventListener('change', () => {
-    dateLabel.innerHTML = "RDV du " + new Date(datePicker.value).toLocaleDateString("fr-FR");
-    const dateSelected = new Date(datePicker.value);
-    const mappedData = grist.mapColumnNames(grist.records);
-    const tableRecords = generateTableRecordsFromGristRecords(mappedData, dateSelected);
+    dateSelected = new Date(datePicker.value);
+    dateLabel.innerHTML = "RDV du " + dateSelected.toLocaleDateString("fr-FR");
+    tableRecords = generateTableRecordsFromGristRecords(mappedData, dateSelected);
     document.getElementById('table_body').innerHTML = generateTableBodyRows(tableRecords, TABLE_COLUMNS);
 })
 
 datePicker.value = new Date().toISOString().split('T')[0];
 
 grist.onRecords((records) => {
-    const mappedData = grist.mapColumnNames(records);
+    mappedData = grist.mapColumnNames(records);
     document.getElementById('table_head').innerHTML = generateTableHeadColumns(TABLE_COLUMNS);
     console.log("ALL RECORDS ", mappedData);
-    const tableRecords = generateTableRecordsFromGristRecords(mappedData, new Date(datePicker.value));
+    tableRecords = generateTableRecordsFromGristRecords(mappedData, dateSelected);
     document.getElementById('table_body').innerHTML = generateTableBodyRows(tableRecords, TABLE_COLUMNS);
 })
 

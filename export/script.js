@@ -1,4 +1,4 @@
-const COLUMNS = [
+const GRIST_COLUMNS = [
             {
                 name: 'NomPatient',
                 title: 'Nom du patient',
@@ -28,15 +28,65 @@ const COLUMNS = [
 grist.ready(
     {
         requiredAccess: 'read table',
-        columns: COLUMNS
+        columns: GRIST_COLUMNS
 
     }
 );
-grist.onRecords((records) => {
-    console.log(records)
-})
 
+const TABLE_COLUMNS = [
+    {
+        "key": "NomPatient",
+        "title": "Nom du patient",
+    },
+    {
+        key: "MotifRdv",
+        title: "Motif du RDV",
+    },
+    {
+        key: "creneau",
+        title: "Créneau RDV",
+    },
+    {
+        key: "typeCreneau",
+        title: "Type de créneau",
+    },
+    {
+        key: "Email",
+        title: "Email",
+    },
+    {
+        key: "Téléphone",
+        title: "Téléphone",
+    }
+]
 
+const generateTableRecordsFromGristRecords = (gristRecords, dateSelected) => {
+    return gristRecords.flatMap((record) => {
+    const rdv1 = new Date(record.RDV1);
+    const rdv2 = new Date(record.RDV2);
+    const targetDay = dateSelected.getUTCDay();
+
+    // Options de formatage pour éviter la répétition
+    const formatOptions = { day: 'numeric', month: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' };
+
+    if (rdv1.getUTCDay() === targetDay) {
+        return [{
+            ...record, 
+            creneau: rdv1.toLocaleString("fr", formatOptions), 
+            typeCreneau: 'RDV initial'
+        }];
+    } 
+    
+    if (rdv2.getUTCDay() === targetDay) {
+        return [{
+            ...record, 
+            creneau: rdv2.toLocaleString("fr", formatOptions), 
+            typeCreneau: 'RDV relance'
+        }];
+    }
+    return [];
+});
+}
 
 const generateTableHeadColumns = (columns) => {
     let tableHeadColumns = ''
@@ -46,17 +96,25 @@ const generateTableHeadColumns = (columns) => {
     return tableHeadColumns
 }
 
-const generateTableBodyRows = (records) => {
+const generateTableBodyRows = (records, columns) => {
+    console.log("Records", records);
+    console.log("Columns", columns);
     let tableBodyRows = ''
     records.forEach(record => {
         let row = ''
-        COLUMNS.forEach(col => {
-            row += `<td>${record[col.name]}</td>`
+        columns.forEach(col => {
+            row += `<td>${record[col.key]}</td>`
         })
         tableBodyRows += `<tr>${row}</tr>`
     })
     return tableBodyRows
 }
 
-document.getElementById('table_head').innerHTML = generateTableHeadColumns(COLUMNS);
-document.getElementById('table_body').innerHTML = generateTableBodyRows(fakeData);
+
+
+grist.onRecords((gristRecords) => {
+    document.getElementById('table_head').innerHTML = generateTableHeadColumns(TABLE_COLUMNS);
+    const tableRecords = generateTableRecordsFromGristRecords(gristRecords, new Date('2026-01-27'));
+    document.getElementById('table_body').innerHTML = generateTableBodyRows(tableRecords, TABLE_COLUMNS);
+})
+

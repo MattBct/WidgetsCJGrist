@@ -29,7 +29,6 @@ grist.ready(
     {
         requiredAccess: 'read table',
         columns: GRIST_COLUMNS
-
     }
 );
 
@@ -62,29 +61,28 @@ const TABLE_COLUMNS = [
 
 const generateTableRecordsFromGristRecords = (gristRecords, dateSelected) => {
     return gristRecords.flatMap((record) => {
-    const rdv1 = new Date(record.RDV1);
-    const rdv2 = new Date(record.RDV2);
-    const targetDay = dateSelected.getUTCDay();
+        const rdv1 = new Date(record.RDV1);
+        const rdv2 = new Date(record.RDV2);
+        const targetDay = dateSelected.getUTCDay();
 
-    // Options de formatage pour éviter la répétition
-    const formatOptions = { day: 'numeric', month: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' };
+        const formatOptions = { day: 'numeric', month: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' };
 
-    if (rdv1.getUTCDay() === targetDay) {
-        return [{
-            ...record, 
-            creneau: rdv1.toLocaleString("fr", formatOptions), 
-            typeCreneau: 'RDV initial'
-        }];
-    } 
-    
-    if (rdv2.getUTCDay() === targetDay) {
-        return [{
-            ...record, 
-            creneau: rdv2.toLocaleString("fr", formatOptions), 
-            typeCreneau: 'RDV relance'
-        }];
-    }
-    return [];
+        if (rdv1.getUTCDay() === targetDay) {
+            return [{
+                ...record, 
+                creneau: rdv1.toLocaleString("fr", formatOptions), 
+                typeCreneau: 'RDV initial'
+            }];
+        } 
+        
+        if (rdv2.getUTCDay() === targetDay) {
+            return [{
+                ...record, 
+                creneau: rdv2.toLocaleString("fr", formatOptions), 
+                typeCreneau: 'RDV relance'
+            }];
+        }
+        return [];
 });
 }
 
@@ -115,6 +113,7 @@ const generateTableBodyRows = (records, columns) => {
 grist.onRecords((gristRecords) => {
     document.getElementById('table_head').innerHTML = generateTableHeadColumns(TABLE_COLUMNS);
     const tableRecords = generateTableRecordsFromGristRecords(gristRecords, new Date('2026-01-27'));
+    console.log("ALL RECORDS ", tableRecords, gristRecords);
     document.getElementById('table_body').innerHTML = generateTableBodyRows(tableRecords, TABLE_COLUMNS);
 })
 

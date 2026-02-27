@@ -89,12 +89,13 @@ const TABLE_COLUMNS = [
 
 const generateTableRecordsFromGristRecords = (gristRecords, dateSelected) => {
     return gristRecords.flatMap((record) => {
-        console.log('RDV 1', rdv1.toDateString())
-        console.log('RDV 2', rdv2.toDateString())
-        console.log('Date selected,', dateSelected.toDateString())
+
         const rdv1 = new Date(record.RDV1);
         const rdv2 = new Date(record.RDV2);
         const targetDay = dateSelected.toDateString();
+        console.log('RDV 1', rdv1.toDateString())
+        console.log('RDV 2', rdv2.toDateString())
+        console.log('Date selected,', dateSelected.toDateString())
 
         const formatOptions = { day: 'numeric', month: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' };
 

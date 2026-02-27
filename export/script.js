@@ -18,6 +18,18 @@ const GRIST_COLUMNS = [
                 optional: false
             },
             {
+                name: 'LieuRDV1',
+                title: 'Lieu RDV 1',
+                type: 'Choice',
+                optional: false
+            },
+            {
+                name: 'LieuRDV2',
+                title: 'Lieu RDV 2',
+                type: 'Choice',
+                optional: false
+            },
+            {
                 name: 'Motif',
                 title: 'Motif du RDV',
                 type: 'Text',
@@ -58,6 +70,10 @@ const TABLE_COLUMNS = [
         title: "Créneau RDV",
     },
     {
+        key: "lieu",
+        title: "Lieu RDV",
+    },
+    {
         key: "typeCreneau",
         title: "Type de créneau",
     },
@@ -86,7 +102,8 @@ const generateTableRecordsFromGristRecords = (gristRecords, dateSelected) => {
             return [{
                 ...record, 
                 creneau: rdv1.toLocaleString("fr", formatOptions), 
-                typeCreneau: 'RDV initial'
+                typeCreneau: 'RDV initial',
+                lieu: record.LieuRDV1
             }];
         } 
         
@@ -94,7 +111,8 @@ const generateTableRecordsFromGristRecords = (gristRecords, dateSelected) => {
             return [{
                 ...record, 
                 creneau: rdv2.toLocaleString("fr", formatOptions), 
-                typeCreneau: 'RDV relance'
+                typeCreneau: 'RDV relance',
+                lieu: record.LieuRDV1
             }];
         }
         return [];

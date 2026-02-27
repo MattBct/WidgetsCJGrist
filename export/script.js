@@ -144,9 +144,10 @@ const generateTableBodyRows = (records, columns) => {
 
 const datePicker = document.getElementById('datePicker');
 const dateLabel = document.getElementById('rdv_date_label');
+dateLabel.innerHTML = "RDV du " + new Date(datePicker.value).toLocaleDateString("fr-FR");
 
 datePicker.addEventListener('change', () => {
-    dateLabel.innerHTML = new Date(datePicker.value).toLocaleDateString("fr-FR");
+    dateLabel.innerHTML = "RDV du " + new Date(datePicker.value).toLocaleDateString("fr-FR");
     const dateSelected = new Date(datePicker.value);
     const mappedData = grist.mapColumnNames(grist.records);
     const tableRecords = generateTableRecordsFromGristRecords(mappedData, dateSelected);

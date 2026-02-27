@@ -73,13 +73,16 @@ const TABLE_COLUMNS = [
 
 const generateTableRecordsFromGristRecords = (gristRecords, dateSelected) => {
     return gristRecords.flatMap((record) => {
+        console.log('RDV 1', rdv1.toDateString())
+        console.log('RDV 2', rdv2.toDateString())
+        console.log('Date selected,', dateSelected.toDateString())
         const rdv1 = new Date(record.RDV1);
         const rdv2 = new Date(record.RDV2);
-        const targetDay = dateSelected.getUTCDay();
+        const targetDay = dateSelected.toDateString();
 
         const formatOptions = { day: 'numeric', month: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' };
 
-        if (rdv1.getUTCDay() === targetDay) {
+        if (rdv1.toDateString() === targetDay) {
             return [{
                 ...record, 
                 creneau: rdv1.toLocaleString("fr", formatOptions), 
@@ -87,7 +90,7 @@ const generateTableRecordsFromGristRecords = (gristRecords, dateSelected) => {
             }];
         } 
         
-        if (rdv2.getUTCDay() === targetDay) {
+        if (rdv2.toDateString() === targetDay) {
             return [{
                 ...record, 
                 creneau: rdv2.toLocaleString("fr", formatOptions), 

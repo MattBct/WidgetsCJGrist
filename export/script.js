@@ -112,7 +112,7 @@ const generateTableBodyRows = (records, columns) => {
 
 grist.onRecords((records) => {
     document.getElementById('table_head').innerHTML = generateTableHeadColumns(TABLE_COLUMNS);
-    console.log("ALL RECORDS ", tableRecords, records);
+    console.log("ALL RECORDS ", records);
     const tableRecords = generateTableRecordsFromGristRecords(records, new Date('2026-01-27'));
     document.getElementById('table_body').innerHTML = generateTableBodyRows(tableRecords, TABLE_COLUMNS);
 })

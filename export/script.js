@@ -22,6 +22,18 @@ const GRIST_COLUMNS = [
                 title: 'Motif du RDV',
                 type: 'Text',
                 optional: false
+            },
+            {
+                name: 'Email',
+                title: 'Email du patient',
+                type: 'Text',
+                optional: false
+            },
+            {
+                name: 'Tel',
+                title: 'Téléphone du patient',
+                type: 'Text',
+                optional: false
             }
         ]
 
@@ -38,7 +50,7 @@ const TABLE_COLUMNS = [
         "title": "Nom du patient",
     },
     {
-        key: "MotifRdv",
+        key: "Motif",
         title: "Motif du RDV",
     },
     {
@@ -54,7 +66,7 @@ const TABLE_COLUMNS = [
         title: "Email",
     },
     {
-        key: "Téléphone",
+        key: "Tel",
         title: "Téléphone",
     }
 ]

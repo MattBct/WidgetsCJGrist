@@ -137,7 +137,7 @@ const generateTableBodyRows = (records, columns) => {
         columns.forEach(col => {
             row += `<td>${record[col.key]}</td>`
         })
-        tableBodyRows += `<tr>${row}</tr>`
+        tableBodyRows += `<tr ${row[col.typeCreneau]==='RDV initial' ? 'class="bg-primary text-primary-content"' : ''}>${row}</tr>`
     })
     return tableBodyRows
 }

@@ -103,7 +103,7 @@ const generateTableRecordsFromGristRecords = (gristRecords, dateSelected) => {
             return [{
                 ...record, 
                 creneau: rdv1.toLocaleString("fr", formatOptions), 
-                typeCreneau: 'RDV initial',
+                typeCreneau: `<div class="badge badge-outline badge-primary">RDV initial</div>`,
                 lieu: record.LieuRDV1
             }];
         } 
@@ -112,7 +112,7 @@ const generateTableRecordsFromGristRecords = (gristRecords, dateSelected) => {
             return [{
                 ...record, 
                 creneau: rdv2.toLocaleString("fr", formatOptions), 
-                typeCreneau: 'RDV relance',
+                typeCreneau: `<div class="badge badge-soft badge-primary">RDV restitution</div>`,
                 lieu: record.LieuRDV1
             }];
         }

@@ -10,8 +10,16 @@
         <title>Export Grist</title>
     </head>
     <body>
-        <div class="w-full">
-            <table id="table_data" class="table">
+        <style>
+            :root{
+                --color-primary: #C03737;
+                --color-primary-content: #FFFFFF;
+                --color-muted: #f8caca;
+                --color-muted-content: #000000;
+            }
+        </style>
+        <div class="overflow-x-auto rounded-box border border-base-content/5 bg-base-100">
+            <table id="table_data" class="table table-zebra">
                 <thead>
                     <tr id="table_head">
                         <!-- GÉNÉRÉ DYNAMIQUEMENT -->

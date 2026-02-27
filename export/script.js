@@ -103,7 +103,7 @@ const generateTableRecordsFromGristRecords = (gristRecords, dateSelected) => {
             return [{
                 ...record, 
                 creneau: rdv1.toLocaleString("fr", formatOptions), 
-                typeCreneau: `RDV initial`,
+                typeCreneau: `<span class="text-primary font-bold">RDV initial</span>`,
                 lieu: record.LieuRDV1
             }];
         } 
@@ -137,7 +137,7 @@ const generateTableBodyRows = (records, columns) => {
         columns.forEach(col => {
             row += `<td>${record[col.key]}</td>`
         })
-        tableBodyRows += `<tr ${row[col.typeCreneau]==='RDV initial' ? 'class="bg-primary text-primary-content"' : ''}>${row}</tr>`
+        tableBodyRows += `<tr>${row}</tr>`
     })
     return tableBodyRows
 }

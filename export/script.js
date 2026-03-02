@@ -88,7 +88,7 @@ const TABLE_COLUMNS = [
 ]
 
 const generateTableRecordsFromGristRecords = (gristRecords, dateSelected) => {
-    return gristRecords.flatMap((record) => {
+    const generatedRecords = gristRecords.flatMap((record) => {
 
         const rdv1 = new Date(record.RDV1);
         const rdv2 = new Date(record.RDV2);
@@ -117,7 +117,10 @@ const generateTableRecordsFromGristRecords = (gristRecords, dateSelected) => {
             }];
         }
         return [];
-});
+}
+);
+    generatedRecords.sort((a, b) => new Date(a.creneau) - new Date(b.creneau));
+    return generatedRecords
 }
 
 const generateTableHeadColumns = (columns) => {

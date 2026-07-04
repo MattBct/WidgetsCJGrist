@@ -227,7 +227,7 @@ function createCalendar(events, resources){
 
         validRange: {
             start: new Date('2026-07-01'),
-            end: new Date('2026-06-30')
+            end: new Date('2027-06-30')
         }
     });
 

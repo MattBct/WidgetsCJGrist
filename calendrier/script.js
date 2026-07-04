@@ -226,8 +226,8 @@ function createCalendar(events, resources){
         slotEventOverlap: false, // Permet le chevauchement des événements dans les créneaux horaires
 
         validRange: {
-            start: new Date('2025-09-01'),
-            end: new Date('2026-05-31')
+            start: new Date('2026-07-01'),
+            end: new Date('2026-06-30')
         }
     });
 

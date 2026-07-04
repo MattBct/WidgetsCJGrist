@@ -27,16 +27,16 @@ const TITRE_NAME_COLUMN = new Column("Titre", "Titre du RDV", false, "Text", "Ti
 const CRENEAUX_RDV = [
     {
         cols: {
-            date: new DateColumn("Creneau_RDV_1", "Créneau RDV 1"),
-            lieu: new LieuColumn("Lieu_RDV_1", "Lieu RDV 1"),
+            date: new DateColumn("Creneau_RDV_1", "Créneau RDV 1", false, "Créneau horaire du premier rendez-vous"),
+            lieu: new LieuColumn("Lieu_RDV_1", "Lieu RDV 1", false, "Lieu du premier rendez-vous"),
         },
         ordre: 1,
         backgroundColor: "#CDD6DD",
     },
     {
         cols: {
-            date: new DateColumn("Creneau_RDV_2", "Créneau RDV 2"),
-            lieu: new LieuColumn("Lieu_RDV_2", "Lieu RDV 2"),
+            date: new DateColumn("Creneau_RDV_2", "Créneau RDV 2", false, "Créneau horaire du deuxième rendez-vous"),
+            lieu: new LieuColumn("Lieu_RDV_2", "Lieu RDV 2", false, "Lieu du deuxième rendez-vous"),
         },
         ordre: 2,
         backgroundColor: "#CCFBFE"

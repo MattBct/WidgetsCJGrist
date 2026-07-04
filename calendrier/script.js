@@ -17,7 +17,7 @@ class DateColumn extends Column {
 
 class LieuColumn extends Column {
     constructor(name, title, optionnal = false, description = ''){
-        super(name, title, optionnal, 'Reference', description, false);
+        super(name, title, optionnal, 'Ref', description, false);
     }
 }
 

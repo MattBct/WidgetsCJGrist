@@ -31,7 +31,7 @@ const CRENEAUX_RDV = [
             lieu: new LieuColumn("Lieu_RDV_1", "Lieu RDV 1", false, "Lieu du premier rendez-vous"),
         },
         ordre: 1,
-        backgroundColor: "#CDD6DD",
+        backgroundColor: "#F6DFDF",
     },
     {
         cols: {
@@ -39,7 +39,7 @@ const CRENEAUX_RDV = [
             lieu: new LieuColumn("Lieu_RDV_2", "Lieu RDV 2", false, "Lieu du deuxième rendez-vous"),
         },
         ordre: 2,
-        backgroundColor: "#CCFBFE"
+        backgroundColor: "#DB8080"
     },
 
 ]

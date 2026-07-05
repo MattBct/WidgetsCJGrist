@@ -69,6 +69,13 @@ const COLUMNS_MAPPING = [
         description: "Colonne contenant le décompte des heures de débit (régulations) du clinicien",
         allowMultiple: false
     },
+    {
+        name: "liste_rdv",
+        title: "Liste des rendez-vous",
+        optional: false,
+        type: "RefList",
+        description: "Colonne contenant la liste des rendez-vous du clinicien",
+    }
 
 ]
 

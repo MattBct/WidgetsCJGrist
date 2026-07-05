@@ -1,5 +1,35 @@
 const COLUMNS_MAPPING = [
     {
+        name: "nom",
+        title: "Nom de famille",
+        optional: false,
+        type: "Text", 
+        allowMultiple: false
+    },
+    {
+        name: "prenom",
+        title: "Prénom",
+        optional: false,
+        type: "Text", 
+        allowMultiple: false
+    },
+    {
+        name: "niveau",
+        title: "Niveau",
+        description: "Niveau (L3, M1, M2, Doctorat, etc.)",
+        optional: false,
+        type: "Choice", 
+        allowMultiple: false
+    },
+    {
+        name: "diplome",
+        title: "Diplôme",
+        description: "Parcours (Master uniquement)",
+        optional: false,
+        type: "Choice", 
+        allowMultiple: false
+    },
+    {
         name: "heures_totales",
         title: "Heures totales",
         optional: false,

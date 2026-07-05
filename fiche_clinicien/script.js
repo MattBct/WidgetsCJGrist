@@ -86,6 +86,8 @@ const COLUMNS_MAPPING = [
 
 ]
 
+const TABLE_ID_RDV = "RDV"
+
 
 function gristReady() {
     grist.ready({
@@ -102,3 +104,6 @@ function gristReady() {
 }
 
 gristReady()
+
+const test = await grist.docApi.fetchTable(TABLE_ID_RDV);
+console.log('Fetched table data:', test);

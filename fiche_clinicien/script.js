@@ -14,6 +14,13 @@ const COLUMNS_MAPPING = [
         allowMultiple: false
     },
     {
+        name: "option",
+        title: "Option",
+        description: "Colonne décrivant si le clinicien est en option Clinique",
+        type: "Bool",
+        optional: false,
+    },
+    {
         name: "niveau",
         title: "Niveau",
         description: "Niveau (L3, M1, M2, Doctorat, etc.)",

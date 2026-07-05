@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<html lang="fr">
 <head>
     <meta charset="utf-8">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
@@ -8,52 +9,100 @@
 }
     </style>
     <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.umd.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.umd.min.js" onload="initGraphique()" ></script>
 
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.store('clinicien', {
+                label_prenom_nom: "",
+                label_formation: "",
+                option: false,
+                heures_totales: 0,
+                heures_rdv: 0,
+                heures_projets: 0,
+                heures_regulations: 0,
+                heures_regul_credit: 0,
+                heures_regul_debit: 0,
+                heures_regul_net: 0,
+                nb_rdv: 0,
+                nb_projets: 0,
+                rdv: [],
+                projets: [],
+                regulations: [],
+            })
+
+            const store = Alpine.store('clinicien')
+
+            const chartRepartition = new Chart(document.getElementById('chart-repartitions'), {
+                type: 'pie',
+                data: {
+                    labels: ['Rendez-vous', 'Projets', 'Régulations individuelles'],
+                    datasets: [{
+                        label: 'Données Grist',
+                        data: [store.heures_rdv, store.heures_projets, store.heures_regul_net],
+                        backgroundColor: ['#A73030', '#772222', '#471414'],
+                        hoverOffset: 4
+                    }]
+                }
+            })
+
+            Alpine.effect(() => {
+                chartRepartition.data.datasets[0].data = [
+                    store.heures_rdv,
+                    store.heures_projets,
+                    store.heures_regul_net
+                ]
+                chartRepartition.update()
+            })
+        })
+    </script>
 </head>
 
-<body>
+<body x-data>
     <header>
         <div class="container">
             <img src="logoCJ.png" alt="Logo Clinique" style="width: 200px; margin:auto ; margin-bottom:20px; height: auto; display: block;">
 
             <div>
-                <h1 style="text-align: center;">Matthieu BOUCHET</h1>
+                <h1 style="text-align: center;" x-text="$store.clinicien.label_prenom_nom"></h1>
                 <div style="display: flex; flex-direction: row; justify-content: center; gap: 15px;">
-                    <span class="badge clinique" style="font-weight:700;">M1 Droit et activités numériques</span>
-                    <span class="badge info">Option clinique</span>
+                    <span class="badge clinique" style="font-weight:700;" x-text="$store.clinicien.label_formation"></span>
+                    <span class="badge info" x-show="$store.clinicien.option">Option clinique</span>
                 </div>
             </div>
 
             <div style="margin-top:60px; display: flex; flex-direction: row; justify-content: center; align-items: center; gap: 6em;">
                 <div style="display: flex; justify-content:left; flex-direction: column; align-items: center; gap: 10px;">
-                    <span style="font-size: 4.5em; font-weight:900; color:#c03737; line-height:1">45</span>
+                    <span style="font-size: 4.5em; font-weight:900; color:#c03737; line-height:1" x-text="$store.clinicien.heures_totales">45</span>
                     <span style="font-size: 1.5em; font-weight:600; color:black; margin-top:-15px">heures</span>
                 </div>
 
                 <div style="display: flex; justify-content:left; flex-direction: column; align-items: center; gap: 10px;">
-                    <span style="font-size: 4.5em; font-weight:900; color:#c03737; line-height:1">10</span>
-                    <span style="font-size: 1.5em; font-weight:600; color:black; margin-top:-15px">rendez-vous</span>
+                    <span style="font-size: 4.5em; font-weight:900; color:#c03737; line-height:1" x-text="$store.clinicien.nb_rdv"></span>
+                    <span style="font-size: 1.5em; font-weight:600; color:black; margin-top:-15px">RDV</span>
                 </div>
                 <div style="display: flex; justify-content:left; flex-direction: column; align-items: center; gap: 10px;">
-                    <span style="font-size: 4.5em; font-weight:900; color:#c03737; line-height:1">3</span>
+                    <span style="font-size: 4.5em; font-weight:900; color:#c03737; line-height:1" x-text="$store.clinicien.nb_projets"></span>
                     <span style="font-size: 1.5em; font-weight:600; color:black; margin-top:-15px">projets</span>
                 </div>
 
-                <div style="display: flex; justify-content:left; flex-direction: column; align-items: center; padding:10px 20px; background-color:#f2f2f2; border-radius: 10px; gap: 10px;">
-                    <span style="font-size: 1em; font-weight:600; color:#c03737;">Régulations individuelles</span>
-                    <span>+2 heures</span>
-                    <span>-2 heures</span>
+                <div x-show='$store.clinicien.heures_regul_credit > 0 || Math.abs($store.clinicien.heures_regul_debit) > 0' >
+                    <div style="display: flex; justify-content:left; flex-direction: column; align-items: center; padding:10px 20px; background-color:#f2f2f2; border-radius: 10px; gap: 10px;">
+                        <span style="font-size: 1em; font-weight:600; color:#c03737;">Régulations individuelles</span>
+                        <span>+ <span x-text="$store.clinicien.heures_regul_credit"></span> heures</span>
+                        <span>- <span x-text="Math.abs($store.clinicien.heures_regul_debit)"></span> heures</span>
+                    </div>
+                    
                 </div>
             </div>
 
             <div style="margin-top:4em ; display: flex; flex-direction: row; width:100% ; gap: 6em; align-items: center; justify-content: center;">
                 <div style="flex: 3;">
                     <span>
-                        <span style="color:#C03737; font-size: 1.00em; font-weight:750;">80 %</span><span style="font-size: 0.8em ; color:rgb(114, 114, 114); font-weight:300"> des heures complétées</span>
+                        <span style="color:#C03737; font-size: 1.00em; font-weight:750;"><span x-text="Math.round($store.clinicien.heures_totales/60*100)"></span> %</span><span style="font-size: 0.8em ; color:rgb(114, 114, 114); font-weight:300"> des heures complétées</span>
                     </span>
-                    <progress value="87" max="100" style="color: #c03737;"/>
+                    <progress :value="Math.round($store.clinicien.heures_totales/60*100)" max="100" style="color: #c03737;"/>
                 </div>
 
                 <div style="flex: 1; ">
@@ -71,53 +120,51 @@
                 <h3>Rendez-vous</h3>
                 <div style="padding:0px 15px; display:flex; flex-direction: column; gap: 10px;">
                     
-                    <div class="badge gris-clair">
-                        <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
-                            <span><strong>FX5TG</strong> - Droit de la consommation - 5/07/2026 et 20/07/2026</span>
-                            <div style="display: flex; flex-direction: row; gap: 10px; align-items: center;">
-                                <span class="badge" style="background-color:#FEFEFE; color:black">En cours</span>
-                                <span class="badge info" style="font-weight:bold">6H</span>
+                    <template x-for="rdv in $store.clinicien.rdv">
+                        <div class="badge gris-clair">
+                            <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
+                                <span><strong x-text="rdv.id_rdv_clinique"></strong> — <span x-text="rdv.motif"></span><span x-show="rdv.creneau_rdv_1 != null && rdv.creneau_rdv_2 != null"> | <span x-text="new Date(rdv.creneau_rdv_1 * 1000).toLocaleString('fr-FR')"></span> et <span x-text="new Date(rdv.creneau_rdv_2 * 1000).toLocaleString('fr-FR')"></span></span></span>
+                                <div style="display: flex; flex-direction: row; gap: 10px; align-items: center;">
+                                    <span class="badge gris-fonce" style="font-weight:bold; text-wrap:nowrap" x-text="rdv.heures_defaut + ' h'"></span>
+                                </div>
                             </div>
                         </div>
-                    </div>
-
+                    </template>
                 </div>
         </div>
 
         <div class="container main-bloc">
             <h3>Projets</h3>
             <div style="padding:0px 15px; display:flex; flex-direction: column; gap: 10px;">
-                <div class="badge gris-clair">
-                    <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
-                        <span>Mots du droit</span>
-                        <div style="display: flex; flex-direction: row; gap: 10px; align-items: center;">
-                            <!--<span class="badge" style="background-color:#FEFEFE; color:black">En cours</span>-->
-                            <span class="badge info" style="font-weight:bold">6H</span>
+                <template x-for="projet in $store.clinicien.projets">
+                    <div class="badge gris-clair">
+                        <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
+                            <span x-text="projet.nom_projet"></span>
+                            <div style="display: flex; flex-direction: row; gap: 10px; align-items: center;">
+                                <!--<span class="badge" style="background-color:#FEFEFE; color:black">En cours</span>-->
+                                <span class="badge info" style="font-weight:bold" x-text="projet.heures + ' h'"></span>
+                            </div>
                         </div>
                     </div>
-                </div>
+                </template>
+                
             </div>
         </div>
 
         <div class="container main-bloc">
             <h3>Régulations individuelles</h3>
             <div style="padding:0px 15px; display:flex; flex-direction: column; gap: 10px;">
-                <div class="badge gris-clair">
-                    <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
-                        <span>Participation individuelle</span>
-                        <div style="display: flex; flex-direction: row; gap: 10px; align-items: center;">
-                            <span class="badge success" style="font-weight:bold">+ 6H</span>
+                <template x-for="regul in $store.clinicien.regulations">
+                    <div class="badge gris-clair">
+                        <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
+                            <span x-text="regul.motif"></span>
+                            <div style="display: flex; flex-direction: row; gap: 10px; align-items: center;">
+                                <span class="badge" :class="regul.heures > 0 ? 'success' : 'fail'" style="font-weight:bold" x-text="regul.heures + ' h'"></span>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div class="badge gris-clair">
-                    <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
-                        <span>Non participation individuelle</span>
-                        <div style="display: flex; flex-direction: row; gap: 10px; align-items: center;">
-                            <span class="badge fail" style="font-weight:bold">- 3H</span>
-                        </div>
-                    </div>
-                </div>
+                </template>
+
             </div>
 
         </div>
@@ -125,25 +172,6 @@
     
     <script defer src="script.js"></script>
 
-    <script>
-        function initGraphique() {
-            const data = {
-                labels: ['Rendez-vous', 'Projets', 'Régulations individuelles'],
-                datasets: [{
-                    label: 'Données Grist',
-                    data: [40, 5, 2],
-                    backgroundColor: ['#A73030', '#772222', '#471414'],
-                    hoverOffset: 4
-                }]
-            };
-            const chartRepartition = new Chart(document.getElementById('chart-repartitions'), {
-            labels: ['Rendez-vous', 'Projets', 'Régulations individuelles'],
-            type: 'pie',
-            data: data,
-        })
-  }
-
-    </script>
 </body>
 
 <style>
@@ -174,6 +202,10 @@
         background-color: #f2f2f2;
     }
 
+    .gris-fonce {
+        background-color: #c8c8c8;
+    }
+
     .success {
         background-color: #aef6be;
         color: #155724;
@@ -190,3 +222,4 @@
     }
 </style>
 
+</html>

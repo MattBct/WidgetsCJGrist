@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="fr">
+    <head>
+        <meta charset="UTF-8">
+        <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+        <link href="https://cdn.jsdelivr.net/npm/gridjs/dist/theme/mermaid.min.css" rel="stylesheet" />
+        <style>*{font-family: 'Montserrat'}</style>
+        
+    </head>
+
+    <body>
+        <header>
+            <div class="container" style="display: flex ; flex-direction: column; align-items: center ; justify-content: center">
+                <img src="../fiche_clinicien/logoCJ.png" alt="Logo Clinique" style="width: 200px; margin:auto ; margin-bottom:20px; height: auto; display: block;">
+                <h1 style="color: #c03737;">Feuille du jour</h1>
+                <input type="date" class="input" id="datePicker" style="width: 66%;"/>
+            </div>
+        </header>
+        <div id="wrapper"></div>
+
+
+        <script src="https://cdn.jsdelivr.net/npm/gridjs/dist/gridjs.umd.js"></script>
+        <script src="script.js"></script>
+  </body>
+</html>

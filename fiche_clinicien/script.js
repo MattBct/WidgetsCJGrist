@@ -50,9 +50,9 @@ function gristReady() {
     allowSelectBy: true,
   });
 
-  return grist.onRecords((records) => {
-    const mappedRecords = grist.mapColumnNames(records);
-    return mappedRecords
+  return grist.onRecord((record) => {
+    const mappedRecord = grist.mapColumnNames(record);
+    return mappedRecord
   })
 }
 

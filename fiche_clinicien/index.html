@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    <style>
+        [data-theme="light"], :root:not([data-theme="dark"]) {
+            --pico-primary-background: #c03737;
+}
+    </style>
+
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.umd.min.js" onload="initGraphique()" ></script>
+
+    <script defer src="script.js"></script>
+</head>
+
+<body>
+    <header>
+        <div class="container">
+            <img src="logoCJ.png" alt="Logo Clinique" style="width: 200px; margin:auto ; margin-bottom:20px; height: auto; display: block;">
+
+            <div>
+                <h1 style="text-align: center;">Matthieu BOUCHET</h1>
+                <div style="display: flex; flex-direction: row; justify-content: center; gap: 15px;">
+                    <span class="badge clinique" style="font-weight:700;">M1 Droit et activités numériques</span>
+                    <span class="badge info">Option clinique</span>
+                </div>
+            </div>
+
+            <div style="margin-top:60px; display: flex; flex-direction: row; justify-content: center; align-items: center; gap: 6em;">
+                <div style="display: flex; justify-content:left; flex-direction: column; align-items: center; gap: 10px;">
+                    <span style="font-size: 4.5em; font-weight:900; color:#c03737; line-height:1">45</span>
+                    <span style="font-size: 1.5em; font-weight:600; color:black; margin-top:-15px">heures</span>
+                </div>
+
+                <div style="display: flex; justify-content:left; flex-direction: column; align-items: center; gap: 10px;">
+                    <span style="font-size: 4.5em; font-weight:900; color:#c03737; line-height:1">10</span>
+                    <span style="font-size: 1.5em; font-weight:600; color:black; margin-top:-15px">rendez-vous</span>
+                </div>
+                <div style="display: flex; justify-content:left; flex-direction: column; align-items: center; gap: 10px;">
+                    <span style="font-size: 4.5em; font-weight:900; color:#c03737; line-height:1">3</span>
+                    <span style="font-size: 1.5em; font-weight:600; color:black; margin-top:-15px">projets</span>
+                </div>
+
+                <div style="display: flex; justify-content:left; flex-direction: column; align-items: center; padding:10px 20px; background-color:#f2f2f2; border-radius: 10px; gap: 10px;">
+                    <span style="font-size: 1em; font-weight:600; color:#c03737;">Régulations individuelles</span>
+                    <span>+2 heures</span>
+                    <span>-2 heures</span>
+                </div>
+            </div>
+
+            <div style="margin-top:4em ; display: flex; flex-direction: row; width:100% ; gap: 6em; align-items: center; justify-content: center;">
+                <div style="flex: 3;">
+                    <span>
+                        <span style="color:#C03737; font-size: 1.00em; font-weight:750;">80 %</span><span style="font-size: 0.8em ; color:rgb(114, 114, 114); font-weight:300"> des heures complétées</span>
+                    </span>
+                    <progress value="87" max="100" style="color: #c03737;"/>
+                </div>
+
+                <div style="flex: 1; ">
+                    <canvas id="chart-repartitions"></canvas>
+                </div>
+
+            </div>
+        </div>
+
+
+    </header>
+
+    <main style="display: flex; flex-direction: column; gap: 20px; margin-top: 20px;">
+        <div class="container main-bloc">
+                <h3>Rendez-vous</h3>
+                <div style="padding:0px 15px; display:flex; flex-direction: column; gap: 10px;">
+                    
+                    <div class="badge gris-clair">
+                        <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
+                            <span><strong>FX5TG</strong> - Droit de la consommation - 5/07/2026 et 20/07/2026</span>
+                            <div style="display: flex; flex-direction: row; gap: 10px; align-items: center;">
+                                <span class="badge" style="background-color:#FEFEFE; color:black">En cours</span>
+                                <span class="badge info" style="font-weight:bold">6H</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+        </div>
+
+        <div class="container main-bloc">
+            <h3>Projets</h3>
+            <div style="padding:0px 15px; display:flex; flex-direction: column; gap: 10px;">
+                <div class="badge gris-clair">
+                    <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
+                        <span>Mots du droit</span>
+                        <div style="display: flex; flex-direction: row; gap: 10px; align-items: center;">
+                            <!--<span class="badge" style="background-color:#FEFEFE; color:black">En cours</span>-->
+                            <span class="badge info" style="font-weight:bold">6H</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="container main-bloc">
+            <h3>Régulations individuelles</h3>
+            <div style="padding:0px 15px; display:flex; flex-direction: column; gap: 10px;">
+                <div class="badge gris-clair">
+                    <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
+                        <span>Participation individuelle</span>
+                        <div style="display: flex; flex-direction: row; gap: 10px; align-items: center;">
+                            <span class="badge success" style="font-weight:bold">+ 6H</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="badge gris-clair">
+                    <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
+                        <span>Non participation individuelle</span>
+                        <div style="display: flex; flex-direction: row; gap: 10px; align-items: center;">
+                            <span class="badge fail" style="font-weight:bold">- 3H</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+    
+
+    <script>
+        function initGraphique() {
+            const data = {
+                labels: ['Rendez-vous', 'Projets', 'Régulations individuelles'],
+                datasets: [{
+                    label: 'Données Grist',
+                    data: [40, 5, 2],
+                    backgroundColor: ['#A73030', '#772222', '#471414'],
+                    hoverOffset: 4
+                }]
+            };
+            const chartRepartition = new Chart(document.getElementById('chart-repartitions'), {
+            labels: ['Rendez-vous', 'Projets', 'Régulations individuelles'],
+            type: 'pie',
+            data: data,
+        })
+  }
+
+    </script>
+</body>
+
+<style>
+    .main-bloc {
+        padding: 20px; 
+        padding-top:5px;
+        background-color:#F6DFDF; 
+        border-radius: 10px; 
+        margin-top: 20px;
+    }
+
+    .badge {
+        padding: 10px; 
+        border-radius: 10px;
+    }
+
+    .clinique {
+        background-color: #C03737;
+        color: white;
+    }
+
+    .info {
+        background-color: #F6DFDF;
+        color: #000;
+    }
+
+    .gris-clair {
+        background-color: #f2f2f2;
+    }
+
+    .success {
+        background-color: #aef6be;
+        color: #155724;
+    }
+
+    .fail {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+
+    .main-bloc > h3 {
+        margin-bottom: 20px;
+        margin-top: 10px;
+    }
+</style>
+

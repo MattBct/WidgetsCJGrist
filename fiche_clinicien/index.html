@@ -26,6 +26,7 @@
                 heures_regul_debit: 0,
                 heures_regul_net: 0,
                 nb_rdv: 0,
+                nb_rdv_termines: 0,
                 nb_projets: 0,
                 rdv: [],
                 projets: [],
@@ -72,15 +73,16 @@
                 </div>
             </div>
 
-            <div style="margin-top:60px; display: flex; flex-direction: row; justify-content: center; align-items: center; gap: 6em;">
+            <div style="margin-top:60px; display: flex; flex-direction: row; justify-content: center; align-items: start; gap: 6em;">
                 <div style="display: flex; justify-content:left; flex-direction: column; align-items: center; gap: 10px;">
-                    <span style="font-size: 4.5em; font-weight:900; color:#c03737; line-height:1" x-text="$store.clinicien.heures_totales">45</span>
+                    <span style="font-size: 4.5em; font-weight:900; color:#c03737; line-height:1" x-text="$store.clinicien.heures_totales"></span>
                     <span style="font-size: 1.5em; font-weight:600; color:black; margin-top:-15px">heures</span>
                 </div>
 
                 <div style="display: flex; justify-content:left; flex-direction: column; align-items: center; gap: 10px;">
                     <span style="font-size: 4.5em; font-weight:900; color:#c03737; line-height:1" x-text="$store.clinicien.nb_rdv"></span>
                     <span style="font-size: 1.5em; font-weight:600; color:black; margin-top:-15px">RDV</span>
+                    <span style="font-size: 0.75em; margin-top: -10px">dont <strong style="color:#c03737"><span x-text="$store.clinicien.nb_rdv_termines"></span> RDV terminés</strong></span>
                 </div>
                 <div style="display: flex; justify-content:left; flex-direction: column; align-items: center; gap: 10px;">
                     <span style="font-size: 4.5em; font-weight:900; color:#c03737; line-height:1" x-text="$store.clinicien.nb_projets"></span>

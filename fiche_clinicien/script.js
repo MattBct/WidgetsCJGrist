@@ -121,7 +121,14 @@ const COLUMNS_MAPPING = [
         type: "RefList",
         description: "Colonne contenant la liste des régulations horaires concernant le clinicien",
     }, 
-
+    {
+        name: "nb_rdv_termines",
+        title: "Nombre de RDV terminés",
+        optional: false,
+        type: "Int",
+        description: "Colonne contenant le décompte du nombre de rendez-vous terminés du clinicien",
+        allowMultiple: false
+    }
 
 ]
 
@@ -220,5 +227,6 @@ const mappedRecord = grist.onRecord(async (record) => {
     Alpine.store('clinicien').option = records.option
     Alpine.store('clinicien').nb_rdv = records.nb_rdv
     Alpine.store('clinicien').nb_projets = records.nb_projets
+    Alpine.store('clinicien').nb_rdv_termines = records.nb_rdv_termines
     return records
 })

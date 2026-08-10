@@ -7,9 +7,9 @@ grist.ready({
     columns: [
         { name: "idRdv", type: "Text", title: "Identifiant du RDV" },
         { name: "date1", type: "DateTime", title: "Date et heure du RDV 1" },
-        { name: "lieu1", type: "Text", title: "Lieu du RDV 1" },
+        { name: "lieu1", type: "Ref", title: "Lieu du RDV 1" },
         { name: "date2", type: "DateTime", title: "Date et heure du RDV 2" },
-        { name: "lieu2", type: "Text", title: "Lieu du RDV 2" },
+        { name: "lieu2", type: "Ref", title: "Lieu du RDV 2" },
         { name: "motif", type: "Text", title: "Motif du RDV" }
     ]
 });

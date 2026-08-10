@@ -136,7 +136,7 @@ const TABLE_ID_RDV = "RDV"
 const TABLE_ID_PROJETS = "Projets"
 const TABLE_ID_REGULATIONS = "Regulations_heures"
 
-const COLUMN_MOTIF_RDV = "Motif_du_RDV"
+const COLUMN_MOTIF_RDV = "Motif_RDV"
 
 
 function gristReady() {

@@ -1,33 +1,44 @@
-// Variable globale pour stocker toutes les données de la table
+// Variable globale pour stocker toutes les données mappées de la table
 let tableRecords = [];
 
-// 1. Initialisation de Grist et configuration du mappage des colonnes
+// 1. Initialisation de Grist et configuration du mappage
 grist.ready({
     requiredAccess: 'read table',
     columns: [
-        { name: "idRdv", type: "Text", title: "Identifiant du RDV" },
-        { name: "date1", type: "DateTime", title: "Date et heure du RDV 1" },
-        { name: "lieu1", type: "Ref", title: "Lieu du RDV 1" },
-        { name: "date2", type: "DateTime", title: "Date et heure du RDV 2" },
-        { name: "lieu2", type: "Ref", title: "Lieu du RDV 2" },
-        { name: "motif", type: "Text", title: "Motif du RDV" }
+        { name: "idRdv", type: "Any", title: "Identifiant du RDV" },
+        { name: "date1", type: "Any", title: "Date et heure du RDV 1" },
+        { name: "lieu1", type: "Any", title: "Lieu du RDV 1 (Référence)" },
+        { name: "date2", type: "Any", title: "Date et heure du RDV 2" },
+        { name: "lieu2", type: "Any", title: "Lieu du RDV 2 (Référence)" },
+        { name: "motif", type: "Any", title: "Motif du RDV" },
+        { name: "statut", type: "Choice", title: "Statut du RDV" } // Nouvelle colonne Choice
     ]
 });
 
-// 2. Écoute des données envoyées par Grist (toutes les lignes mappées)
+// 2. Écoute des données envoyées par Grist
 grist.onRecords(function(records) {
-    tableRecords = records;
+    // CRUCIAL : Mappe les ID de colonnes Grist vers nos noms (date1, lieu1, statut, etc.)
+    const mappedRecords = grist.mapColumnNames(records);
+    
+    // Si le mapping réussit, on l'utilise. Sinon, on garde les données brutes
+    tableRecords = mappedRecords || records;
+    
+    console.log("Données chargées et mappées :", tableRecords);
 });
 
 /**
- * Fonction utilitaire pour extraire uniquement la date (format YYYY-MM-DD)
- * à partir du format DateTime de Grist (qui est généralement un timestamp en secondes)
+ * Fonction pour extraire la date au format YYYY-MM-DD
+ * Gère les timestamps de Grist ou les formats textes
  */
-function getIsoDateFromGristTimestamp(timestamp) {
-    if (!timestamp) return null;
+function getIsoDate(gristDate) {
+    if (!gristDate) return null;
     
-    // Grist stocke les DateTime en timestamp (secondes), on convertit en millisecondes
-    const dateObj = typeof timestamp === 'number' ? new Date(timestamp * 1000) : new Date(timestamp);
+    let dateObj;
+    if (typeof gristDate === 'number') {
+        dateObj = new Date(gristDate * 1000); // Grist utilise des secondes
+    } else {
+        dateObj = new Date(gristDate);
+    }
     
     if (isNaN(dateObj.getTime())) return null;
     
@@ -38,8 +49,38 @@ function getIsoDateFromGristTimestamp(timestamp) {
     return `${year}-${month}-${day}`;
 }
 
-// 3. Logique de filtrage et d'exportation au clic sur le bouton
-document.getElementById('exportBtn').addEventListener('click', () => {
+/**
+ * Fonction pour formater proprement l'heure pour l'export Excel
+ */
+function formatDateTime(gristDate) {
+    if (!gristDate) return "";
+    let dateObj = typeof gristDate === 'number' ? new Date(gristDate * 1000) : new Date(gristDate);
+    if (isNaN(dateObj.getTime())) return "";
+    return dateObj.toLocaleString('fr-FR');
+}
+
+/**
+ * Fonction pour extraire le Label d'une référence Grist
+ */
+function extractLabel(refValue) {
+    if (refValue === null || refValue === undefined) return "";
+    
+    // Si Grist renvoie un objet brut contenant la propriété Label
+    if (typeof refValue === 'object' && !Array.isArray(refValue)) {
+        return refValue.Label !== undefined ? refValue.Label : JSON.stringify(refValue);
+    }
+    
+    // Si Grist renvoie un tuple de référence [rowId, "Label"]
+    if (Array.isArray(refValue) && refValue.length > 1) {
+        return refValue[1];
+    }
+    
+    // Format chaîne classique
+    return String(refValue);
+}
+
+// 3. Logique de filtrage et d'exportation avec ExcelJS
+document.getElementById('exportBtn').addEventListener('click', async () => {
     const selectedDate = document.getElementById('dateInput').value;
     
     if (!selectedDate) {
@@ -48,49 +89,68 @@ document.getElementById('exportBtn').addEventListener('click', () => {
     }
 
     if (tableRecords.length === 0) {
-        alert("Aucune donnée disponible. Veuillez vérifier le mappage des colonnes dans Grist.");
+        alert("Aucune donnée disponible. Assurez-vous d'avoir lié (mappé) les colonnes dans le panneau Grist.");
         return;
     }
 
-    // Filtrage des enregistrements (Si Date 1 OU Date 2 correspond à la date sélectionnée)
+    // Filtrage des données
     const filteredData = tableRecords.filter(record => {
-        const d1 = getIsoDateFromGristTimestamp(record.date1);
-        const d2 = getIsoDateFromGristTimestamp(record.date2);
+        // A. Vérification du statut (Doit être exactement "Confirmé")
+        // Gère le cas où le ChoiceList Grist enverrait un tableau
+        const statutVal = record.statut;
+        const isConfirmed = Array.isArray(statutVal) ? statutVal.includes("Confirmé") : statutVal === "Confirmé";
+        
+        if (!isConfirmed) return false;
+
+        // B. Vérification des dates
+        const d1 = getIsoDate(record.date1);
+        const d2 = getIsoDate(record.date2);
         
         return d1 === selectedDate || d2 === selectedDate;
     });
 
     if (filteredData.length === 0) {
-        alert("Aucun rendez-vous trouvé pour la date sélectionnée.");
+        alert("Aucun rendez-vous 'Confirmé' trouvé pour la date sélectionnée.");
         return;
     }
 
-    // Formatage des données pour que les en-têtes Excel soient propres
-    const exportData = filteredData.map(record => ({
-        "Identifiant RDV": record.idRdv,
-        "Date/Heure RDV 1": record.date1 ? new Date(record.date1 * 1000).toLocaleString('fr-FR') : "",
-        "Lieu RDV 1": record.lieu1 || "",
-        "Date/Heure RDV 2": record.date2 ? new Date(record.date2 * 1000).toLocaleString('fr-FR') : "",
-        "Lieu RDV 2": record.lieu2 || "",
-        "Motif": record.motif || ""
-    }));
+    // 4. Création du classeur et de la feuille avec ExcelJS
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Rendez-vous');
 
-    // 4. Génération de l'Excel avec SheetJS
-    const worksheet = XLSX.utils.json_to_sheet(exportData);
-    const workbook = XLSX.utils.book_new();
-    
-    // Ajustement rapide de la largeur des colonnes
-    worksheet['!cols'] = [
-        { wch: 20 }, // ID
-        { wch: 22 }, // Date 1
-        { wch: 25 }, // Lieu 1
-        { wch: 22 }, // Date 2
-        { wch: 25 }, // Lieu 2
-        { wch: 30 }  // Motif
+    // Définition des colonnes
+    worksheet.columns = [
+        { header: 'Identifiant RDV', key: 'idRdv', width: 20 },
+        { header: 'Date/Heure RDV 1', key: 'date1', width: 22 },
+        { header: 'Lieu RDV 1', key: 'lieu1', width: 25 },
+        { header: 'Date/Heure RDV 2', key: 'date2', width: 22 },
+        { header: 'Lieu RDV 2', key: 'lieu2', width: 25 },
+        { header: 'Motif', key: 'motif', width: 30 }
     ];
 
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Rendez-vous");
-    
-    // Téléchargement
-    XLSX.writeFile(workbook, `Export_RDV_${selectedDate}.xlsx`);
+    // Style : Mettre la première ligne en gras
+    worksheet.getRow(1).font = { bold: true };
+
+    // Ajout des lignes formatées
+    filteredData.forEach(record => {
+        worksheet.addRow({
+            idRdv: record.idRdv || "",
+            date1: formatDateTime(record.date1),
+            lieu1: extractLabel(record.lieu1),
+            date2: formatDateTime(record.date2),
+            lieu2: extractLabel(record.lieu2),
+            motif: record.motif || ""
+        });
+    });
+
+    // 5. Génération du buffer et téléchargement
+    try {
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        
+        saveAs(blob, `Export_RDV_Confirmes_${selectedDate}.xlsx`);
+    } catch (error) {
+        console.error("Erreur lors de la création de l'Excel : ", error);
+        alert("Une erreur est survenue lors de la génération du fichier.");
+    }
 });

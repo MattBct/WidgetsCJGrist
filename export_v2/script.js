@@ -142,7 +142,8 @@ document.getElementById('exportBtn').addEventListener('click', async () => {
         { header: 'Clinicien 5', key: 'clin5', width: 20 },
         { header: 'Clinicien 6', key: 'clin6', width: 20 }
     ];
-
+    worksheet.getColumn('idRdv').color = { argb: 'FFC03737'};
+    worksheet.getColumn('idRdv').bold = true;
     worksheet.getColumn('motif').alignment = { wrapText: true, vertical: 'top' };
     worksheet.getColumn('lieu').alignment = { wrapText: true, vertical: 'top' };
 

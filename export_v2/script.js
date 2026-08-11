@@ -1,9 +1,10 @@
 // Variable globale pour stocker toutes les données mappées de la table
 let tableRecords = [];
 
-// 1. Initialisation de Grist et configuration du mappage
+// 1. Initialisation de Grist : changement des droits d'accès
+// On demande 'read document' pour pouvoir interroger d'autres tables par leur nom
 grist.ready({
-    requiredAccess: 'read table',
+    requiredAccess: 'read document', 
     columns: [
         { name: "idRdv", type: "Any", title: "Identifiant du RDV" },
         { name: "date1", type: "Any", title: "Date et heure du RDV 1" },
@@ -19,39 +20,26 @@ grist.ready({
 grist.onRecords(function(records) {
     const mappedRecords = grist.mapColumnNames(records);
     tableRecords = mappedRecords || records;
-    console.log("Données chargées et mappées :", tableRecords);
 });
 
-/**
- * Fonction pour extraire la date au format YYYY-MM-DD
- */
+// Utilitaires de formatage
 function getIsoDate(gristDate) {
     if (!gristDate) return null;
     let dateObj = typeof gristDate === 'number' ? new Date(gristDate * 1000) : new Date(gristDate);
     if (isNaN(dateObj.getTime())) return null;
-    
     const year = dateObj.getFullYear();
     const month = String(dateObj.getMonth() + 1).padStart(2, '0');
     const day = String(dateObj.getDate()).padStart(2, '0');
-    
     return `${year}-${month}-${day}`;
 }
 
-/**
- * Fonction pour extraire UNIQUEMENT l'heure (ex: "14:30")
- */
 function formatTime(gristDate) {
     if (!gristDate) return "";
     let dateObj = typeof gristDate === 'number' ? new Date(gristDate * 1000) : new Date(gristDate);
     if (isNaN(dateObj.getTime())) return "";
-    
-    // Retourne l'heure au format local français avec juste les heures et minutes
     return dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 }
 
-/**
- * Fonction pour extraire le Label d'une référence Grist
- */
 function extractLabel(refValue) {
     if (refValue === null || refValue === undefined) return "";
     if (typeof refValue === 'object' && !Array.isArray(refValue)) {
@@ -63,7 +51,7 @@ function extractLabel(refValue) {
     return String(refValue);
 }
 
-// 3. Logique de filtrage et d'exportation avec ExcelJS
+// 3. Logique de filtrage et d'exportation
 document.getElementById('exportBtn').addEventListener('click', async () => {
     const selectedDate = document.getElementById('dateInput').value;
     
@@ -73,21 +61,18 @@ document.getElementById('exportBtn').addEventListener('click', async () => {
     }
 
     if (tableRecords.length === 0) {
-        alert("Aucune donnée disponible. Assurez-vous d'avoir lié (mappé) les colonnes dans le panneau Grist.");
+        alert("Aucune donnée disponible. Assurez-vous d'avoir lié (mappé) les colonnes dans Grist.");
         return;
     }
 
-    // Tableau qui contiendra les données finales pour l'Excel
+    // --- A. Récupération des données pour l'Excel ---
     const exportData = [];
 
-    // Filtrage et consolidation des données
     tableRecords.forEach(record => {
-        // A. Vérification du statut
         const statutVal = record.statut;
         const isConfirmed = Array.isArray(statutVal) ? statutVal.includes("Confirmé") : statutVal === "Confirmé";
         if (!isConfirmed) return;
 
-        // B. Extraction des dates
         const d1 = getIsoDate(record.date1);
         const d2 = getIsoDate(record.date2);
         
@@ -95,7 +80,6 @@ document.getElementById('exportBtn').addEventListener('click', async () => {
         let lieuRetenu = "";
         let matchFound = false;
 
-        // C. Sélection de l'heure et du lieu en fonction du RDV correspondant à la date
         if (d1 === selectedDate) {
             heureRetenue = formatTime(record.date1);
             lieuRetenu = extractLabel(record.lieu1);
@@ -106,15 +90,15 @@ document.getElementById('exportBtn').addEventListener('click', async () => {
             matchFound = true;
         }
 
-        // Si aucun des deux RDV ne tombe à cette date, on ignore la ligne
         if (!matchFound) return;
 
-        // D. Ajout de la ligne consolidée
         exportData.push({
             idRdv: record.idRdv || "",
             heure: heureRetenue,
             lieu: lieuRetenu,
-            motif: record.motif || ""
+            motif: record.motif || "",
+            // Les colonnes cliniciens sont vides par défaut
+            clin1: "", clin2: "", clin3: "", clin4: "", clin5: ""
         });
     });
 
@@ -123,31 +107,74 @@ document.getElementById('exportBtn').addEventListener('click', async () => {
         return;
     }
 
-    // 4. Création du classeur et de la feuille avec ExcelJS
+    // --- B. Récupération des cliniciens depuis Grist ---
+    let cliniciensList = ["Aucun clinicien disponible"];
+    try {
+        // Interroge l'API pour récupérer toutes les lignes de la table "Cliniciens"
+        const cliniciensTable = await grist.docApi.fetchTable('Cliniciens');
+        if (cliniciensTable && cliniciensTable.Label) {
+            // Extrait les labels non vides
+            const validLabels = cliniciensTable.Label.filter(label => label && String(label).trim() !== "");
+            if (validLabels.length > 0) {
+                cliniciensList = validLabels;
+            }
+        }
+    } catch (error) {
+        console.error("Erreur lors de la récupération de la table Cliniciens :", error);
+        alert("La table 'Cliniciens' n'a pas pu être lue. Vérifiez le nom de la table ou les droits d'accès du widget. Les listes déroulantes seront incomplètes.");
+    }
+
+    // --- C. Création du classeur Excel ---
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Rendez-vous');
 
-    // Définition des nouvelles colonnes (plus de RDV 1 et RDV 2 séparés)
+    // Création d'une feuille masquée pour stocker la liste de données des menus déroulants
+    const dropdownSheet = workbook.addWorksheet('DropdownData', { state: 'hidden' });
+    cliniciensList.forEach((clin, index) => {
+        dropdownSheet.getCell(`A${index + 1}`).value = clin;
+    });
+
+    // Définition des colonnes
     worksheet.columns = [
         { header: 'Identifiant RDV', key: 'idRdv', width: 20 },
         { header: 'Heure', key: 'heure', width: 15 },
         { header: 'Lieu', key: 'lieu', width: 25 },
-        { header: 'Motif', key: 'motif', width: 30 }
+        { header: 'Motif', key: 'motif', width: 30 },
+        { header: 'Clinicien 1', key: 'clin1', width: 20 },
+        { header: 'Clinicien 2', key: 'clin2', width: 20 },
+        { header: 'Clinicien 3', key: 'clin3', width: 20 },
+        { header: 'Clinicien 4', key: 'clin4', width: 20 },
+        { header: 'Clinicien 5', key: 'clin5', width: 20 }
     ];
 
-    // Style : Mettre la première ligne en gras
+    // Mettre l'en-tête en gras
     worksheet.getRow(1).font = { bold: true };
 
-    // Ajout des lignes consolidées
+    // Ajout des données
     exportData.forEach(data => {
         worksheet.addRow(data);
     });
 
-    // 5. Génération du buffer et téléchargement
+    // --- D. Ajout des listes déroulantes dans les 5 nouvelles colonnes ---
+    // Les colonnes Clinicien vont de la 5ème à la 9ème colonne (lettres E à I)
+    const columnsWithDropdowns = ['E', 'F', 'G', 'H', 'I'];
+    const dropdownFormula = `'DropdownData'!$A$1:$A$${cliniciensList.length}`;
+
+    // Applique la validation de données sur chaque ligne de ces 5 colonnes
+    for (let i = 2; i <= exportData.length + 1; i++) {
+        columnsWithDropdowns.forEach(col => {
+            worksheet.getCell(`${col}${i}`).dataValidation = {
+                type: 'list',
+                allowBlank: true,
+                formulae: [dropdownFormula]
+            };
+        });
+    }
+
+    // --- E. Génération et téléchargement ---
     try {
         const buffer = await workbook.xlsx.writeBuffer();
         const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        
         saveAs(blob, `Export_RDV_${selectedDate}.xlsx`);
     } catch (error) {
         console.error("Erreur lors de la création de l'Excel : ", error);

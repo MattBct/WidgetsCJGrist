@@ -144,7 +144,7 @@ document.getElementById('exportBtn').addEventListener('click', async () => {
     ];
 
     worksheet.getColumn('motif').alignment = { wrapText: true, vertical: 'top' };
-
+    worksheet.getColumn('lieu').alignment = { wrapText: true, vertical: 'top' };
 
     // 2. Insérer 5 lignes vides au début (l'en-tête des colonnes passe donc à la ligne 6)
     worksheet.spliceRows(1, 0, [], [], [], [], []);

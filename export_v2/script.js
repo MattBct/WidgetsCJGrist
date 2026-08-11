@@ -1,6 +1,7 @@
 // Variable globale pour stocker toutes les données mappées de la table
 let tableRecords = [];
 
+// 1. Initialisation de Grist
 grist.ready({
     requiredAccess: 'full', 
     columns: [
@@ -95,7 +96,6 @@ document.getElementById('exportBtn').addEventListener('click', async () => {
             heure: heureRetenue,
             lieu: lieuRetenu,
             motif: record.motif || "",
-            // Les colonnes cliniciens sont vides par défaut
             clin1: "", clin2: "", clin3: "", clin4: "", clin5: ""
         });
     });
@@ -108,31 +108,28 @@ document.getElementById('exportBtn').addEventListener('click', async () => {
     // --- B. Récupération des cliniciens depuis Grist ---
     let cliniciensList = ["Aucun clinicien disponible"];
     try {
-        // Interroge l'API pour récupérer toutes les lignes de la table "Cliniciens"
         const cliniciensTable = await grist.docApi.fetchTable('Cliniciens');
         if (cliniciensTable && cliniciensTable.Label) {
-            // Extrait les labels non vides
             const validLabels = cliniciensTable.Label.filter(label => label && String(label).trim() !== "");
             if (validLabels.length > 0) {
                 cliniciensList = validLabels;
             }
         }
     } catch (error) {
-        console.error("Erreur lors de la récupération de la table Cliniciens :", error);
-        alert("La table 'Cliniciens' n'a pas pu être lue. Vérifiez le nom de la table ou les droits d'accès du widget. Les listes déroulantes seront incomplètes.");
+        console.error("Erreur Cliniciens :", error);
     }
 
-    // --- C. Création du classeur Excel ---
+    // --- C. CRÉATION DU CLASSEUR ET MISE EN PAGE ---
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Rendez-vous');
 
-    // Création d'une feuille masquée pour stocker la liste de données des menus déroulants
+    // Feuille masquée pour les dropdowns
     const dropdownSheet = workbook.addWorksheet('DropdownData', { state: 'hidden' });
     cliniciensList.forEach((clin, index) => {
         dropdownSheet.getCell(`A${index + 1}`).value = clin;
     });
 
-    // Définition des colonnes
+    // 1. Définition des colonnes (Cela crée l'en-tête par défaut sur la ligne 1)
     worksheet.columns = [
         { header: 'Identifiant RDV', key: 'idRdv', width: 20 },
         { header: 'Heure', key: 'heure', width: 15 },
@@ -145,21 +142,58 @@ document.getElementById('exportBtn').addEventListener('click', async () => {
         { header: 'Clinicien 5', key: 'clin5', width: 20 }
     ];
 
-    // Mettre l'en-tête en gras
-    worksheet.getRow(1).font = { bold: true };
+    // 2. Insérer 5 lignes vides au début (l'en-tête des colonnes passe donc à la ligne 6)
+    worksheet.spliceRows(1, 0, [], [], [], [], []);
 
-    // Ajout des données
+    // 3. Ajout du Titre personnalisé
+    const dateDuJour = new Date().toLocaleDateString('fr-FR');
+    worksheet.mergeCells('D2:G3'); // Fusionne les cellules de la colonne D à G (Lignes 2 et 3) pour le titre
+    const titleCell = worksheet.getCell('D2');
+    titleCell.value = `Export des RDV : ${dateDuJour}`;
+    titleCell.font = {
+        name: 'Montserrat',
+        size: 16,
+        color: { argb: 'FFC03737' }, // Le format ARGB d'Excel. FF (Opacité) + C03737
+        bold: true
+    };
+    titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
+
+    // 4. Ajout de l'image
+    const imagePath = 'LOGO_CJ.png'; 
+    
+    try {
+        const response = await fetch(imagePath);
+        const imageBuffer = await response.arrayBuffer();
+        
+        const imageId = workbook.addImage({
+            buffer: imageBuffer,
+            extension: 'png', // Changer en 'jpeg' si besoin
+        });
+        
+        // tl = top-left (colonne 0, ligne 0 = A1). 
+        // ext = taille de l'image générée en pixels (largeur, hauteur)
+        worksheet.addImage(imageId, {
+            tl: { col: 0, row: 0 }, 
+            ext: { width: 180, height: 75 } 
+        });
+    } catch (error) {
+        console.warn("Impossible de charger l'image. Vérifiez le chemin ou les règles CORS.", error);
+    }
+
+    // 5. Mettre l'en-tête du tableau (Ligne 6) en gras
+    worksheet.getRow(6).font = { bold: true };
+
+    // --- D. INSERTION DES DONNÉES ---
     exportData.forEach(data => {
-        worksheet.addRow(data);
+        worksheet.addRow(data); // Ajoute automatiquement à la suite (donc à partir de la ligne 7)
     });
 
-    // --- D. Ajout des listes déroulantes dans les 5 nouvelles colonnes ---
-    // Les colonnes Clinicien vont de la 5ème à la 9ème colonne (lettres E à I)
+    // --- E. AJOUT DES LISTES DÉROULANTES ---
     const columnsWithDropdowns = ['E', 'F', 'G', 'H', 'I'];
     const dropdownFormula = `'DropdownData'!$A$1:$A$${cliniciensList.length}`;
 
-    // Applique la validation de données sur chaque ligne de ces 5 colonnes
-    for (let i = 2; i <= exportData.length + 1; i++) {
+    // Le tableau de données commence à la ligne 7.
+    for (let i = 7; i <= exportData.length + 6; i++) {
         columnsWithDropdowns.forEach(col => {
             worksheet.getCell(`${col}${i}`).dataValidation = {
                 type: 'list',
@@ -169,11 +203,11 @@ document.getElementById('exportBtn').addEventListener('click', async () => {
         });
     }
 
-    // --- E. Génération et téléchargement ---
+    // --- F. TÉLÉCHARGEMENT ---
     try {
         const buffer = await workbook.xlsx.writeBuffer();
         const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        saveAs(blob, `Export_RDV_${selectedDate}.xlsx`);
+        saveAs(blob, `Export_RDV_CJ_${selectedDate}.xlsx`);
     } catch (error) {
         console.error("Erreur lors de la création de l'Excel : ", error);
         alert("Une erreur est survenue lors de la génération du fichier.");

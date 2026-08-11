@@ -139,7 +139,8 @@ document.getElementById('exportBtn').addEventListener('click', async () => {
         { header: 'Clinicien 2', key: 'clin2', width: 20 },
         { header: 'Clinicien 3', key: 'clin3', width: 20 },
         { header: 'Clinicien 4', key: 'clin4', width: 20 },
-        { header: 'Clinicien 5', key: 'clin5', width: 20 }
+        { header: 'Clinicien 5', key: 'clin5', width: 20 },
+        { header: 'Clinicien 6', key: 'clin6', width: 20 }
     ];
 
     // 2. Insérer 5 lignes vides au début (l'en-tête des colonnes passe donc à la ligne 6)
@@ -149,10 +150,10 @@ document.getElementById('exportBtn').addEventListener('click', async () => {
     const dateDuJour = new Date().toLocaleDateString('fr-FR');
     worksheet.mergeCells('D2:G3'); // Fusionne les cellules de la colonne D à G (Lignes 2 et 3) pour le titre
     const titleCell = worksheet.getCell('D2');
-    titleCell.value = `Export des RDV : ${selectedDate}`;
+    titleCell.value = `Export des RDV : ${selectedDate.toLocaleDateString('fr-FR')}`;
     titleCell.font = {
         name: 'Montserrat',
-        size: 16,
+        size: 24,
         color: { argb: 'FFC03737' }, // Le format ARGB d'Excel. FF (Opacité) + C03737
         bold: true
     };
@@ -174,7 +175,7 @@ document.getElementById('exportBtn').addEventListener('click', async () => {
         // ext = taille de l'image générée en pixels (largeur, hauteur)
         worksheet.addImage(imageId, {
             tl: { col: 0, row: 0 }, 
-            ext: { width: 250, height: 163 } 
+            ext: { width: 125, height: 81 } 
         });
     } catch (error) {
         console.warn("Impossible de charger l'image. Vérifiez le chemin ou les règles CORS.", error);
@@ -189,7 +190,7 @@ document.getElementById('exportBtn').addEventListener('click', async () => {
     });
 
     // --- E. AJOUT DES LISTES DÉROULANTES ---
-    const columnsWithDropdowns = ['E', 'F', 'G', 'H', 'I'];
+    const columnsWithDropdowns = ['E', 'F', 'G', 'H', 'I', 'J'];
     const dropdownFormula = `'DropdownData'!$A$1:$A$${cliniciensList.length}`;
 
     // Le tableau de données commence à la ligne 7.

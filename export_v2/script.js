@@ -1,10 +1,8 @@
 // Variable globale pour stocker toutes les données mappées de la table
 let tableRecords = [];
 
-// 1. Initialisation de Grist : changement des droits d'accès
-// On demande 'read document' pour pouvoir interroger d'autres tables par leur nom
 grist.ready({
-    requiredAccess: 'read document', 
+    requiredAccess: 'full', 
     columns: [
         { name: "idRdv", type: "Any", title: "Identifiant du RDV" },
         { name: "date1", type: "Any", title: "Date et heure du RDV 1" },

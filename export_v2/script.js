@@ -140,7 +140,8 @@ document.getElementById('exportBtn').addEventListener('click', async () => {
         { header: 'Clinicien 3', key: 'clin3', width: 20 },
         { header: 'Clinicien 4', key: 'clin4', width: 20 },
         { header: 'Clinicien 5', key: 'clin5', width: 20 },
-        { header: 'Clinicien 6', key: 'clin6', width: 20 }
+        { header: 'Clinicien 6', key: 'clin6', width: 20 },
+        { header: 'Commentaires', key: 'commentaires', width: 60, height: 40, style: { alignment: { wrapText: true } } }
     ];
     worksheet.getColumn('idRdv').color = {argb: 'FFC03737'};
     worksheet.getColumn('idRdv').bold = true;

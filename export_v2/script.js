@@ -146,15 +146,17 @@ document.getElementById('exportBtn').addEventListener('click', async () => {
     // 2. Insérer 5 lignes vides au début (l'en-tête des colonnes passe donc à la ligne 6)
     worksheet.spliceRows(1, 0, [], [], [], [], []);
 
-    // 3. Ajout du Titre personnalisé
-    const dateDuJour = new Date().toLocaleDateString('fr-FR');
-    worksheet.mergeCells('D2:G3'); // Fusionne les cellules de la colonne D à G (Lignes 2 et 3) pour le titre
+    // 3. Ajout du Titre personnalisé (avec la date au format français)
+    const [year, month, day] = selectedDate.split('-'); // Découpe "2024-10-25" en ["2024", "10", "25"]
+    const dateFrancaise = `${day}/${month}/${year}`;    // Recompose en "25/10/2024"
+
+    worksheet.mergeCells('D2:G3'); 
     const titleCell = worksheet.getCell('D2');
-    titleCell.value = `Export des RDV : ${selectedDate}`;
+    titleCell.value = `Export des RDV : ${dateFrancaise}`; // Utilisation de la date formatée
     titleCell.font = {
         name: 'Montserrat',
         size: 24,
-        color: { argb: 'FFC03737' }, // Le format ARGB d'Excel. FF (Opacité) + C03737
+        color: { argb: 'FFC03737' },
         bold: true
     };
     titleCell.alignment = { vertical: 'middle', horizontal: 'center' };

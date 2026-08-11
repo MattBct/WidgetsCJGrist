@@ -11,35 +11,23 @@ grist.ready({
         { name: "date2", type: "Any", title: "Date et heure du RDV 2" },
         { name: "lieu2", type: "Any", title: "Lieu du RDV 2 (Référence)" },
         { name: "motif", type: "Any", title: "Motif du RDV" },
-        { name: "statut", type: "Choice", title: "Statut du RDV" } // Nouvelle colonne Choice
+        { name: "statut", type: "Choice", title: "Statut du RDV" }
     ]
 });
 
 // 2. Écoute des données envoyées par Grist
 grist.onRecords(function(records) {
-    // CRUCIAL : Mappe les ID de colonnes Grist vers nos noms (date1, lieu1, statut, etc.)
     const mappedRecords = grist.mapColumnNames(records);
-    
-    // Si le mapping réussit, on l'utilise. Sinon, on garde les données brutes
     tableRecords = mappedRecords || records;
-    
     console.log("Données chargées et mappées :", tableRecords);
 });
 
 /**
  * Fonction pour extraire la date au format YYYY-MM-DD
- * Gère les timestamps de Grist ou les formats textes
  */
 function getIsoDate(gristDate) {
     if (!gristDate) return null;
-    
-    let dateObj;
-    if (typeof gristDate === 'number') {
-        dateObj = new Date(gristDate * 1000); // Grist utilise des secondes
-    } else {
-        dateObj = new Date(gristDate);
-    }
-    
+    let dateObj = typeof gristDate === 'number' ? new Date(gristDate * 1000) : new Date(gristDate);
     if (isNaN(dateObj.getTime())) return null;
     
     const year = dateObj.getFullYear();
@@ -50,13 +38,15 @@ function getIsoDate(gristDate) {
 }
 
 /**
- * Fonction pour formater proprement l'heure pour l'export Excel
+ * Fonction pour extraire UNIQUEMENT l'heure (ex: "14:30")
  */
-function formatDateTime(gristDate) {
+function formatTime(gristDate) {
     if (!gristDate) return "";
     let dateObj = typeof gristDate === 'number' ? new Date(gristDate * 1000) : new Date(gristDate);
     if (isNaN(dateObj.getTime())) return "";
-    return dateObj.toLocaleString('fr-FR');
+    
+    // Retourne l'heure au format local français avec juste les heures et minutes
+    return dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 }
 
 /**
@@ -64,18 +54,12 @@ function formatDateTime(gristDate) {
  */
 function extractLabel(refValue) {
     if (refValue === null || refValue === undefined) return "";
-    
-    // Si Grist renvoie un objet brut contenant la propriété Label
     if (typeof refValue === 'object' && !Array.isArray(refValue)) {
         return refValue.Label !== undefined ? refValue.Label : JSON.stringify(refValue);
     }
-    
-    // Si Grist renvoie un tuple de référence [rowId, "Label"]
     if (Array.isArray(refValue) && refValue.length > 1) {
         return refValue[1];
     }
-    
-    // Format chaîne classique
     return String(refValue);
 }
 
@@ -93,23 +77,48 @@ document.getElementById('exportBtn').addEventListener('click', async () => {
         return;
     }
 
-    // Filtrage des données
-    const filteredData = tableRecords.filter(record => {
-        // A. Vérification du statut (Doit être exactement "Confirmé")
-        // Gère le cas où le ChoiceList Grist enverrait un tableau
+    // Tableau qui contiendra les données finales pour l'Excel
+    const exportData = [];
+
+    // Filtrage et consolidation des données
+    tableRecords.forEach(record => {
+        // A. Vérification du statut
         const statutVal = record.statut;
         const isConfirmed = Array.isArray(statutVal) ? statutVal.includes("Confirmé") : statutVal === "Confirmé";
-        
-        if (!isConfirmed) return false;
+        if (!isConfirmed) return;
 
-        // B. Vérification des dates
+        // B. Extraction des dates
         const d1 = getIsoDate(record.date1);
         const d2 = getIsoDate(record.date2);
         
-        return d1 === selectedDate || d2 === selectedDate;
+        let heureRetenue = "";
+        let lieuRetenu = "";
+        let matchFound = false;
+
+        // C. Sélection de l'heure et du lieu en fonction du RDV correspondant à la date
+        if (d1 === selectedDate) {
+            heureRetenue = formatTime(record.date1);
+            lieuRetenu = extractLabel(record.lieu1);
+            matchFound = true;
+        } else if (d2 === selectedDate) {
+            heureRetenue = formatTime(record.date2);
+            lieuRetenu = extractLabel(record.lieu2);
+            matchFound = true;
+        }
+
+        // Si aucun des deux RDV ne tombe à cette date, on ignore la ligne
+        if (!matchFound) return;
+
+        // D. Ajout de la ligne consolidée
+        exportData.push({
+            idRdv: record.idRdv || "",
+            heure: heureRetenue,
+            lieu: lieuRetenu,
+            motif: record.motif || ""
+        });
     });
 
-    if (filteredData.length === 0) {
+    if (exportData.length === 0) {
         alert("Aucun rendez-vous 'Confirmé' trouvé pour la date sélectionnée.");
         return;
     }
@@ -118,29 +127,20 @@ document.getElementById('exportBtn').addEventListener('click', async () => {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Rendez-vous');
 
-    // Définition des colonnes
+    // Définition des nouvelles colonnes (plus de RDV 1 et RDV 2 séparés)
     worksheet.columns = [
         { header: 'Identifiant RDV', key: 'idRdv', width: 20 },
-        { header: 'Date/Heure RDV 1', key: 'date1', width: 22 },
-        { header: 'Lieu RDV 1', key: 'lieu1', width: 25 },
-        { header: 'Date/Heure RDV 2', key: 'date2', width: 22 },
-        { header: 'Lieu RDV 2', key: 'lieu2', width: 25 },
+        { header: 'Heure', key: 'heure', width: 15 },
+        { header: 'Lieu', key: 'lieu', width: 25 },
         { header: 'Motif', key: 'motif', width: 30 }
     ];
 
     // Style : Mettre la première ligne en gras
     worksheet.getRow(1).font = { bold: true };
 
-    // Ajout des lignes formatées
-    filteredData.forEach(record => {
-        worksheet.addRow({
-            idRdv: record.idRdv || "",
-            date1: formatDateTime(record.date1),
-            lieu1: extractLabel(record.lieu1),
-            date2: formatDateTime(record.date2),
-            lieu2: extractLabel(record.lieu2),
-            motif: record.motif || ""
-        });
+    // Ajout des lignes consolidées
+    exportData.forEach(data => {
+        worksheet.addRow(data);
     });
 
     // 5. Génération du buffer et téléchargement
@@ -148,7 +148,7 @@ document.getElementById('exportBtn').addEventListener('click', async () => {
         const buffer = await workbook.xlsx.writeBuffer();
         const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
         
-        saveAs(blob, `Export_RDV_Confirmes_${selectedDate}.xlsx`);
+        saveAs(blob, `Export_RDV_${selectedDate}.xlsx`);
     } catch (error) {
         console.error("Erreur lors de la création de l'Excel : ", error);
         alert("Une erreur est survenue lors de la génération du fichier.");

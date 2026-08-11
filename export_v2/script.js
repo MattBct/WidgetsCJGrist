@@ -150,7 +150,7 @@ document.getElementById('exportBtn').addEventListener('click', async () => {
     const dateDuJour = new Date().toLocaleDateString('fr-FR');
     worksheet.mergeCells('D2:G3'); // Fusionne les cellules de la colonne D à G (Lignes 2 et 3) pour le titre
     const titleCell = worksheet.getCell('D2');
-    titleCell.value = `Export des RDV : ${Date(selectedDate).toLocaleDateString('fr-FR')}`;
+    titleCell.value = `Export des RDV : ${selectedDate}`;
     titleCell.font = {
         name: 'Montserrat',
         size: 24,

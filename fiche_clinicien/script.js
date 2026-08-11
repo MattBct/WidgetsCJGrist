@@ -160,7 +160,7 @@ async function fetchTableRDV(tableID, key_records_id, ids_to_fetch) {
             "creneau_rdv_1": table_rdv["Creneau_RDV_1"][index_record],
             "creneau_rdv_2": table_rdv["Creneau_RDV_2"][index_record],
             "statut_rdv": table_rdv["Statut_RDV"][index_record],
-            "motif": table_rdv["Motif_du_RDV"][index_record],
+            "motif": table_rdv[COLUMN_MOTIF_RDV][index_record],
             "heures_defaut": table_rdv["heures"][index_record],
         }
         list_rdv.push(row);

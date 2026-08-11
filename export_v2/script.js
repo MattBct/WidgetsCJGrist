@@ -149,7 +149,7 @@ document.getElementById('exportBtn').addEventListener('click', async () => {
     const dateDuJour = new Date().toLocaleDateString('fr-FR');
     worksheet.mergeCells('D2:G3'); // Fusionne les cellules de la colonne D à G (Lignes 2 et 3) pour le titre
     const titleCell = worksheet.getCell('D2');
-    titleCell.value = `Export des RDV : ${dateDuJour}`;
+    titleCell.value = `Export des RDV : ${selectedDate}`;
     titleCell.font = {
         name: 'Montserrat',
         size: 16,
@@ -174,7 +174,7 @@ document.getElementById('exportBtn').addEventListener('click', async () => {
         // ext = taille de l'image générée en pixels (largeur, hauteur)
         worksheet.addImage(imageId, {
             tl: { col: 0, row: 0 }, 
-            ext: { width: 180, height: 75 } 
+            ext: { width: 250, height: 163 } 
         });
     } catch (error) {
         console.warn("Impossible de charger l'image. Vérifiez le chemin ou les règles CORS.", error);

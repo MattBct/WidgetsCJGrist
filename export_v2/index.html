@@ -12,6 +12,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
     <!-- FileSaver pour déclencher le téléchargement du fichier -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <!-- JSZip pour l'archive contenant l'Excel et les pièces jointes -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     
     <style>
         body {
@@ -35,7 +37,7 @@
     <div class="container">
         <label for="dateInput">Sélectionner la date du RDV :</label>
         <input type="date" id="dateInput">
-        <button id="exportBtn" style="background-color: #c03737; color: white;">Générer le tableau Excel</button>
+        <button id="exportBtn" style="background-color: #c03737; color: white;">Générer l'archive (Excel + pièces jointes)</button>
     </div>
 
     <!-- Script logique -->

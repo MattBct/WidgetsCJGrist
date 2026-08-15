@@ -6,12 +6,15 @@ grist.ready({
     requiredAccess: 'full', 
     columns: [
         { name: "idRdv", type: "Any", title: "Identifiant du RDV" },
+        { name: "nomPatient", type: "Any", title: "Nom du patient" },
+        { name: "telephone", type: "Any", title: "Numéro de téléphone du patient" },
         { name: "date1", type: "Any", title: "Date et heure du RDV 1" },
         { name: "lieu1", type: "Any", title: "Lieu du RDV 1 (Référence)" },
         { name: "date2", type: "Any", title: "Date et heure du RDV 2" },
         { name: "lieu2", type: "Any", title: "Lieu du RDV 2 (Référence)" },
         { name: "motif", type: "Any", title: "Motif du RDV" },
-        { name: "statut", type: "Choice", title: "Statut du RDV" }
+        { name: "statut", type: "Choice", title: "Statut du RDV" },
+        { name: "pieceJointe", type: "Attachments", title: "Pièce jointe patient", optional: true }
     ]
 });
 
@@ -50,6 +53,54 @@ function extractLabel(refValue) {
     return String(refValue);
 }
 
+// Utilitaires pièces jointes
+// Une colonne "Attachments" arrive sous la forme ['L', 12, 13] (liste d'identifiants).
+function extractAttachmentIds(value) {
+    if (!Array.isArray(value)) return [];
+    const ids = value[0] === 'L' ? value.slice(1) : value;
+    return ids.filter(id => Number.isInteger(id));
+}
+
+// Nettoie une chaîne pour l'utiliser comme nom de fichier ou de répertoire dans le ZIP.
+function sanitizeName(name) {
+    const cleaned = String(name).replace(/[\/\\:*?"<>|]/g, '_').trim();
+    return cleaned === "" ? "sans_nom" : cleaned;
+}
+
+// Évite d'écraser deux pièces jointes portant le même nom dans un même répertoire.
+function uniqueName(fileName, usedNames) {
+    if (!usedNames.has(fileName)) {
+        usedNames.add(fileName);
+        return fileName;
+    }
+    const dotIndex = fileName.lastIndexOf('.');
+    const base = dotIndex > 0 ? fileName.slice(0, dotIndex) : fileName;
+    const ext = dotIndex > 0 ? fileName.slice(dotIndex) : "";
+    let counter = 2;
+    while (usedNames.has(`${base} (${counter})${ext}`)) counter++;
+    const finalName = `${base} (${counter})${ext}`;
+    usedNames.add(finalName);
+    return finalName;
+}
+
+// Récupère le nom d'origine de la pièce jointe (l'API renvoie fileName, fileSize, timeUploaded).
+async function fetchAttachmentFileName(baseUrl, token, attId) {
+    try {
+        const response = await fetch(`${baseUrl}/attachments/${attId}?auth=${token}`);
+        if (!response.ok) return null;
+        const meta = await response.json();
+        return meta && meta.fileName ? meta.fileName : null;
+    } catch (error) {
+        return null;
+    }
+}
+
+async function fetchAttachmentBlob(baseUrl, token, attId) {
+    const response = await fetch(`${baseUrl}/attachments/${attId}/download?auth=${token}`);
+    if (!response.ok) throw new Error(`Téléchargement impossible (HTTP ${response.status})`);
+    return response.blob();
+}
+
 // 3. Logique de filtrage et d'exportation
 document.getElementById('exportBtn').addEventListener('click', async () => {
     const selectedDate = document.getElementById('dateInput').value;
@@ -66,6 +117,7 @@ document.getElementById('exportBtn').addEventListener('click', async () => {
 
     // --- A. Récupération des données pour l'Excel ---
     const exportData = [];
+    const attachmentsByRdv = [];
 
     tableRecords.forEach(record => {
         const statutVal = record.statut;
@@ -77,27 +129,40 @@ document.getElementById('exportBtn').addEventListener('click', async () => {
         
         let heureRetenue = "";
         let lieuRetenu = "";
+        let typeRdv = "";
         let matchFound = false;
 
         if (d1 === selectedDate) {
             heureRetenue = formatTime(record.date1);
             lieuRetenu = extractLabel(record.lieu1);
+            typeRdv = "RDV 1 (Initial)";
             matchFound = true;
         } else if (d2 === selectedDate) {
             heureRetenue = formatTime(record.date2);
             lieuRetenu = extractLabel(record.lieu2);
+            typeRdv = "RDV 2 (Restitution)";
             matchFound = true;
         }
 
         if (!matchFound) return;
 
+        const idRdv = record.idRdv || "";
+
         exportData.push({
-            idRdv: record.idRdv || "",
+            idRdv: idRdv,
+            nomPatient: extractLabel(record.nomPatient),
+            telephone: extractLabel(record.telephone),
             heure: heureRetenue,
             lieu: lieuRetenu,
             motif: record.motif || "",
-            clin1: "", clin2: "", clin3: "", clin4: "", clin5: ""
+            clin1: "", clin2: "", clin3: "", clin4: "", clin5: "",
+            typeRdv: typeRdv
         });
+
+        const attachmentIds = extractAttachmentIds(record.pieceJointe);
+        if (attachmentIds.length > 0) {
+            attachmentsByRdv.push({ idRdv: idRdv, ids: attachmentIds });
+        }
     });
 
     if (exportData.length === 0) {
@@ -132,6 +197,8 @@ document.getElementById('exportBtn').addEventListener('click', async () => {
     // 1. Définition des colonnes (Cela crée l'en-tête par défaut sur la ligne 1)
     worksheet.columns = [
         { header: 'Identifiant RDV', key: 'idRdv', width: 20 },
+        { header: 'Nom du patient', key: 'nomPatient', width: 25 },
+        { header: 'Téléphone patient', key: 'telephone', width: 18 },
         { header: 'Heure', key: 'heure', width: 15 },
         { header: 'Lieu', key: 'lieu', width: 25 },
         { header: 'Motif', key: 'motif', width: 30 },
@@ -141,6 +208,7 @@ document.getElementById('exportBtn').addEventListener('click', async () => {
         { header: 'Clinicien 4', key: 'clin4', width: 20 },
         { header: 'Clinicien 5', key: 'clin5', width: 20 },
         { header: 'Clinicien 6', key: 'clin6', width: 20 },
+        { header: 'Type de RDV', key: 'typeRdv', width: 22 },
         { header: 'Commentaires', key: 'commentaires', width: 60, height: 40, style: { alignment: { wrapText: true } } }
     ];
     worksheet.getColumn('idRdv').color = {argb: 'FFC03737'};
@@ -202,7 +270,9 @@ document.getElementById('exportBtn').addEventListener('click', async () => {
     });
 
     // --- E. AJOUT DES LISTES DÉROULANTES ---
-    const columnsWithDropdowns = ['E', 'F', 'G', 'H', 'I', 'J'];
+    // Les lettres sont déduites des clés : elles se décalent si l'on ajoute des colonnes en amont.
+    const columnsWithDropdowns = ['clin1', 'clin2', 'clin3', 'clin4', 'clin5', 'clin6']
+        .map(key => worksheet.getColumn(key).letter);
     const dropdownFormula = `'DropdownData'!$A$1:$A$${cliniciensList.length}`;
 
     // Le tableau de données commence à la ligne 7.
@@ -216,13 +286,61 @@ document.getElementById('exportBtn').addEventListener('click', async () => {
         });
     }
 
-    // --- F. TÉLÉCHARGEMENT ---
+    // --- F. CONSTRUCTION DE L'ARCHIVE ZIP ---
+    const exportBtn = document.getElementById('exportBtn');
+    const originalBtnLabel = exportBtn.textContent;
+    exportBtn.disabled = true;
+    exportBtn.textContent = "Génération en cours...";
+
     try {
+        const zip = new JSZip();
+
+        // 1. Le fichier Excel, à la racine de l'archive
         const buffer = await workbook.xlsx.writeBuffer();
-        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        saveAs(blob, `Export_RDV_CJ_${selectedDate}.xlsx`);
+        zip.file(`Export_RDV_CJ_${selectedDate}.xlsx`, buffer);
+
+        // 2. Un répertoire par RDV disposant de pièces jointes
+        const attachmentErrors = [];
+        if (attachmentsByRdv.length > 0) {
+            const tokenInfo = await grist.docApi.getAccessToken({ readOnly: true });
+            const usedNamesByFolder = new Map();
+
+            for (const entry of attachmentsByRdv) {
+                const folderName = sanitizeName(entry.idRdv);
+                const folder = zip.folder(folderName);
+                if (!usedNamesByFolder.has(folderName)) {
+                    usedNamesByFolder.set(folderName, new Set());
+                }
+                const usedNames = usedNamesByFolder.get(folderName);
+
+                for (const attId of entry.ids) {
+                    try {
+                        const [fileName, blob] = await Promise.all([
+                            fetchAttachmentFileName(tokenInfo.baseUrl, tokenInfo.token, attId),
+                            fetchAttachmentBlob(tokenInfo.baseUrl, tokenInfo.token, attId)
+                        ]);
+                        const safeName = uniqueName(sanitizeName(fileName || `piece_jointe_${attId}`), usedNames);
+                        folder.file(safeName, blob);
+                    } catch (error) {
+                        console.error(`Pièce jointe ${attId} (RDV ${entry.idRdv}) :`, error);
+                        attachmentErrors.push(`${entry.idRdv} (pièce jointe ${attId})`);
+                    }
+                }
+            }
+        }
+
+        // 3. Téléchargement de l'archive
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        saveAs(zipBlob, `RDV_CJ_${selectedDate}.zip`);
+
+        if (attachmentErrors.length > 0) {
+            alert(`L'archive a été générée, mais ces pièces jointes n'ont pas pu être récupérées :\n- ${attachmentErrors.join('\n- ')}`);
+        }
     } catch (error) {
-        console.error("Erreur lors de la création de l'Excel : ", error);
-        alert("Une erreur est survenue lors de la génération du fichier.");
+        console.error("Erreur lors de la création de l'archive : ", error);
+        alert("Une erreur est survenue lors de la génération de l'archive.");
+    } finally {
+        exportBtn.disabled = false;
+        exportBtn.textContent = originalBtnLabel;
     }
 });

@@ -1,5 +1,7 @@
 // Variable globale pour stocker toutes les données mappées de la table
 let tableRecords = [];
+// Mappings colonnes widget -> colonnes Grist, pour détecter une colonne non liée
+let columnMappings = null;
 
 // 1. Initialisation de Grist
 grist.ready({
@@ -19,7 +21,8 @@ grist.ready({
 });
 
 // 2. Écoute des données envoyées par Grist
-grist.onRecords(function(records) {
+grist.onRecords(function(records, mappings) {
+    if (mappings) columnMappings = mappings;
     const mappedRecords = grist.mapColumnNames(records);
     tableRecords = mappedRecords || records;
 });
@@ -54,11 +57,60 @@ function extractLabel(refValue) {
 }
 
 // Utilitaires pièces jointes
-// Une colonne "Attachments" arrive sous la forme ['L', 12, 13] (liste d'identifiants).
+// onRecords décode les valeurs : une colonne "Attachments" arrive donc sous la forme [12, 13].
+// On accepte aussi la forme encodée ['L', 12, 13] et un identifiant seul, par sécurité.
 function extractAttachmentIds(value) {
-    if (!Array.isArray(value)) return [];
-    const ids = value[0] === 'L' ? value.slice(1) : value;
-    return ids.filter(id => Number.isInteger(id));
+    if (value === null || value === undefined || value === "") return [];
+
+    let raw;
+    if (Array.isArray(value)) {
+        raw = value[0] === 'L' ? value.slice(1) : value;
+    } else {
+        raw = [value];
+    }
+
+    return raw
+        .map(id => {
+            if (typeof id === 'object' && id !== null) return Number(id.id);
+            return Number(id);
+        })
+        .filter(id => Number.isInteger(id) && id > 0);
+}
+
+// Extensions de secours quand le nom d'origine est indisponible : un fichier sans
+// extension ne s'ouvre pas correctement une fois extrait de l'archive.
+const MIME_EXTENSIONS = {
+    'application/pdf': '.pdf',
+    'image/png': '.png',
+    'image/jpeg': '.jpg',
+    'image/gif': '.gif',
+    'image/webp': '.webp',
+    'image/heic': '.heic',
+    'image/tiff': '.tiff',
+    'text/plain': '.txt',
+    'text/csv': '.csv',
+    'application/zip': '.zip',
+    'application/msword': '.doc',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
+    'application/vnd.ms-excel': '.xls',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx',
+    'application/vnd.ms-powerpoint': '.ppt',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation': '.pptx'
+};
+
+// Le nom d'origine peut venir de l'en-tête Content-Disposition (filename* ou filename).
+function fileNameFromDisposition(header) {
+    if (!header) return null;
+    const utf8Match = header.match(/filename\*=UTF-8''([^;]+)/i);
+    if (utf8Match) {
+        try {
+            return decodeURIComponent(utf8Match[1]);
+        } catch (error) {
+            // en-tête mal formé : on tente la forme simple ci-dessous
+        }
+    }
+    const simpleMatch = header.match(/filename="?([^";]+)"?/i);
+    return simpleMatch ? simpleMatch[1] : null;
 }
 
 // Nettoie une chaîne pour l'utiliser comme nom de fichier ou de répertoire dans le ZIP.
@@ -83,22 +135,36 @@ function uniqueName(fileName, usedNames) {
     return finalName;
 }
 
-// Récupère le nom d'origine de la pièce jointe (l'API renvoie fileName, fileSize, timeUploaded).
-async function fetchAttachmentFileName(baseUrl, token, attId) {
-    try {
-        const response = await fetch(`${baseUrl}/attachments/${attId}?auth=${token}`);
-        if (!response.ok) return null;
-        const meta = await response.json();
-        return meta && meta.fileName ? meta.fileName : null;
-    } catch (error) {
-        return null;
-    }
-}
-
-async function fetchAttachmentBlob(baseUrl, token, attId) {
+// Télécharge une pièce jointe et détermine son nom.
+// Le nom d'origine est cherché dans l'en-tête de la réponse, puis via l'endpoint de
+// métadonnées ; en dernier recours on fabrique un nom à partir du type MIME.
+async function fetchAttachment(baseUrl, token, attId) {
     const response = await fetch(`${baseUrl}/attachments/${attId}/download?auth=${token}`);
-    if (!response.ok) throw new Error(`Téléchargement impossible (HTTP ${response.status})`);
-    return response.blob();
+    if (!response.ok) {
+        throw new Error(`Téléchargement impossible (HTTP ${response.status})`);
+    }
+
+    let fileName = fileNameFromDisposition(response.headers.get('content-disposition'));
+    const blob = await response.blob();
+
+    if (!fileName) {
+        try {
+            const metaResponse = await fetch(`${baseUrl}/attachments/${attId}?auth=${token}`);
+            if (metaResponse.ok) {
+                const meta = await metaResponse.json();
+                if (meta && meta.fileName) fileName = meta.fileName;
+            }
+        } catch (error) {
+            console.warn(`Métadonnées indisponibles pour la pièce jointe ${attId}`, error);
+        }
+    }
+
+    if (!fileName) {
+        const extension = MIME_EXTENSIONS[(blob.type || "").split(';')[0].trim()] || '.bin';
+        fileName = `piece_jointe_${attId}${extension}`;
+    }
+
+    return { blob, fileName };
 }
 
 // 3. Logique de filtrage et d'exportation
@@ -301,6 +367,7 @@ document.getElementById('exportBtn').addEventListener('click', async () => {
 
         // 2. Un répertoire par RDV disposant de pièces jointes
         const attachmentErrors = [];
+        let attachmentCount = 0;
         if (attachmentsByRdv.length > 0) {
             const tokenInfo = await grist.docApi.getAccessToken({ readOnly: true });
             const usedNamesByFolder = new Map();
@@ -315,12 +382,10 @@ document.getElementById('exportBtn').addEventListener('click', async () => {
 
                 for (const attId of entry.ids) {
                     try {
-                        const [fileName, blob] = await Promise.all([
-                            fetchAttachmentFileName(tokenInfo.baseUrl, tokenInfo.token, attId),
-                            fetchAttachmentBlob(tokenInfo.baseUrl, tokenInfo.token, attId)
-                        ]);
-                        const safeName = uniqueName(sanitizeName(fileName || `piece_jointe_${attId}`), usedNames);
+                        const { blob, fileName } = await fetchAttachment(tokenInfo.baseUrl, tokenInfo.token, attId);
+                        const safeName = uniqueName(sanitizeName(fileName), usedNames);
                         folder.file(safeName, blob);
+                        attachmentCount++;
                     } catch (error) {
                         console.error(`Pièce jointe ${attId} (RDV ${entry.idRdv}) :`, error);
                         attachmentErrors.push(`${entry.idRdv} (pièce jointe ${attId})`);
@@ -333,8 +398,16 @@ document.getElementById('exportBtn').addEventListener('click', async () => {
         const zipBlob = await zip.generateAsync({ type: 'blob' });
         saveAs(zipBlob, `RDV_CJ_${selectedDate}.zip`);
 
+        // 4. Compte rendu : une archive sans pièce jointe doit s'expliquer.
         if (attachmentErrors.length > 0) {
             alert(`L'archive a été générée, mais ces pièces jointes n'ont pas pu être récupérées :\n- ${attachmentErrors.join('\n- ')}`);
+        } else if (attachmentCount === 0) {
+            const isMapped = columnMappings && columnMappings.pieceJointe;
+            if (!isMapped) {
+                alert("L'archive ne contient que le fichier Excel : la colonne « Pièce jointe patient » n'est pas liée. Ouvrez le panneau de création du widget pour la mapper.");
+            } else {
+                alert("L'archive ne contient que le fichier Excel : aucun des RDV exportés ne possède de pièce jointe.");
+            }
         }
     } catch (error) {
         console.error("Erreur lors de la création de l'archive : ", error);

@@ -151,6 +151,7 @@ gristReady()
 
 async function fetchTableRDV(tableID, key_records_id, ids_to_fetch) {
     const table_rdv = await grist.docApi.fetchTable(tableID);
+    console.log("RAW RDV : ", table_rdv)
 
     const list_rdv = []
     for (const record of ids_to_fetch) {
@@ -174,6 +175,9 @@ async function fetchTableRDV(tableID, key_records_id, ids_to_fetch) {
 
 async function fetchTableProjets(tableID, key_records_id, ids_to_fetch) {
     const table_projets = await grist.docApi.fetchTable(tableID);
+
+    console.log("RAW projets : ", table_projets)
+
 
     const list_projets = []
     for (const record of ids_to_fetch) {

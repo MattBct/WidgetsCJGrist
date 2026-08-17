@@ -152,10 +152,12 @@ gristReady()
 async function fetchTableRDV(tableID, key_records_id, ids_to_fetch) {
     const table_rdv = await grist.docApi.fetchTable(tableID);
     console.log("RAW RDV : ", table_rdv)
+    console.log("IDS RDV to fetch", ids_to_fetch)
 
     const list_rdv = []
     for (const record of ids_to_fetch) {
         const index_record = table_rdv[key_records_id].indexOf(record);
+        console.log('Index en cours :', index_record)
         const row = {
             "id_rdv_clinique": table_rdv["id_rdv_clinique"][index_record],
             "creneau_rdv_1": table_rdv["Creneau_RDV_1"][index_record],

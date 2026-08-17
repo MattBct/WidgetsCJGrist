@@ -130,7 +130,7 @@
 
                                     <!--Encart informations supplemémentaires-->
                                     <div style="display: flex; flex-direction: row; gap: 4px; font-weight: lighter; flex-wrap: nowrap; font-size: xx-small;">
-                                        <span x-text="rdv.statut_rdv"></span><span x-text="rdv.motif"></span><span x-show="rdv.creneau_rdv_1 != null && rdv.creneau_rdv_2 != null"> | <span x-text="new Date(rdv.creneau_rdv_1 * 1000).toLocaleString('fr-FR')"></span> et <span x-text="new Date(rdv.creneau_rdv_2 * 1000).toLocaleString('fr-FR')"></span></span>
+                                        <span x-text="rdv.statut_rdv" style="font-weight: bold;"></span><span x-text="rdv.motif ?? Pas de motif indiqué"></span><span x-show="rdv.creneau_rdv_1 != null && rdv.creneau_rdv_2 != null"><span x-text="new Date(rdv.creneau_rdv_1 * 1000).toLocaleString('fr-FR')"></span> et <span x-text="new Date(rdv.creneau_rdv_2 * 1000).toLocaleString('fr-FR')"></span></span>
                                     </div>
                                 </div>
                                 <div style="display: flex; flex-direction: row; gap: 10px; align-items: center;">

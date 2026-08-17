@@ -125,11 +125,17 @@
                     <template x-for="rdv in $store.clinicien.rdv">
                         <div class="badge gris-clair">
                             <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
-                                <span><strong x-text="rdv.id_rdv_clinique"></strong> — <span x-text="rdv.motif"></span><span x-show="rdv.creneau_rdv_1 != null && rdv.creneau_rdv_2 != null"> | <span x-text="new Date(rdv.creneau_rdv_1 * 1000).toLocaleString('fr-FR')"></span> et <span x-text="new Date(rdv.creneau_rdv_2 * 1000).toLocaleString('fr-FR')"></span></span></span>
+                                <div style="display: flex; flex-direction: column; justify-content: start; gap: 8px;">
+                                    <span><strong x-text="rdv.id_rdv_clinique"></strong> — <span x-text="rdv.motif"></span></span>
+                                    <div style="display: flex; flex-direction: row; gap: 4px; font-weight: lighter;">
+                                        <span x-text="'${rdv.statut_rdv} | ${rdv.motif} | '"></span><span x-show="rdv.creneau_rdv_1 != null && rdv.creneau_rdv_2 != null"> | <span x-text="new Date(rdv.creneau_rdv_1 * 1000).toLocaleString('fr-FR')"></span> et <span x-text="new Date(rdv.creneau_rdv_2 * 1000).toLocaleString('fr-FR')"></span></span>
+                                    </div>
+                                </div>
                                 <div style="display: flex; flex-direction: row; gap: 10px; align-items: center;">
-                                    <span class="badge gris-fonce" style="font-weight:bold; text-wrap:nowrap" x-text="rdv.heures_defaut + ' h'"></span>
+                                    <span class="badge" :class="rdv.statut_rdv=='Terminé' ? 'success':'gris-fonce'" style="font-weight:bold; text-wrap:nowrap" x-text="rdv.heures_defaut + ' h'"></span>
                                 </div>
                             </div>
+
                         </div>
                     </template>
                 </div>

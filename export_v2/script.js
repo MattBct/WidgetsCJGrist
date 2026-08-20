@@ -375,16 +375,45 @@ document.getElementById('exportBtn').addEventListener('click', async () => {
     worksheet.spliceRows(1, 0, [], [], [], [], []);
 
     // 3. Ajout du Titre personnalisé (date unique ou période, au format français)
-    worksheet.mergeCells('D2:G3'); 
-    const titleCell = worksheet.getCell('D2');
-    titleCell.value = `Export des RDV : ${periodTitle}${RDV_FILTERS[rdvFilter].title}`; // Période + type de RDV exporté
+    // Une cellule fusionnée tronque le texte au lieu de le laisser déborder : la plage doit
+    // donc être assez large pour le titre, dont la longueur varie avec la période exportée.
+    const titleText = `Export des RDV : ${periodTitle}${RDV_FILTERS[rdvFilter].title}`;
+    const TITLE_FONT_SIZE = 24;
+    const TITLE_START_COL = 4; // Colonne D : laisse la place au logo posé en A1.
+
+    // Une unité de largeur Excel vaut environ un caractère de la police par défaut (11 pt) ;
+    // un caractère de titre en occupe donc à peu près taille / 11.
+    // Le facteur 1.1 est une marge : les caractères larges et le retrait interne d'une
+    // cellule fusionnée suffiraient sinon à faire déborder un titre calculé au plus juste.
+    const titleCharWidth = size => size * 0.085;
+    const requiredWidth = titleText.length * titleCharWidth(TITLE_FONT_SIZE) * 1.1;
+
+    let titleEndCol = TITLE_START_COL;
+    let availableWidth = worksheet.getColumn(TITLE_START_COL).width || 10;
+    while (availableWidth < requiredWidth && titleEndCol < worksheet.columns.length) {
+        titleEndCol++;
+        availableWidth += worksheet.getColumn(titleEndCol).width || 10;
+    }
+
+    // Titre exceptionnellement long : on réduit la police plutôt que de le tronquer.
+    const titleFontSize = availableWidth >= requiredWidth
+        ? TITLE_FONT_SIZE
+        : Math.max(12, Math.floor(availableWidth / (titleText.length * 0.085)));
+
+    worksheet.mergeCells(2, TITLE_START_COL, 3, titleEndCol);
+    const titleCell = worksheet.getCell(2, TITLE_START_COL);
+    titleCell.value = titleText; // Période + type de RDV exporté
     titleCell.font = {
         name: 'Montserrat',
-        size: 24,
+        size: titleFontSize,
         color: { argb: 'FFC03737' },
         bold: true
     };
     titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
+
+    // Hauteur suffisante pour la police du titre, réparties sur les deux lignes fusionnées.
+    worksheet.getRow(2).height = titleFontSize;
+    worksheet.getRow(3).height = titleFontSize * 0.6;
     worksheet.getColumn('idRdv').font = { 
         color: { argb: 'FFC03737' }, 
         bold: true 

@@ -45,6 +45,19 @@ function formatTime(gristDate) {
     return dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 }
 
+// Timestamp destiné au tri chronologique des lignes exportées.
+function getTimestamp(gristDate) {
+    if (!gristDate) return Number.MAX_SAFE_INTEGER;
+    const dateObj = typeof gristDate === 'number' ? new Date(gristDate * 1000) : new Date(gristDate);
+    return isNaN(dateObj.getTime()) ? Number.MAX_SAFE_INTEGER : dateObj.getTime();
+}
+
+// "2024-10-25" -> "25/10/2024"
+function toFrenchDate(isoDate) {
+    const [year, month, day] = isoDate.split('-');
+    return `${day}/${month}/${year}`;
+}
+
 function extractLabel(refValue) {
     if (refValue === null || refValue === undefined) return "";
     if (typeof refValue === 'object' && !Array.isArray(refValue)) {
@@ -167,14 +180,72 @@ async function fetchAttachment(baseUrl, token, attId) {
     return { blob, fileName };
 }
 
-// 3. Logique de filtrage et d'exportation
+// Filtre de type de RDV : libellé pour les messages, suffixe pour le nom de fichier,
+// mention ajoutée au titre de la feuille Excel.
+const RDV_FILTERS = {
+    both: { label: "", suffix: "", title: "" },
+    rdv1: { label: " de type « RDV 1 (Initial) »", suffix: "_RDV1", title: " — RDV 1 (Initial)" },
+    rdv2: { label: " de type « RDV 2 (Restitution) »", suffix: "_RDV2", title: " — RDV 2 (Restitution)" }
+};
+
+// 3. Période : la date de fin suit la date de début tant que l'utilisateur ne l'a pas
+// fixée plus loin, ce qui rend l'export d'une journée unique immédiat.
+const startDateInput = document.getElementById('startDateInput');
+const endDateInput = document.getElementById('endDateInput');
+
+startDateInput.addEventListener('change', () => {
+    endDateInput.min = startDateInput.value;
+    if (startDateInput.value && (!endDateInput.value || endDateInput.value < startDateInput.value)) {
+        endDateInput.value = startDateInput.value;
+    }
+});
+
+endDateInput.addEventListener('change', () => {
+    if (endDateInput.value && !startDateInput.value) {
+        startDateInput.value = endDateInput.value;
+        endDateInput.min = endDateInput.value;
+    }
+});
+
+// 4. Le libellé du bouton reflète le contenu réel de l'export
+const rdvTypeSelect = document.getElementById('rdvTypeFilter');
+const attachmentsCheckbox = document.getElementById('includeAttachments');
+attachmentsCheckbox.addEventListener('change', () => {
+    document.getElementById('exportBtn').textContent = attachmentsCheckbox.checked
+        ? "Exporter (Excel + éventuelles pièces jointes)"
+        : "Exporter (Excel seul)";
+});
+
+// 5. Logique de filtrage et d'exportation
 document.getElementById('exportBtn').addEventListener('click', async () => {
-    const selectedDate = document.getElementById('dateInput').value;
-    
-    if (!selectedDate) {
-        alert("Veuillez d'abord sélectionner une date.");
+    const startDate = startDateInput.value;
+    const endDate = endDateInput.value;
+    const includeAttachments = attachmentsCheckbox.checked;
+    const rdvFilter = RDV_FILTERS[rdvTypeSelect.value] ? rdvTypeSelect.value : 'both';
+
+    if (!startDate || !endDate) {
+        alert("Veuillez d'abord sélectionner une date de début et une date de fin.");
         return;
     }
+
+    if (endDate < startDate) {
+        alert("La date de fin doit être postérieure ou égale à la date de début.");
+        return;
+    }
+
+    // Les dates ISO (AAAA-MM-JJ) se comparent directement en tant que chaînes.
+    const isInRange = isoDate => isoDate !== null && isoDate >= startDate && isoDate <= endDate;
+    const isSingleDay = startDate === endDate;
+
+    // Période : libellé pour les messages et le titre Excel, suffixe pour le nom de fichier.
+    const periodLabel = isSingleDay
+        ? `le ${toFrenchDate(startDate)}`
+        : `la période du ${toFrenchDate(startDate)} au ${toFrenchDate(endDate)}`;
+    const periodTitle = isSingleDay
+        ? toFrenchDate(startDate)
+        : `du ${toFrenchDate(startDate)} au ${toFrenchDate(endDate)}`;
+    const periodFileName = isSingleDay ? startDate : `${startDate}_au_${endDate}`;
+    const fileSuffix = RDV_FILTERS[rdvFilter].suffix;
 
     if (tableRecords.length === 0) {
         alert("Aucune donnée disponible. Assurez-vous d'avoir lié (mappé) les colonnes dans Grist.");
@@ -192,39 +263,41 @@ document.getElementById('exportBtn').addEventListener('click', async () => {
 
         const d1 = getIsoDate(record.date1);
         const d2 = getIsoDate(record.date2);
-        
-        let heureRetenue = "";
-        let lieuRetenu = "";
-        let typeRdv = "";
-        let matchFound = false;
 
-        if (d1 === selectedDate) {
-            heureRetenue = formatTime(record.date1);
-            lieuRetenu = extractLabel(record.lieu1);
-            typeRdv = "RDV 1 (Initial)";
-            matchFound = true;
-        } else if (d2 === selectedDate) {
-            heureRetenue = formatTime(record.date2);
-            lieuRetenu = extractLabel(record.lieu2);
-            typeRdv = "RDV 2 (Restitution)";
-            matchFound = true;
+        // Sur une période, le RDV 1 et le RDV 2 d'un même dossier peuvent tomber tous les
+        // deux dans l'intervalle : chacun donne alors sa propre ligne.
+        const matches = [];
+
+        if (rdvFilter !== 'rdv2' && isInRange(d1)) {
+            matches.push({ isoDate: d1, value: record.date1, lieu: record.lieu1, typeRdv: "RDV 1 (Initial)" });
+        }
+        if (rdvFilter !== 'rdv1' && isInRange(d2)) {
+            matches.push({ isoDate: d2, value: record.date2, lieu: record.lieu2, typeRdv: "RDV 2 (Restitution)" });
         }
 
-        if (!matchFound) return;
+        if (matches.length === 0) return;
 
         const idRdv = record.idRdv || "";
 
-        exportData.push({
-            idRdv: idRdv,
-            nomPatient: extractLabel(record.nomPatient),
-            telephone: extractLabel(record.telephone),
-            heure: heureRetenue,
-            lieu: lieuRetenu,
-            motif: record.motif || "",
-            clin1: "", clin2: "", clin3: "", clin4: "", clin5: "",
-            typeRdv: typeRdv
+        matches.forEach(match => {
+            exportData.push({
+                idRdv: idRdv,
+                nomPatient: extractLabel(record.nomPatient),
+                telephone: extractLabel(record.telephone),
+                date: toFrenchDate(match.isoDate),
+                heure: formatTime(match.value),
+                lieu: extractLabel(match.lieu),
+                motif: record.motif || "",
+                clin1: "", clin2: "", clin3: "", clin4: "", clin5: "",
+                typeRdv: match.typeRdv,
+                // Clé de tri uniquement : sans colonne correspondante, ExcelJS l'ignore.
+                sortKey: getTimestamp(match.value)
+            });
         });
 
+        if (!includeAttachments) return;
+
+        // Une seule copie des pièces jointes par dossier, même si les deux RDV sont exportés.
         const attachmentIds = extractAttachmentIds(record.pieceJointe);
         if (attachmentIds.length > 0) {
             attachmentsByRdv.push({ idRdv: idRdv, ids: attachmentIds });
@@ -232,9 +305,12 @@ document.getElementById('exportBtn').addEventListener('click', async () => {
     });
 
     if (exportData.length === 0) {
-        alert("Aucun rendez-vous 'Confirmé' trouvé pour la date sélectionnée.");
+        alert(`Aucun rendez-vous 'Confirmé'${RDV_FILTERS[rdvFilter].label} trouvé pour ${periodLabel}.`);
         return;
     }
+
+    // Ordre chronologique : indispensable dès que la période couvre plusieurs journées.
+    exportData.sort((a, b) => a.sortKey - b.sortKey);
 
     // --- B. Récupération des cliniciens depuis Grist ---
     let cliniciensList = ["Aucun clinicien disponible"];
@@ -261,10 +337,12 @@ document.getElementById('exportBtn').addEventListener('click', async () => {
     });
 
     // 1. Définition des colonnes (Cela crée l'en-tête par défaut sur la ligne 1)
+    // Sur une journée unique, la date figure déjà dans le titre : la colonne serait redondante.
     worksheet.columns = [
         { header: 'Identifiant RDV', key: 'idRdv', width: 20 },
         { header: 'Nom du patient', key: 'nomPatient', width: 25 },
         { header: 'Téléphone patient', key: 'telephone', width: 18 },
+        isSingleDay ? null : { header: 'Date', key: 'date', width: 14 },
         { header: 'Heure', key: 'heure', width: 15 },
         { header: 'Lieu', key: 'lieu', width: 25 },
         { header: 'Motif', key: 'motif', width: 30 },
@@ -276,7 +354,7 @@ document.getElementById('exportBtn').addEventListener('click', async () => {
         { header: 'Clinicien 6', key: 'clin6', width: 20 },
         { header: 'Type de RDV', key: 'typeRdv', width: 22 },
         { header: 'Commentaires', key: 'commentaires', width: 60, height: 40, style: { alignment: { wrapText: true } } }
-    ];
+    ].filter(Boolean);
     worksheet.getColumn('idRdv').color = {argb: 'FFC03737'};
     worksheet.getColumn('idRdv').bold = true;
     worksheet.getColumn('motif').alignment = { wrapText: true, vertical: 'top' };
@@ -285,13 +363,10 @@ document.getElementById('exportBtn').addEventListener('click', async () => {
     // 2. Insérer 5 lignes vides au début (l'en-tête des colonnes passe donc à la ligne 6)
     worksheet.spliceRows(1, 0, [], [], [], [], []);
 
-    // 3. Ajout du Titre personnalisé (avec la date au format français)
-    const [year, month, day] = selectedDate.split('-'); // Découpe "2024-10-25" en ["2024", "10", "25"]
-    const dateFrancaise = `${day}/${month}/${year}`;    // Recompose en "25/10/2024"
-
+    // 3. Ajout du Titre personnalisé (date unique ou période, au format français)
     worksheet.mergeCells('D2:G3'); 
     const titleCell = worksheet.getCell('D2');
-    titleCell.value = `Export des RDV : ${dateFrancaise}`; // Utilisation de la date formatée
+    titleCell.value = `Export des RDV : ${periodTitle}${RDV_FILTERS[rdvFilter].title}`; // Période + type de RDV exporté
     titleCell.font = {
         name: 'Montserrat',
         size: 24,
@@ -352,18 +427,28 @@ document.getElementById('exportBtn').addEventListener('click', async () => {
         });
     }
 
-    // --- F. CONSTRUCTION DE L'ARCHIVE ZIP ---
+    // --- F. GÉNÉRATION DU FICHIER (Excel seul ou archive ZIP) ---
     const exportBtn = document.getElementById('exportBtn');
     const originalBtnLabel = exportBtn.textContent;
     exportBtn.disabled = true;
     exportBtn.textContent = "Génération en cours...";
 
     try {
+        const buffer = await workbook.xlsx.writeBuffer();
+
+        // Sans pièces jointes, une archive ne contiendrait qu'un fichier : on livre l'Excel directement.
+        if (!includeAttachments) {
+            const xlsxBlob = new Blob([buffer], {
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            });
+            saveAs(xlsxBlob, `Export_RDV_CJ_${periodFileName}${fileSuffix}.xlsx`);
+            return;
+        }
+
         const zip = new JSZip();
 
         // 1. Le fichier Excel, à la racine de l'archive
-        const buffer = await workbook.xlsx.writeBuffer();
-        zip.file(`Export_RDV_CJ_${selectedDate}.xlsx`, buffer);
+        zip.file(`Export_RDV_CJ_${periodFileName}${fileSuffix}.xlsx`, buffer);
 
         // 2. Un répertoire par RDV disposant de pièces jointes
         const attachmentErrors = [];
@@ -396,7 +481,7 @@ document.getElementById('exportBtn').addEventListener('click', async () => {
 
         // 3. Téléchargement de l'archive
         const zipBlob = await zip.generateAsync({ type: 'blob' });
-        saveAs(zipBlob, `RDV_CJ_${selectedDate}.zip`);
+        saveAs(zipBlob, `RDV_CJ_${periodFileName}${fileSuffix}.zip`);
 
         // 4. Compte rendu : une archive sans pièce jointe doit s'expliquer.
         if (attachmentErrors.length > 0) {
@@ -410,8 +495,10 @@ document.getElementById('exportBtn').addEventListener('click', async () => {
             }
         }
     } catch (error) {
-        console.error("Erreur lors de la création de l'archive : ", error);
-        alert("Une erreur est survenue lors de la génération de l'archive.");
+        console.error("Erreur lors de la génération de l'export : ", error);
+        alert(includeAttachments
+            ? "Une erreur est survenue lors de la génération de l'archive."
+            : "Une erreur est survenue lors de la génération du fichier Excel.");
     } finally {
         exportBtn.disabled = false;
         exportBtn.textContent = originalBtnLabel;

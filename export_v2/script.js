@@ -58,6 +58,16 @@ function toFrenchDate(isoDate) {
     return `${day}/${month}/${year}`;
 }
 
+// Le statut arrive en Choice (chaîne) ou en ChoiceList (tableau, éventuellement préfixé 'L').
+function formatStatut(value) {
+    if (value === null || value === undefined) return "";
+    if (Array.isArray(value)) {
+        const items = value[0] === 'L' ? value.slice(1) : value;
+        return items.map(item => String(item)).join(', ');
+    }
+    return String(value);
+}
+
 function extractLabel(refValue) {
     if (refValue === null || refValue === undefined) return "";
     if (typeof refValue === 'object' && !Array.isArray(refValue)) {
@@ -257,9 +267,8 @@ document.getElementById('exportBtn').addEventListener('click', async () => {
     const attachmentsByRdv = [];
 
     tableRecords.forEach(record => {
-        const statutVal = record.statut;
-        const isConfirmed = Array.isArray(statutVal) ? statutVal.includes("Confirmé") : statutVal === "Confirmé";
-        if (!isConfirmed) return;
+        // Tous les statuts sont exportés : le tri se fait dans Excel via le filtre de l'en-tête.
+        const statut = formatStatut(record.statut);
 
         const d1 = getIsoDate(record.date1);
         const d2 = getIsoDate(record.date2);
@@ -290,6 +299,7 @@ document.getElementById('exportBtn').addEventListener('click', async () => {
                 motif: record.motif || "",
                 clin1: "", clin2: "", clin3: "", clin4: "", clin5: "",
                 typeRdv: match.typeRdv,
+                statut: statut,
                 // Clé de tri uniquement : sans colonne correspondante, ExcelJS l'ignore.
                 sortKey: getTimestamp(match.value)
             });
@@ -305,7 +315,7 @@ document.getElementById('exportBtn').addEventListener('click', async () => {
     });
 
     if (exportData.length === 0) {
-        alert(`Aucun rendez-vous 'Confirmé'${RDV_FILTERS[rdvFilter].label} trouvé pour ${periodLabel}.`);
+        alert(`Aucun rendez-vous${RDV_FILTERS[rdvFilter].label} trouvé pour ${periodLabel}.`);
         return;
     }
 
@@ -341,6 +351,7 @@ document.getElementById('exportBtn').addEventListener('click', async () => {
     worksheet.columns = [
         { header: 'Identifiant RDV', key: 'idRdv', width: 20 },
         { header: 'Type de RDV', key: 'typeRdv', width: 22 },
+        { header: 'Statut du RDV', key: 'statut', width: 18 },
         { header: 'Nom du patient', key: 'nomPatient', width: 25 },
         { header: 'Téléphone patient', key: 'telephone', width: 18 },
         isSingleDay ? null : { header: 'Date', key: 'date', width: 14 },
@@ -409,6 +420,13 @@ document.getElementById('exportBtn').addEventListener('click', async () => {
     exportData.forEach(data => {
         worksheet.addRow(data); // Ajoute automatiquement à la suite (donc à partir de la ligne 7)
     });
+
+    // Filtre Excel sur la ligne d'en-tête : chaque colonne, dont « Statut du RDV »,
+    // dispose de son menu déroulant de filtrage sur toute la plage de données.
+    worksheet.autoFilter = {
+        from: { row: 6, column: 1 },
+        to: { row: 6 + exportData.length, column: worksheet.columns.length }
+    };
 
     // --- E. AJOUT DES LISTES DÉROULANTES ---
     // Les lettres sont déduites des clés : elles se décalent si l'on ajoute des colonnes en amont.

@@ -211,7 +211,7 @@ function refreshSummary() {
 
     const fileLabel = fileCount === 1 ? "1 pièce jointe" : `${fileCount} pièces jointes`;
     const rowLabel = rowsWithFiles.length === 1 ? "1 ligne" : `${rowsWithFiles.length} lignes`;
-    summary.textContent = `${fileLabel} à exporter, réparties sur ${rowLabel}.`;
+    summary.textContent = `${fileLabel} à exporter.`;
 }
 
 scopeSelect.addEventListener('change', refreshSummary);

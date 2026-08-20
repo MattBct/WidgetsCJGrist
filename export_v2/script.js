@@ -340,6 +340,7 @@ document.getElementById('exportBtn').addEventListener('click', async () => {
     // Sur une journée unique, la date figure déjà dans le titre : la colonne serait redondante.
     worksheet.columns = [
         { header: 'Identifiant RDV', key: 'idRdv', width: 20 },
+        { header: 'Type de RDV', key: 'typeRdv', width: 22 },
         { header: 'Nom du patient', key: 'nomPatient', width: 25 },
         { header: 'Téléphone patient', key: 'telephone', width: 18 },
         isSingleDay ? null : { header: 'Date', key: 'date', width: 14 },
@@ -352,7 +353,6 @@ document.getElementById('exportBtn').addEventListener('click', async () => {
         { header: 'Clinicien 4', key: 'clin4', width: 20 },
         { header: 'Clinicien 5', key: 'clin5', width: 20 },
         { header: 'Clinicien 6', key: 'clin6', width: 20 },
-        { header: 'Type de RDV', key: 'typeRdv', width: 22 },
         { header: 'Commentaires', key: 'commentaires', width: 60, height: 40, style: { alignment: { wrapText: true } } }
     ].filter(Boolean);
     worksheet.getColumn('idRdv').color = {argb: 'FFC03737'};

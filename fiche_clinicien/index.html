@@ -31,6 +31,9 @@
                 rdv: [],
                 projets: [],
                 regulations: [],
+                nb_permanences: 0,
+                heures_permanences: 0,
+                permanences: []
             })
 
             const store = Alpine.store('clinicien')
@@ -41,7 +44,7 @@
                     labels: ['Rendez-vous', 'Projets', 'Régulations individuelles'],
                     datasets: [{
                         label: 'Données Grist',
-                        data: [store.heures_rdv, store.heures_projets, store.heures_regul_net],
+                        data: [store.heures_rdv, store.heures_projets, store.heures_regul_net, store.heures_permanences],
                         backgroundColor: ['#A73030', '#772222', '#471414'],
                         hoverOffset: 4
                     }]
@@ -87,6 +90,11 @@
                 <div style="display: flex; justify-content:left; flex-direction: column; align-items: center; gap: 10px;">
                     <span style="font-size: 4.5em; font-weight:900; color:#c03737; line-height:1" x-text="$store.clinicien.nb_projets"></span>
                     <span style="font-size: 1.5em; font-weight:600; color:black; margin-top:-15px">projets</span>
+                </div>
+
+                <div style="display: flex; justify-content:left; flex-direction: column; align-items: center; gap: 10px;">
+                    <span style="font-size: 4.5em; font-weight:900; color:#c03737; line-height:1" x-text="$store.clinicien.nb_permanences"></span>
+                    <span style="font-size: 1.5em; font-weight:600; color:black; margin-top:-15px">permanences</span>
                 </div>
 
                 <div x-show='$store.clinicien.heures_regul_credit > 0 || Math.abs($store.clinicien.heures_regul_debit) > 0' >

@@ -128,6 +128,24 @@ const COLUMNS_MAPPING = [
         type: "Int",
         description: "Colonne contenant le décompte du nombre de rendez-vous terminés du clinicien",
         allowMultiple: false
+    },
+    {
+        name: "heures_permanences",
+        title: "Heures permanences",
+        optional: false,
+        type: "Int"
+    },
+    {
+        name: "nb_permanences",
+        title: "Nombre de permanences",
+        optional: false,
+        type: "Int"
+    },
+    {
+        name: "liste_permanences",
+        title: "Liste des permanences",
+        optional: false,
+        type: "RefList"
     }
 
 ]
@@ -234,5 +252,9 @@ const mappedRecord = grist.onRecord(async (record) => {
     Alpine.store('clinicien').nb_rdv = records.nb_rdv
     Alpine.store('clinicien').nb_projets = records.nb_projets
     Alpine.store('clinicien').nb_rdv_termines = records.nb_rdv_termines
+    Alpine.store('clinicien').nb_permanences = records.nb_permanences
+    Alpine.store('clinicien').heures_permanences = records.heures_permanences
+    Alpine.store('clinicien').permanences = records.liste_permanences
+
     return records
 })

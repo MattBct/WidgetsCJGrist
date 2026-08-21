@@ -5,6 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
     <style>
+        html, body {
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+
         [data-theme="light"], :root:not([data-theme="dark"]) {
             --pico-primary-background: #c03737;
 }
@@ -46,7 +60,7 @@
                     datasets: [{
                         label: 'Données Grist',
                         data: [store.heures_rdv, store.heures_projets, store.heures_regul_net, store.heures_permanences],
-                        backgroundColor: ['#A73030', '#772222', '#471414'],
+                        backgroundColor: ['#A73030', '#772222', '#471414', '#C03737',],
                         hoverOffset: 4
                     }]
                 }
@@ -56,7 +70,8 @@
                 chartRepartition.data.datasets[0].data = [
                     store.heures_rdv,
                     store.heures_projets,
-                    store.heures_regul_net
+                    store.heures_regul_net,
+                    store.heures_permanences
                 ]
                 chartRepartition.update()
             })
@@ -71,13 +86,13 @@
 
             <div>
                 <h1 style="text-align: center;" x-text="$store.clinicien.label_prenom_nom"></h1>
-                <div style="display: flex; flex-direction: row; justify-content: center; gap: 15px;">
+                <div style="display: flex; flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 15px;">
                     <span class="badge clinique" style="font-weight:700;" x-text="$store.clinicien.label_formation"></span>
                     <span class="badge info" x-show="$store.clinicien.option">Option clinique</span>
                 </div>
             </div>
 
-            <div style="margin-top:60px; display: flex; flex-direction: row; justify-content: center; align-items: start; gap: 6em;">
+            <div style="margin-top:60px; display: flex; flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: start; gap: 2em; row-gap: 2em;">
                 <div style="display: flex; justify-content:left; flex-direction: column; align-items: center; gap: 10px;">
                     <span style="font-size: 4.5em; font-weight:900; color:#c03737; line-height:1" x-text="$store.clinicien.heures_totales"></span>
                     <span style="font-size: 1.5em; font-weight:600; color:black; margin-top:-15px">heures</span>
@@ -108,15 +123,15 @@
                 </div>
             </div>
 
-            <div style="margin-top:4em ; display: flex; flex-direction: row; width:100% ; gap: 6em; align-items: center; justify-content: center;">
-                <div style="flex: 3;">
+            <div style="margin-top:4em ; display: flex; flex-direction: row; flex-wrap: wrap; width:100% ; gap: 2em; align-items: center; justify-content: center;">
+                <div style="flex: 3; min-width: 250px;">
                     <span>
                         <span style="color:#C03737; font-size: 1.00em; font-weight:750;"><span x-text="Math.round($store.clinicien.heures_totales/60*100)"></span> %</span><span style="font-size: 0.8em ; color:rgb(114, 114, 114); font-weight:300"> des heures complétées</span>
                     </span>
                     <progress :value="Math.round($store.clinicien.heures_totales/60*100)" max="100" style="color: #c03737;"/>
                 </div>
 
-                <div style="flex: 1; ">
+                <div style="flex: 1; min-width: 200px; max-width: 100%;">
                     <canvas id="chart-repartitions"></canvas>
                 </div>
 
@@ -133,12 +148,12 @@
                     
                     <template x-for="rdv in $store.clinicien.rdv">
                         <div class="badge gris-clair">
-                            <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
-                                <div style="display: flex; flex-direction: column; justify-content: start; gap: 2px;">
+                            <div style="display: flex; flex-direction: row; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px;">
+                                <div style="display: flex; flex-direction: column; justify-content: start; gap: 2px; min-width: 0;">
                                     <span><strong x-text="rdv.id_rdv_clinique"></strong></span></span>
 
                                     <!--Encart informations supplemémentaires-->
-                                    <div style="display: flex; flex-direction: row; gap: 4px; font-weight: lighter; flex-wrap: nowrap; font-size: xx-small;">
+                                    <div style="display: flex; flex-direction: row; gap: 4px; font-weight: lighter; flex-wrap: wrap; font-size: xx-small;">
                                         <span x-text="rdv.statut_rdv" style="font-weight: bold;"></span><span x-text="rdv.motif ?? Pas de motif indiqué"></span><span x-show="rdv.creneau_rdv_1 != null && rdv.creneau_rdv_2 != null"><span x-text="new Date(rdv.creneau_rdv_1 * 1000).toLocaleString('fr-FR')"></span> et <span x-text="new Date(rdv.creneau_rdv_2 * 1000).toLocaleString('fr-FR')"></span></span>
                                     </div>
                                 </div>
@@ -157,8 +172,8 @@
             <div style="padding:0px 15px; display:flex; flex-direction: column; gap: 10px;">
                 <template x-for="projet in $store.clinicien.projets">
                     <div class="badge gris-clair">
-                        <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
-                            <span x-text="projet.nom_projet"></span>
+                        <div style="display: flex; flex-direction: row; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px;">
+                            <span x-text="projet.nom_projet" style="min-width: 0; overflow-wrap: break-word;"></span>
                             <div style="display: flex; flex-direction: row; gap: 10px; align-items: center;">
                                 <!--<span class="badge" style="background-color:#FEFEFE; color:black">En cours</span>-->
                                 <span class="badge gris-fonce" style="font-weight:bold" x-text="projet.heures + ' h'"></span>
@@ -175,8 +190,8 @@
             <div style="padding:0px 15px; display:flex; flex-direction: column; gap: 10px;">
                 <template x-for="regul in $store.clinicien.regulations">
                     <div class="badge gris-clair">
-                        <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
-                            <span x-text="regul.motif"></span>
+                        <div style="display: flex; flex-direction: row; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px;">
+                            <span x-text="regul.motif" style="min-width: 0; overflow-wrap: break-word;"></span>
                             <div style="display: flex; flex-direction: row; gap: 10px; align-items: center;">
                                 <span class="badge" :class="regul.heures > 0 ? 'success' : 'fail'" style="font-weight:bold" x-text="regul.heures + ' h'"></span>
                             </div>
@@ -205,6 +220,9 @@
     .badge {
         padding: 10px; 
         border-radius: 10px;
+        max-width: 100%;
+        overflow-wrap: break-word;
+        word-break: break-word;
     }
 
     .clinique {

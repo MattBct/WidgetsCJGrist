@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="fr">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+        <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+        <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+        <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+        <script defer src="script.js"></script>
+
+        <script>
+            document.addEventListener('alpine:init', () => {
+                Alpine.store('donnees', {
+                    nb_demandes_rdv_non_traites: 0,
+                    nb_demandes_rdv_non_traites_gp: 0,
+                    nb_demandes_rdv_non_traites_etu: 0,
+                    nb_rdv_prog_semaine: 0,
+                    nb_rdv_non_confirme_patients: 0,
+                    nb_rdv_non_confirme_patients_gp:0,
+                    nb_rdv_non_confirme_patients_etu:0
+                })
+            })
+        </script>
+
+        <style>
+            body {
+                font-family: "Montserrat", sans-serif;
+            }
+
+            .chiffre-rouge {
+                font-size: 3.75rem;
+                color: #c03737;
+                font-weight: 700;
+            }
+        </style>
+    </head>
+    <body x-data>
+        <div class="flex flex-col justify-center items-center w-full gap-4">
+            <img class="w-45" src="../../fiche_clinicien/logoCJ.png"/>
+            <div class="flex flex-col gap-1.5 items-center mt-3">
+                <h1 class="font-extrabold text-3xl">Tableau de bord Clinique juridique</h1>
+                <h2 class="font-bold text-[#c03737] text-xl">Secrétariat</h2>
+            </div>
+            <div class="grid grid-cols-3 gap-15 m-8 w-7/8">
+                    <div class="card card-md shadow-md flex content-center p-6 gap-8">
+                        <div class="flex flex-col gap-4 items-center">
+                            <img src="../assets/undraw_accept-request_489a.svg" class="w-40 h-40"/>
+                            <div class="flex flex-col gap-0 items-center"><span class="chiffre-rouge" x-text="$store.donnees.nb_demandes_rdv_non_traites"></span> <span class="text-lg font-semibold">demandes de RDV non traitées</span></div>
+                        </div>
+                        <div class="flex flex-col gap-0.25 items-end text-sm">
+                            <div class="block"><span class="text-[#c03737]" x-text="$store.donnees.nb_demandes_rdv_non_traites_etu"></span> <span>RDV étudiant</span></div>
+                            <div class="block"><span class="text-[#c03737]" x-text="$store.donnees.nb_demandes_rdv_non_traites_gp"></span> <span>RDV grand public</span></div>
+                        </div>
+                    </div>
+
+                    <div class="card card-md shadow-md flex content-center p-6 gap-8">
+                        <div class="flex flex-col gap-4 items-center">
+                            <img src="../assets/undraw_online-calendar_iz1q.svg" class="w-40 h-40"/>
+                            <div class="flex flex-col gap-0 items-center"><span class="chiffre-rouge" x-text="$store.donnees.nb_rdv_prog_semaine"></span> <span class="text-lg font-semibold">RDV programmés cette semaine</span></div>
+                        </div>
+                    </div>
+
+                    <div class="card card-md shadow-md flex content-center p-6 gap-8">
+                        <div class="flex flex-col gap-4 items-center">
+                            <img src="../assets/undraw_progress-bar_o44f.svg" class="w-40 h-40"/>
+                            <div class="flex flex-col gap-0 items-center"><span class="chiffre-rouge" x-text="$store.donnees.nb_rdv_non_confirme_patients"></span> <span class="text-lg font-semibold">RDV en attente de confirmation patient</span></div>
+                        </div>
+                        <div class="flex flex-col gap-0.25 items-end text-sm">
+                            <div class="block"><span class="text-[#c03737]" x-text="$store.donnees.nb_rdv_non_confirme_patients_etu"></span> <span>RDV étudiant</span></div>
+                            <div class="block"><span class="text-[#c03737]" x-text="$store.donnees.nb_rdv_non_confirme_patients_gp"></span> <span>RDV grand public</span></div>
+                        </div>
+                    </div>
+            </div>
+        </div>
+    </body>
+</html>

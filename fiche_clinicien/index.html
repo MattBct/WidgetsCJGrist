@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
     <style>
         [data-theme="light"], :root:not([data-theme="dark"]) {
@@ -41,7 +42,7 @@
             const chartRepartition = new Chart(document.getElementById('chart-repartitions'), {
                 type: 'pie',
                 data: {
-                    labels: ['Rendez-vous', 'Projets', 'Régulations individuelles'],
+                    labels: ['Rendez-vous', 'Projets', 'Régulations individuelles', 'Permanences'],
                     datasets: [{
                         label: 'Données Grist',
                         data: [store.heures_rdv, store.heures_projets, store.heures_regul_net, store.heures_permanences],
@@ -63,7 +64,7 @@
     </script>
 </head>
 
-<body x-data>
+<body x-data style="width: 100%;">
     <header>
         <div class="container">
             <img src="logoCJ.png" alt="Logo Clinique" style="width: 200px; margin:auto ; margin-bottom:20px; height: auto; display: block;">

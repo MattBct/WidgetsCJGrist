@@ -14,6 +14,10 @@
         <script defer src="script.js"></script>
 
         <script>
+            function plur(n, singulier, pluriel) {
+                return Math.abs(n) <= 1 ? singulier : (pluriel ?? singulier + 's');
+            }
+
             document.addEventListener('alpine:init', () => {
                 Alpine.store('donnees', {
                     nb_rdv_traites_annee: 0,
@@ -67,18 +71,18 @@
                     <div class="card card-md shadow-md flex content-center p-6 gap-8">
                         <div class="flex flex-col gap-4 items-center">
                             <img src="../assets/undraw_group-project_kow1.svg" class="w-40 h-40"/>
-                            <div class="flex flex-col gap-0 items-center"><span class="chiffre-rouge" x-text="$store.donnees.nb_projets"></span> <span class="text-lg font-semibold">projets terminés</span></div>
+                            <div class="flex flex-col gap-0 items-center"><span class="chiffre-rouge" x-text="$store.donnees.nb_projets"></span> <span class="text-lg font-semibold" x-text="plur($store.donnees.nb_projets, 'projet terminé', 'projets terminés')"></span></div>
                         </div>
                     </div>
 
                     <div class="card card-md shadow-md flex content-center p-6 gap-8">
                         <div class="flex flex-col gap-4 items-center">
                             <img src="../assets/undraw_morning-news_h9nz.svg" class="w-40 h-40"/>
-                            <div class="flex flex-col gap-0 items-center"><span class="chiffre-rouge" x-text="$store.donnees.nb_permanences"></span> <span class="text-lg font-semibold">permanences tenues</span></div>
+                            <div class="flex flex-col gap-0 items-center"><span class="chiffre-rouge" x-text="$store.donnees.nb_permanences"></span> <span class="text-lg font-semibold" x-text="plur($store.donnees.nb_permanences, 'permanence tenue', 'permanences tenues')"></span></div>
                         </div>
                         <div class="flex flex-col gap-0.25 items-end text-sm">
-                            <div class="block"><span class="text-[#c03737]" x-text="$store.donnees.nb_passages_total"></span> <span>passages au total</span></div>
-                            <div class="block"><span class="text-[#c03737]" x-text="$store.donnees.nb_passages_moyen"></span> <span>passages en moyenne</span></div>
+                            <div class="block"><span class="text-[#c03737]" x-text="$store.donnees.nb_passages_total"></span> <span x-text="plur($store.donnees.nb_passages_total, 'passage au total', 'passages au total')"></span></div>
+                            <div class="block"><span class="text-[#c03737]" x-text="$store.donnees.nb_passages_moyen"></span> <span x-text="plur($store.donnees.nb_passages_moyen, 'passage en moyenne', 'passages en moyenne')"></span></div>
                         </div>
                     </div>
             </div>
@@ -89,17 +93,17 @@
 
             <div class="flex flex-row flex-wrap justify-center gap-6 m-8 w-7/8">
                     <div class="stat place-items-center shadow-md rounded-box bg-base-100 w-64 p-4">
-                        <div class="stat-title whitespace-normal text-center">Cliniciens inscrits</div>
+                        <div class="stat-title whitespace-normal text-center" x-text="plur($store.donnees.nb_cliniciens_inscrits, 'Clinicien inscrit', 'Cliniciens inscrits')"></div>
                         <div class="stat-value text-[#c03737]" x-text="$store.donnees.nb_cliniciens_inscrits"></div>
                     </div>
 
                     <div class="stat place-items-center shadow-md rounded-box bg-base-100 w-64 p-4">
-                        <div class="stat-title whitespace-normal text-center">Cliniciens en option inscrits</div>
+                        <div class="stat-title whitespace-normal text-center" x-text="plur($store.donnees.nb_cliniciens_option_inscrits, 'Clinicien en option inscrit', 'Cliniciens en option inscrits')"></div>
                         <div class="stat-value text-[#c03737]" x-text="$store.donnees.nb_cliniciens_option_inscrits"></div>
                     </div>
 
                     <div class="stat place-items-center shadow-md rounded-box bg-base-100 w-64 p-4">
-                        <div class="stat-title whitespace-normal text-center">Cliniciens en option ayant validé leurs heures</div>
+                        <div class="stat-title whitespace-normal text-center" x-text="plur($store.donnees.nb_cliniciens_option_heures_validees, 'Clinicien en option ayant validé ses heures', 'Cliniciens en option ayant validé leurs heures')"></div>
                         <div class="stat-value text-[#c03737]" x-text="$store.donnees.nb_cliniciens_option_heures_validees"></div>
                         <div class="stat-desc whitespace-normal text-center">
                             <span class="font-bold text-lg text-[#c03737]" x-text="$store.donnees.pct_option_heures_validees + '%'"></span>
@@ -108,7 +112,7 @@
                     </div>
 
                     <div class="stat place-items-center shadow-md rounded-box bg-base-100 w-64 p-4">
-                        <div class="stat-title whitespace-normal text-center">Cliniciens en option n'ayant pas validé leurs heures</div>
+                        <div class="stat-title whitespace-normal text-center" x-text="plur($store.donnees.nb_cliniciens_option_heures_non_validees, 'Clinicien en option n\'ayant pas validé ses heures', 'Cliniciens en option n\'ayant pas validé leurs heures')"></div>
                         <div class="stat-value text-[#c03737]" x-text="$store.donnees.nb_cliniciens_option_heures_non_validees"></div>
                         <div class="stat-desc whitespace-normal text-center">
                             <span class="font-bold text-lg text-[#c03737]" x-text="$store.donnees.pct_option_heures_non_validees + '%'"></span>

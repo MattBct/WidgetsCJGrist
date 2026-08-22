@@ -13,6 +13,10 @@
         <script defer src="script.js"></script>
 
         <script>
+            function plur(n, singulier, pluriel) {
+                return Math.abs(n) <= 1 ? singulier : (pluriel ?? singulier + 's');
+            }
+
             document.addEventListener('alpine:init', () => {
                 Alpine.store('donnees', {
                     nb_demandes_rdv_non_traites: 0,
@@ -49,10 +53,10 @@
                     <div class="card card-md shadow-md flex content-center p-6 gap-8">
                         <div class="flex flex-col gap-4 items-center">
                             <img src="../assets/undraw_accept-request_489a.svg" class="w-40 h-40"/>
-                            <div class="flex flex-col gap-0 items-center"><span class="chiffre-rouge" x-text="$store.donnees.nb_demandes_rdv_non_traites"></span> <span class="text-lg font-semibold">demandes de RDV non traitées</span></div>
+                            <div class="flex flex-col gap-0 items-center"><span class="chiffre-rouge" x-text="$store.donnees.nb_demandes_rdv_non_traites"></span> <span class="text-lg font-semibold" x-text="plur($store.donnees.nb_demandes_rdv_non_traites, 'demande de RDV non traitée', 'demandes de RDV non traitées')"></span></div>
                         </div>
                         <div class="flex flex-col gap-0.25 items-end text-sm">
-                            <div class="block"><span class="text-[#c03737]" x-text="$store.donnees.nb_demandes_rdv_non_traites_etu"></span> <span>RDV étudiant</span></div>
+                            <div class="block"><span class="text-[#c03737]" x-text="$store.donnees.nb_demandes_rdv_non_traites_etu"></span> <span x-text="plur($store.donnees.nb_demandes_rdv_non_traites_etu, 'RDV étudiant', 'RDV étudiants')"></span></div>
                             <div class="block"><span class="text-[#c03737]" x-text="$store.donnees.nb_demandes_rdv_non_traites_gp"></span> <span>RDV grand public</span></div>
                         </div>
                     </div>
@@ -60,7 +64,7 @@
                     <div class="card card-md shadow-md flex content-center p-6 gap-8">
                         <div class="flex flex-col gap-4 items-center">
                             <img src="../assets/undraw_online-calendar_iz1q.svg" class="w-40 h-40"/>
-                            <div class="flex flex-col gap-0 items-center"><span class="chiffre-rouge" x-text="$store.donnees.nb_rdv_prog_semaine"></span> <span class="text-lg font-semibold">RDV programmés cette semaine</span></div>
+                            <div class="flex flex-col gap-0 items-center"><span class="chiffre-rouge" x-text="$store.donnees.nb_rdv_prog_semaine"></span> <span class="text-lg font-semibold" x-text="plur($store.donnees.nb_rdv_prog_semaine, 'RDV programmé cette semaine', 'RDV programmés cette semaine')"></span></div>
                         </div>
                     </div>
 
@@ -70,7 +74,7 @@
                             <div class="flex flex-col gap-0 items-center"><span class="chiffre-rouge" x-text="$store.donnees.nb_rdv_non_confirme_patients"></span> <span class="text-lg font-semibold">RDV en attente de confirmation patient</span></div>
                         </div>
                         <div class="flex flex-col gap-0.25 items-end text-sm">
-                            <div class="block"><span class="text-[#c03737]" x-text="$store.donnees.nb_rdv_non_confirme_patients_etu"></span> <span>RDV étudiant</span></div>
+                            <div class="block"><span class="text-[#c03737]" x-text="$store.donnees.nb_rdv_non_confirme_patients_etu"></span> <span x-text="plur($store.donnees.nb_rdv_non_confirme_patients_etu, 'RDV étudiant', 'RDV étudiants')"></span></div>
                             <div class="block"><span class="text-[#c03737]" x-text="$store.donnees.nb_rdv_non_confirme_patients_gp"></span> <span>RDV grand public</span></div>
                         </div>
                     </div>

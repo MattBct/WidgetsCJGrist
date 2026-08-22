@@ -28,6 +28,10 @@
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
     <script>
+        function plur(n, singulier, pluriel) {
+            return Math.abs(n) <= 1 ? singulier : (pluriel ?? singulier + 's');
+        }
+
         document.addEventListener('alpine:init', () => {
             Alpine.store('clinicien', {
                 label_prenom_nom: "",
@@ -95,29 +99,29 @@
             <div style="margin-top:60px; display: flex; flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: start; gap: 2em; row-gap: 2em;">
                 <div style="display: flex; justify-content:left; flex-direction: column; align-items: center; gap: 10px;">
                     <span style="font-size: 4.5em; font-weight:900; color:#c03737; line-height:1" x-text="$store.clinicien.heures_totales"></span>
-                    <span style="font-size: 1.5em; font-weight:600; color:black; margin-top:-15px">heures</span>
+                    <span style="font-size: 1.5em; font-weight:600; color:black; margin-top:-15px" x-text="plur($store.clinicien.heures_totales, 'heure', 'heures')"></span>
                 </div>
 
                 <div style="display: flex; justify-content:center; flex-direction: column; align-items: center; gap: 10px;">
                     <span style="font-size: 4.5em; font-weight:900; color:#c03737; line-height:1" x-text="$store.clinicien.nb_rdv"></span>
                     <span style="font-size: 1.5em; font-weight:600; color:black; margin-top:-15px">RDV</span>
-                    <span style="font-size: 0.75em; margin-top: -10px">dont <strong style="color:#c03737"><span x-text="$store.clinicien.nb_rdv_termines"></span> RDV terminés</strong></span>
+                    <span style="font-size: 0.75em; margin-top: -10px">dont <strong style="color:#c03737"><span x-text="$store.clinicien.nb_rdv_termines"></span> <span x-text="plur($store.clinicien.nb_rdv_termines, 'RDV terminé', 'RDV terminés')"></span></strong></span>
                 </div>
                 <div style="display: flex; justify-content:left; flex-direction: column; align-items: center; gap: 10px;">
                     <span style="font-size: 4.5em; font-weight:900; color:#c03737; line-height:1" x-text="$store.clinicien.nb_projets"></span>
-                    <span style="font-size: 1.5em; font-weight:600; color:black; margin-top:-15px">projets</span>
+                    <span style="font-size: 1.5em; font-weight:600; color:black; margin-top:-15px" x-text="plur($store.clinicien.nb_projets, 'projet', 'projets')"></span>
                 </div>
 
                 <div style="display: flex; justify-content:left; flex-direction: column; align-items: center; gap: 10px;">
                     <span style="font-size: 4.5em; font-weight:900; color:#c03737; line-height:1" x-text="$store.clinicien.nb_permanences"></span>
-                    <span style="font-size: 1.5em; font-weight:600; color:black; margin-top:-15px">permanences</span>
+                    <span style="font-size: 1.5em; font-weight:600; color:black; margin-top:-15px" x-text="plur($store.clinicien.nb_permanences, 'permanence', 'permanences')"></span>
                 </div>
 
                 <div x-show='$store.clinicien.heures_regul_credit > 0 || Math.abs($store.clinicien.heures_regul_debit) > 0' >
                     <div style="display: flex; justify-content:left; flex-direction: column; align-items: center; padding:10px 20px; background-color:#f2f2f2; border-radius: 10px; gap: 10px;">
                         <span style="font-size: 1em; font-weight:600; color:#c03737;">Régulations individuelles</span>
-                        <span>+ <span x-text="$store.clinicien.heures_regul_credit"></span> heures</span>
-                        <span>- <span x-text="Math.abs($store.clinicien.heures_regul_debit)"></span> heures</span>
+                        <span>+ <span x-text="$store.clinicien.heures_regul_credit"></span> <span x-text="plur($store.clinicien.heures_regul_credit, 'heure', 'heures')"></span></span>
+                        <span>- <span x-text="Math.abs($store.clinicien.heures_regul_debit)"></span> <span x-text="plur(Math.abs($store.clinicien.heures_regul_debit), 'heure', 'heures')"></span></span>
                     </div>
                     
                 </div>

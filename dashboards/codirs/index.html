@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="fr">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+        <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+        <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+        <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+        <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+        <script defer src="script.js"></script>
+
+        <script>
+            document.addEventListener('alpine:init', () => {
+                Alpine.store('donnees', {
+                    nb_rdv_traites_annee: 0,
+                    nb_projets: 0,
+                    nb_permanences: 0,
+                    nb_passages_total: 0,
+                    nb_passages_moyen: 0,
+                    nb_cliniciens_inscrits: 0,
+                    nb_cliniciens_option_inscrits: 0,
+                    nb_cliniciens_option_heures_validees: 0,
+                    nb_cliniciens_option_heures_non_validees: 0,
+                    get pct_option_heures_validees() {
+                        const total = this.nb_cliniciens_option_heures_validees + this.nb_cliniciens_option_heures_non_validees;
+                        return total > 0 ? Math.round((this.nb_cliniciens_option_heures_validees / total) * 100) : 0;
+                    },
+                    get pct_option_heures_non_validees() {
+                        const total = this.nb_cliniciens_option_heures_validees + this.nb_cliniciens_option_heures_non_validees;
+                        return total > 0 ? Math.round((this.nb_cliniciens_option_heures_non_validees / total) * 100) : 0;
+                    }
+                })
+            })
+        </script>
+
+        <style>
+            body {
+                font-family: "Montserrat", sans-serif;
+            }
+
+            .chiffre-rouge {
+                font-size: 3.75rem;
+                color: #c03737;
+                font-weight: 700;
+            }
+        </style>
+    </head>
+    <body x-data>
+        <div class="flex flex-col justify-center items-center w-full gap-4">
+            <img class="w-45" src="../../fiche_clinicien/logoCJ.png"/>
+            <div class="flex flex-col gap-1.5 items-center mt-3">
+                <h1 class="font-extrabold text-3xl">Tableau de bord Clinique juridique</h1>
+                <h2 class="font-bold text-[#c03737] text-xl">CODIR</h2>
+            </div>
+            <div class="grid grid-cols-3 gap-15 m-8 w-7/8">
+                    <div class="card card-md shadow-md flex content-center p-6 gap-8">
+                        <div class="flex flex-col gap-4 items-center">
+                            <img src="../assets/undraw_accept-request_489a.svg" class="w-40 h-40"/>
+                            <div class="flex flex-col gap-0 items-center"><span class="chiffre-rouge" x-text="$store.donnees.nb_rdv_traites_annee"></span> <span class="text-lg font-semibold">RDV traités depuis le début de l'année</span></div>
+                        </div>
+                    </div>
+
+                    <div class="card card-md shadow-md flex content-center p-6 gap-8">
+                        <div class="flex flex-col gap-4 items-center">
+                            <img src="../assets/undraw_action-required_pplo.svg" class="w-40 h-40"/>
+                            <div class="flex flex-col gap-0 items-center"><span class="chiffre-rouge" x-text="$store.donnees.nb_projets"></span> <span class="text-lg font-semibold">projets</span></div>
+                        </div>
+                    </div>
+
+                    <div class="card card-md shadow-md flex content-center p-6 gap-8">
+                        <div class="flex flex-col gap-4 items-center">
+                            <img src="../assets/undraw_online-calendar_iz1q.svg" class="w-40 h-40"/>
+                            <div class="flex flex-col gap-0 items-center"><span class="chiffre-rouge" x-text="$store.donnees.nb_permanences"></span> <span class="text-lg font-semibold">permanences</span></div>
+                        </div>
+                        <div class="flex flex-col gap-0.25 items-end text-sm">
+                            <div class="block"><span class="text-[#c03737]" x-text="$store.donnees.nb_passages_total"></span> <span>passages au total</span></div>
+                            <div class="block"><span class="text-[#c03737]" x-text="$store.donnees.nb_passages_moyen"></span> <span>passages en moyenne</span></div>
+                        </div>
+                    </div>
+            </div>
+
+            <div class="flex flex-col gap-1.5 items-center mt-3">
+                <h2 class="font-bold text-[#c03737] text-xl">Cliniciens</h2>
+            </div>
+
+            <div class="flex flex-row flex-wrap justify-center gap-6 m-8 w-7/8">
+                    <div class="stat place-items-center shadow-md rounded-box bg-base-100 w-64 p-4">
+                        <div class="stat-title whitespace-normal text-center">Cliniciens inscrits</div>
+                        <div class="stat-value text-[#c03737]" x-text="$store.donnees.nb_cliniciens_inscrits"></div>
+                    </div>
+
+                    <div class="stat place-items-center shadow-md rounded-box bg-base-100 w-64 p-4">
+                        <div class="stat-title whitespace-normal text-center">Cliniciens en option inscrits</div>
+                        <div class="stat-value text-[#c03737]" x-text="$store.donnees.nb_cliniciens_option_inscrits"></div>
+                    </div>
+
+                    <div class="stat place-items-center shadow-md rounded-box bg-base-100 w-64 p-4">
+                        <div class="stat-title whitespace-normal text-center">Cliniciens en option ayant validé leurs heures</div>
+                        <div class="stat-value text-[#c03737]" x-text="$store.donnees.nb_cliniciens_option_heures_validees"></div>
+                        <div class="stat-desc whitespace-normal text-center">
+                            <span class="font-bold text-lg text-[#c03737]" x-text="$store.donnees.pct_option_heures_validees + '%'"></span>
+                            des cliniciens en option
+                        </div>
+                    </div>
+
+                    <div class="stat place-items-center shadow-md rounded-box bg-base-100 w-64 p-4">
+                        <div class="stat-title whitespace-normal text-center">Cliniciens en option n'ayant pas validé leurs heures</div>
+                        <div class="stat-value text-[#c03737]" x-text="$store.donnees.nb_cliniciens_option_heures_non_validees"></div>
+                        <div class="stat-desc whitespace-normal text-center">
+                            <span class="font-bold text-lg text-[#c03737]" x-text="$store.donnees.pct_option_heures_non_validees + '%'"></span>
+                            des cliniciens en option
+                        </div>
+                    </div>
+            </div>
+
+            <div class="card card-md shadow-md p-6 m-8 w-7/8 max-w-md flex flex-col items-center gap-4">
+                <span class="text-lg font-semibold">Validation des heures (cliniciens en option)</span>
+                <canvas id="chartOptionHeures"></canvas>
+            </div>
+        </div>
+    </body>
+</html>

@@ -76,6 +76,15 @@
             return prefixe + heures + ' ' + plur(heures, 'heure', 'heures') + (minutes > 0 ? ' ' + String(minutes).padStart(2, '0') : '');
         }
 
+        // Format date : "12/03/2026" (fuseau de Paris, pour les colonnes Date comme DateTime)
+        function formatDate(valeur) {
+            if (valeur == null) {
+                return '';
+            }
+
+            return new Date(valeur * 1000).toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris' });
+        }
+
         document.addEventListener('alpine:init', () => {
             Alpine.store('clinicien', {
                 label_prenom_nom: "",
@@ -258,6 +267,31 @@
                             <span x-text="regul.motif" style="min-width: 0; overflow-wrap: break-word;"></span>
                             <div style="display: flex; flex-direction: row; gap: 10px; align-items: center;">
                                 <span class="badge" :class="regul.heures > 0 ? 'success' : 'fail'" style="font-weight:bold" x-text="formatHeuresCourt(regul.heures)"></span>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+
+            </div>
+
+        </div>
+
+        <div class="container main-bloc">
+            <h3>Permanences</h3>
+            <div style="padding:0px 15px; display:flex; flex-direction: column; gap: 10px;">
+                <template x-for="permanence in $store.clinicien.permanences">
+                    <div class="badge gris-clair">
+                        <div style="display: flex; flex-direction: row; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px;">
+                            <div style="display: flex; flex-direction: column; justify-content: start; gap: 2px; min-width: 0;">
+                                <span><strong x-text="formatDate(permanence.date)"></strong></span>
+
+                                <!--Encart informations supplemémentaires-->
+                                <div style="display: flex; flex-direction: row; gap: 4px; font-weight: lighter; flex-wrap: wrap; font-size: xx-small;" x-show="permanence.commentaires">
+                                    <span x-text="permanence.commentaires" style="overflow-wrap: break-word;"></span>
+                                </div>
+                            </div>
+                            <div style="display: flex; flex-direction: row; gap: 10px; align-items: center;">
+                                <span class="badge gris-fonce" style="font-weight:bold; text-wrap:nowrap" x-text="formatHeuresCourt(permanence.heures)"></span>
                             </div>
                         </div>
                     </div>

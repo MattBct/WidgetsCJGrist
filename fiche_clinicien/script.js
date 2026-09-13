@@ -177,6 +177,9 @@ const COLUMNS_MAPPING = [
 const TABLE_ID_RDV = "RDV"
 const TABLE_ID_PROJETS = "Projets"
 const TABLE_ID_REGULATIONS = "Regulations_heures"
+const TABLE_ID_PERMANENCES = "Permanences"
+
+const COLUMN_CLINICIENS_PERMANENCE = "Cliniciens_affectes"
 
 const COLUMN_MOTIF_RDV = "Motif_RDV"
 
@@ -255,6 +258,36 @@ async function fetchTableRegul(tableID, key_records_id, ids_to_fetch) {
     return list_regul
 }
 
+async function fetchTablePermanences(tableID, key_records_id, ids_to_fetch, id_clinicien) {
+    const table = await grist.docApi.fetchTable(tableID);
+
+    console.log("RAW permanences : ", table)
+
+    // La liste des permanences du clinicien peut ne pas être renseignée : on retombe
+    // alors sur la colonne listant les cliniciens affectés à chaque permanence.
+    let ids = ids_to_fetch ?? [];
+    if (ids.length === 0) {
+        ids = table[key_records_id].filter((id, index) => {
+            const cliniciens = table[COLUMN_CLINICIENS_PERMANENCE][index];
+            return Array.isArray(cliniciens) ? cliniciens.includes(id_clinicien) : cliniciens === id_clinicien;
+        });
+    }
+
+    const list_permanences = []
+    for (const record of ids) {
+        const index_record = table[key_records_id].indexOf(record);
+        const row = {
+            "date": table["Date_de_la_permanence"][index_record],
+            "heures": table["Heures_affectees"][index_record],
+            "commentaires": table["Commentaires"][index_record],
+        }
+        list_permanences.push(row);
+    }
+
+    console.log('Liste permanences ', list_permanences)
+    return list_permanences
+}
+
 
 const mappedRecord = grist.onRecord(async (record) => {
     const records = grist.mapColumnNames(record);
@@ -282,7 +315,7 @@ const mappedRecord = grist.onRecord(async (record) => {
     Alpine.store('clinicien').nb_apprec_tres_satisfaisant = records.nb_apprec_tres_satisfaisant ?? 0
     Alpine.store('clinicien').nb_permanences = records.nb_permanences
     Alpine.store('clinicien').heures_permanences = records.heures_permanences
-    Alpine.store('clinicien').permanences = records.liste_permanences
+    Alpine.store('clinicien').permanences = await fetchTablePermanences(TABLE_ID_PERMANENCES, "id", records["liste_permanences"], record.id);
 
     return records
 })

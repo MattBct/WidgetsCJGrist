@@ -85,14 +85,15 @@ grist.ready({
     allowSelectBy: true,
 });
 
-grist.onRecords((records) => {
+grist.onRecords(async (records) => {
     console.log('onRecords triggered');
     const mappedRecords = grist.mapColumnNames(records); 
     console.log('Mapped records in the table:', mappedRecords);
 
 
     if (mappedRecords.length > 0) {
-        editCalendar(calendar, getEventsInfos(mappedRecords), getResources(mappedRecords));
+        const libellesLieux = await getLibellesLieux();
+        editCalendar(calendar, getEventsInfos(mappedRecords), getResources(mappedRecords, libellesLieux));
     }
     else {
         console.log('Pas d\'événements à afficher dans le calendrier.');
@@ -102,16 +103,38 @@ grist.onRecords((records) => {
 let selectedEventId = null; // Variable pour stocker l'ID de l'événement sélectionné
 
 
-function getResources(records){
+// Les colonnes Ref sont renvoyées par Grist sous forme d'objet Reference ({tableId, rowId}) :
+// on ne garde que l'identifiant de la ligne référencée pour lier événements et ressources.
+function getLieuId(valeur){
+    const id = (valeur && typeof valeur === 'object') ? valeur.rowId : valeur;
+    return id ? String(id) : null;
+}
+
+// Récupère les valeurs affichées dans Grist pour les colonnes lieu (nom de la salle plutôt que son ID).
+// Retourne une Map idDossier -> { nomColonneLieu: libellé }.
+async function getLibellesLieux(){
+    try {
+        const rows = await grist.fetchSelectedTable({ format: 'rows', cellFormat: 'normal' });
+        const mappedRows = grist.mapColumnNames(rows) || [];
+        return new Map(mappedRows.map(row => [row.id, row]));
+    } catch (e) {
+        console.warn('Impossible de récupérer les libellés des lieux :', e);
+        return new Map();
+    }
+}
+
+function getResources(records, libellesLieux = new Map()){
     const resources = [];
     records.forEach(element => {
         CRENEAUX_RDV.forEach(creneau => {
-            const lieu = element[creneau.cols.lieu.name];
-            if(lieu && !resources.find(r => r.id === lieu)){
-                resources.push({ id: lieu, title: lieu });
+            const lieuId = getLieuId(element[creneau.cols.lieu.name]);
+            if(lieuId && !resources.find(r => r.id === lieuId)){
+                const libelle = libellesLieux.get(element.id)?.[creneau.cols.lieu.name];
+                resources.push({ id: lieuId, title: libelle ? String(libelle) : `Salle ${lieuId}` });
             }
         })
     });
+    resources.sort((a, b) => a.title.localeCompare(b.title, 'fr'));
 
     console.log('Ressources trouvées :', resources);
     return resources;
@@ -136,7 +159,7 @@ function getEventsInfos(records){
             title: `${dossier[TITRE_NAME_COLUMN.name]}`,
             start: new Date(dossier[creneau.cols.date.name]),
             end: new Date(new Date(dossier[creneau.cols.date.name]).getTime() + (DUREE_RDV_DEFAULT.minutes * 60000)),
-            resourceIds: [dossier[creneau.cols.lieu.name]],
+            resourceIds: [getLieuId(dossier[creneau.cols.lieu.name])].filter(Boolean),
             allDay: false,
             backgroundColor: creneau.backgroundColor,
             textColor: '#000000',

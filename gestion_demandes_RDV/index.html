@@ -24,6 +24,12 @@
       <img class="entete-illustration" src="facade_blanc.png" alt="" aria-hidden="true">
     </header>
 
+    <nav class="filtres" id="filtres" aria-label="Filtrer les demandes" hidden>
+      <button type="button" class="filtre" data-filtre="tous" aria-pressed="true">Toutes <span class="filtre-nombre"></span></button>
+      <button type="button" class="filtre" data-filtre="etudiants" aria-pressed="false">Étudiants <span class="filtre-nombre"></span></button>
+      <button type="button" class="filtre" data-filtre="non-etudiants" aria-pressed="false">Non étudiants <span class="filtre-nombre"></span></button>
+    </nav>
+
     <div class="bandeau" id="bandeau" hidden></div>
 
     <main class="liste" id="liste"></main>
@@ -40,9 +46,18 @@
           <div class="identite">
             <span class="id-rdv"></span>
             <h2 class="patient"><span class="nom"></span> <span class="prenom"></span></h2>
-            <div class="etudiant" hidden>
-              <img class="logo-cvec" src="logo_CVEC.png" alt="Financé par la CVEC">
-              <span class="etudiant-texte">RDV étudiant · <span class="etablissement"></span></span>
+            <div class="etudiant">
+              <label class="champ champ-interrupteur">
+                <input type="checkbox" data-champ="Etudiant">
+                <span class="interrupteur" aria-hidden="true"></span>
+                <span class="champ-label">RDV étudiant</span>
+              </label>
+              <div class="etudiant-details" hidden>
+                <img class="logo-cvec" src="logo_CVEC.png" alt="Financé par la CVEC">
+                <label class="champ champ-etablissement">
+                  <select data-champ="Etablissement_COMUE" aria-label="Établissement COMUE"></select>
+                </label>
+              </div>
             </div>
           </div>
           <div class="alertes"></div>
@@ -81,6 +96,7 @@
             <label class="champ">
               <span class="champ-label">Date et heure</span>
               <input type="datetime-local" data-champ="Creneau_RDV_1" step="300">
+              <span class="champ-message" aria-live="polite"></span>
             </label>
             <label class="champ">
               <span class="champ-label">Lieu</span>
@@ -92,6 +108,7 @@
             <label class="champ">
               <span class="champ-label">Date et heure</span>
               <input type="datetime-local" data-champ="Creneau_RDV_2" step="300">
+              <span class="champ-message" aria-live="polite"></span>
             </label>
             <label class="champ">
               <span class="champ-label">Lieu</span>
@@ -101,7 +118,7 @@
         </section>
 
         <section class="bloc complements">
-          <label class="champ champ-visio">
+          <label class="champ champ-interrupteur champ-visio">
             <input type="checkbox" data-champ="Visioconference">
             <span class="interrupteur" aria-hidden="true"></span>
             <span class="champ-label">Visioconférence</span>

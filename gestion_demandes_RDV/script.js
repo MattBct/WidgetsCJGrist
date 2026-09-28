@@ -25,8 +25,8 @@ const COLONNES = [
     { name: "Commentaires", title: "Commentaires", type: "Text", optional: false },
     { name: "Motif_RDV", title: "Motif du RDV (patient)", type: "Text", optional: false, description: "Motif détaillé rédigé par le patient" },
     { name: "Motifs_standardises", title: "Motifs standardisés", type: "ChoiceList,Text", optional: false, description: "Motifs standardisés (colonne Choix multiples), affichés en pastilles aux couleurs définies dans Grist" },
-    { name: "Etudiant", title: "RDV étudiant", type: "Bool", optional: false, description: "Affiche la mention « Financé par la CVEC » et l'établissement" },
-    { name: "Etablissement_COMUE", title: "Établissement COMUE", type: "Choice,Text", optional: false, description: "Établissement de l'étudiant, affiché si RDV étudiant" },
+    { name: "Etudiant", title: "RDV étudiant", type: "Bool", optional: false, description: "Modifiable ; si coché, affiche la mention « Financé par la CVEC » et l'établissement" },
+    { name: "Etablissement_COMUE", title: "Établissement COMUE", type: "Choice", optional: false, description: "Établissement de l'étudiant, modifiable si RDV étudiant" },
     { name: "Statut_RDV", title: "Statut de la demande", type: "Choice,Text", optional: false, description: `Colonne filtrée dans la vue ; reçoit « ${STATUT_CONFIRME} » ou « ${STATUT_REJETE} » via les boutons du widget` },
 ];
 
@@ -36,11 +36,13 @@ const TYPES_CHAMPS = {
     Telephone_patient: 'texte',
     Commentaires: 'texte',
     Motif_RDV: 'texte',
+    Etablissement_COMUE: 'choix',
     Creneau_RDV_1: 'date',
     Creneau_RDV_2: 'date',
     Lieu_RDV_1: 'lieu',
     Lieu_RDV_2: 'lieu',
     Visioconference: 'bool',
+    Etudiant: 'bool',
 };
 
 const EMAIL_VALIDE = /^[a-z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*\.[a-z]{2,}$/;
@@ -148,6 +150,9 @@ function creerSourceGrist() {
                 lieux[champ] = { type: 'ref', choix: await tablesCibles.get(cle) };
             }
 
+            const iEtablissement = trouverColonne(mappings.Etablissement_COMUE);
+            const etablissements = iEtablissement >= 0 ? (lireWidgetOptions(iEtablissement).choices || []) : [];
+
             const iStatut = trouverColonne(mappings.Statut_RDV);
             const statuts = iStatut >= 0 && colonnes.type[iStatut] === 'Choice' ? (lireWidgetOptions(iStatut).choices || []) : null;
             // Motifs standardisés : choix proposés et couleurs des pastilles, tels que définis dans Grist
@@ -158,7 +163,7 @@ function creerSourceGrist() {
                 choix: optionsMotifs.choices || [],
                 styles: optionsMotifs.choiceOptions || {},
             };
-            return { lieux, statuts, motifs };
+            return { lieux, statuts, motifs, etablissements };
         },
 
         selectionner(rowId) {
@@ -208,6 +213,10 @@ function creerSourceDemo() {
             return {
                 lieux: { Lieu_RDV_1: { type: 'ref', choix: salles }, Lieu_RDV_2: { type: 'ref', choix: salles } },
                 statuts: [STATUT_DEMANDE, STATUT_CONFIRME, STATUT_REJETE],
+                etablissements: [
+                    'Université Claude Bernard Lyon 1', 'Université Lumière Lyon 2', 'Université Jean Moulin Lyon 3',
+                    'Université Jean Monnet Saint-Étienne', 'ENS de Lyon', 'INSA Lyon', 'École Centrale de Lyon', 'Sciences Po Lyon',
+                ],
                 motifs: {
                     type: 'liste',
                     choix: ['Logement', 'Travail', 'Famille', 'Consommation', 'Droit des étrangers', 'Administratif', 'Pénal'],
@@ -340,6 +349,7 @@ function afficher(dossiers) {
         cartes.forEach(carte => carte.element.remove());
         cartes.clear();
         compteur.hidden = true;
+        document.getElementById('filtres').hidden = true;
         texteMessage.textContent = 'Associez les colonnes du widget dans le panneau de configuration Grist.';
         message.hidden = false;
         return;
@@ -367,9 +377,43 @@ function afficher(dossiers) {
     const n = dossiers.length;
     compteur.textContent = `${n} ${plur(n, 'demande')} à traiter`;
     compteur.hidden = n === 0;
-    texteMessage.textContent = 'Aucune demande de RDV à traiter.';
-    message.hidden = n > 0;
+    appliquerFiltre();
 }
+
+// ---------- Filtre étudiant / non étudiant (dans le widget, en plus du filtre de statut de la vue Grist) ----------
+
+const FILTRES = {
+    tous: { garder: () => true, vide: 'Aucune demande de RDV à traiter.' },
+    etudiants: { garder: d => d.Etudiant === true, vide: 'Aucune demande étudiante à traiter.' },
+    'non-etudiants': { garder: d => d.Etudiant !== true, vide: 'Aucune demande non étudiante à traiter.' },
+};
+let filtreActif = 'tous';
+
+function appliquerFiltre() {
+    const dossiers = [...cartes.values()].map(carte => carte.dossier);
+    let visibles = 0;
+    for (const carte of cartes.values()) {
+        const garder = FILTRES[filtreActif].garder(carte.dossier);
+        carte.element.hidden = !garder;
+        visibles += garder ? 1 : 0;
+    }
+    for (const bouton of document.querySelectorAll('.filtre')) {
+        const nom = bouton.dataset.filtre;
+        bouton.setAttribute('aria-pressed', String(nom === filtreActif));
+        bouton.querySelector('.filtre-nombre').textContent = dossiers.filter(FILTRES[nom].garder).length;
+    }
+    document.getElementById('filtres').hidden = dossiers.length === 0;
+    document.getElementById('message-texte').textContent = FILTRES[filtreActif].vide;
+    document.getElementById('message').hidden = visibles > 0;
+}
+
+document.getElementById('filtres').addEventListener('click', (e) => {
+    const bouton = e.target.closest('.filtre');
+    if (bouton) {
+        filtreActif = bouton.dataset.filtre;
+        appliquerFiltre();
+    }
+});
 
 // Suit l'ordre de tri de la vue Grist. Déplacer la carte en cours d'édition lui ferait perdre le focus :
 // le réordonnancement attend alors que l'utilisateur quitte la liste.
@@ -401,12 +445,6 @@ function majCarte(carte) {
 
     majMotifsStandardises(element, dossier);
 
-    // RDV étudiant : mention CVEC et établissement (lecture seule)
-    const etudiant = element.querySelector('.etudiant');
-    const etablissement = String(dossier.Etablissement_COMUE || '').trim();
-    etudiant.hidden = dossier.Etudiant !== true;
-    etudiant.querySelector('.etablissement').textContent = etablissement || 'Établissement non renseigné';
-    etudiant.querySelector('.etablissement').classList.toggle('non-renseigne', !etablissement);
 
     for (const input of element.querySelectorAll('[data-champ]')) {
         const champ = input.dataset.champ;
@@ -424,13 +462,12 @@ function majCarte(carte) {
         } else {
             input.value = valeur;
         }
-        if (VALIDATEURS[champ]) {
-            afficherValidation(input, VALIDATEURS[champ](valeur));
-        }
         if (input.tagName === 'TEXTAREA') {
             ajusterHauteur(input);
         }
     }
+    // Validation une fois tous les champs à jour : les créneaux se valident l'un par rapport à l'autre
+    revalider(element);
 
     // Vue non filtrée sur le statut : la demande traitée reste affichée, boutons désactivés
     const traitee = Object.values(ACTIONS_STATUT).some(action => action.statut === dossier.Statut_RDV);
@@ -546,8 +583,16 @@ function ajusterHauteur(textarea) {
     textarea.style.height = `${textarea.scrollHeight + 2}px`;
 }
 
+// Listes déroulantes : choix proposés et libellé de l'option vide
+const LISTES = {
+    Lieu_RDV_1: { vide: '— Lieu à définir —', choix: () => options?.lieux?.Lieu_RDV_1?.choix },
+    Lieu_RDV_2: { vide: '— Lieu à définir —', choix: () => options?.lieux?.Lieu_RDV_2?.choix },
+    Etablissement_COMUE: { vide: '— Établissement à renseigner —', choix: () => options?.etablissements?.map(c => ({ valeur: c, libelle: c })) },
+};
+
 function remplirSelect(select, champ, valeur) {
-    const choix = [...(options?.lieux?.[champ]?.choix ?? [])];
+    const liste = LISTES[champ];
+    const choix = [...(liste.choix() ?? [])];
     const reference = lireReference(valeur);
     if (reference && !choix.some(c => String(c.valeur) === reference.id)) {
         choix.push({ valeur: reference.id, libelle: reference.libelle || `Salle ${reference.id}` });
@@ -557,7 +602,7 @@ function remplirSelect(select, champ, valeur) {
         return;
     }
     const valeurActuelle = select.value;
-    select.replaceChildren(new Option('— Lieu à définir —', ''), ...choix.map(c => new Option(c.libelle, String(c.valeur))));
+    select.replaceChildren(new Option(liste.vide, ''), ...choix.map(c => new Option(c.libelle, String(c.valeur))));
     select.value = valeurActuelle;
     select.dataset.signature = signature;
 }
@@ -618,10 +663,76 @@ function validerTelephone(texte) {
     return { valide: false, valeur: brut, message: '10 chiffres (06 12 34 56 78) ou format international (+44 …)' };
 }
 
+// "AAAA-MM-JJTHH:MM" -> "06/10/2026 à 14h00"
+function formaterSaisieDate(texte) {
+    const [a, mo, j, h, mi] = texte.split(/[-T:]/);
+    return `${j}/${mo}/${a} à ${h}h${mi}`;
+}
+
+// Créneaux : le RDV 2 (restitution) doit être strictement postérieur au RDV 1 (bloquant) ;
+// date passée, week-end ou RDV 2 sans RDV 1 sont signalés sans bloquer
+function validerCreneau(n) {
+    const autreChamp = `Creneau_RDV_${n === 1 ? 2 : 1}`;
+    return (texte, element) => {
+        if (!texte) {
+            return { valide: true, valeur: '' };
+        }
+        // Si la saisie de l'autre créneau a été refusée, on compare à sa valeur enregistrée dans Grist
+        const carte = element && cartes.get(Number(element.dataset.id));
+        const autreRefuse = carte && saisiesRefusees.has(`${carte.dossier.id}:${autreChamp}`);
+        const autre = !element ? '' : autreRefuse ? versSaisie(autreChamp, carte.dossier[autreChamp]) : valeurChamp(element, autreChamp);
+        // Les saisies "AAAA-MM-JJTHH:MM" se comparent directement comme des chaînes
+        if (autre && (n === 2 ? texte <= autre : texte >= autre)) {
+            return {
+                valide: false,
+                valeur: texte,
+                message: n === 2
+                    ? `Doit être postérieur au RDV 1 (${formaterSaisieDate(autre)})`
+                    : `Doit précéder le RDV 2 (${formaterSaisieDate(autre)})`,
+            };
+        }
+        const remarques = [];
+        if (depuisSaisieDate(texte) * 1000 < Date.now()) {
+            remarques.push('date passée');
+        }
+        const jour = new Date(`${texte.slice(0, 10)}T12:00:00Z`).getUTCDay();
+        if (jour === 0 || jour === 6) {
+            remarques.push(jour === 6 ? 'un samedi' : 'un dimanche');
+        }
+        if (n === 2 && element && !autre) {
+            remarques.push('RDV 1 non renseigné');
+        }
+        return { valide: true, valeur: texte, avertissement: remarques.length ? `Attention : ${remarques.join(', ')}` : null };
+    };
+}
+
 const VALIDATEURS = {
     Mail_patient: validerEmail,
     Telephone_patient: validerTelephone,
+    Creneau_RDV_1: validerCreneau(1),
+    Creneau_RDV_2: validerCreneau(2),
 };
+
+// Réaffiche la validation des champs de la carte (hors champ en cours de saisie). Une saisie refusée
+// qui devient valide (ex. RDV 2 refusé, puis RDV 1 avancé) est enregistrée automatiquement.
+function revalider(element, sauf = null) {
+    const rowId = element.dataset.id;
+    for (const [champ, validateur] of Object.entries(VALIDATEURS)) {
+        const input = element.querySelector(`[data-champ="${champ}"]`);
+        if (champ === sauf || input === document.activeElement) {
+            continue;
+        }
+        const resultat = validateur(input.value, element);
+        if (saisiesRefusees.has(`${rowId}:${champ}`)) {
+            if (resultat.valide) {
+                // Après l'écriture du champ qui l'a débloquée (Grist ne passe jamais par un RDV 2 ≤ RDV 1)
+                setTimeout(() => sauvegarder(input));
+            }
+            continue;
+        }
+        afficherValidation(input, resultat);
+    }
+}
 
 // Message sous le champ (erreur de format ou suggestion de correction)
 function afficherValidation(input, resultat) {
@@ -629,8 +740,11 @@ function afficherValidation(input, resultat) {
     input.setAttribute('aria-invalid', String(!resultat.valide));
     input.setCustomValidity(resultat.valide ? '' : resultat.message);
     zone.classList.toggle('invalide', !resultat.valide);
+    zone.classList.toggle('avertissement', resultat.valide && Boolean(resultat.avertissement));
     if (!resultat.valide) {
         zone.textContent = resultat.message;
+    } else if (resultat.avertissement) {
+        zone.textContent = resultat.avertissement;
     } else if (resultat.suggestion) {
         const bouton = document.createElement('button');
         bouton.type = 'button';
@@ -662,6 +776,20 @@ function majAlertes(element) {
         } else if (!validerTelephone(telephone).valide) {
             alertes.push({ niveau: 'avertissement', texte: 'Téléphone invalide' });
         }
+    }
+    // RDV étudiant : la mention CVEC et l'établissement suivent la case, y compris pendant l'enregistrement
+    const etudiant = valeurChamp(element, 'Etudiant');
+    element.querySelector('.etudiant').classList.toggle('actif', etudiant);
+    element.querySelector('.etudiant-details').hidden = !etudiant;
+    const etablissement = valeurChamp(element, 'Etablissement_COMUE');
+    if (etudiant && !etablissement) {
+        alertes.push({ niveau: 'avertissement', texte: 'Établissement manquant' });
+    }
+    element.querySelector('.champ-etablissement').classList.toggle('manquant', !etablissement);
+    const rdv1 = valeurChamp(element, 'Creneau_RDV_1');
+    const rdv2 = valeurChamp(element, 'Creneau_RDV_2');
+    if (rdv1 && rdv2 && rdv2 <= rdv1) {
+        alertes.push({ niveau: 'critique', texte: 'RDV 2 avant le RDV 1' });
     }
     [1, 2].forEach(n => {
         if (!valeurChamp(element, `Creneau_RDV_${n}`) || !valeurChamp(element, `Lieu_RDV_${n}`)) {
@@ -740,10 +868,11 @@ async function sauvegarder(input) {
         marquer(input, 'erreur', 'Date incomplète : non enregistrée');
         return;
     }
-    // Email et téléphone : une valeur invalide n'est pas enregistrée, une valeur valide est normalisée
+    // Email, téléphone et créneaux : une valeur invalide n'est pas enregistrée, une valeur valide est normalisée
     const validateur = VALIDATEURS[champ];
     if (validateur) {
-        const resultat = validateur(input.value);
+        const element = input.closest('.carte');
+        const resultat = validateur(input.value, element);
         const cleSaisie = `${carte.dossier.id}:${champ}`;
         afficherValidation(input, resultat);
         if (!resultat.valide) {
@@ -753,7 +882,8 @@ async function sauvegarder(input) {
         }
         saisiesRefusees.delete(cleSaisie);
         input.value = resultat.valeur;
-        majAlertes(input.closest('.carte'));
+        majAlertes(element);
+        revalider(element, champ);
     }
     const valeurActuelle = carte.dossier[champ];
     const nouvelle = depuisSaisie(champ, input.type === 'checkbox' ? input.checked : input.value, valeurActuelle);
@@ -857,7 +987,7 @@ liste.addEventListener('input', (e) => {
     }
     // Pendant la frappe, l'erreur s'efface dès que la saisie devient valide (elle ne s'affiche qu'en sortie de champ)
     const validateur = VALIDATEURS[e.target.dataset?.champ];
-    if (validateur && e.target.getAttribute('aria-invalid') === 'true' && validateur(e.target.value).valide) {
+    if (validateur && e.target.getAttribute('aria-invalid') === 'true' && validateur(e.target.value, element).valide) {
         afficherValidation(e.target, { valide: true });
         marquer(e.target, '');
     }

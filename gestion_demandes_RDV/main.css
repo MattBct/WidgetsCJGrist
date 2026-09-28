@@ -116,6 +116,67 @@ html, body {
     }
 }
 
+/* ---------- Filtre étudiant / non étudiant ---------- */
+
+.filtres {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 10px 15px;
+    background: #ffffff;
+    border-bottom: 1px solid var(--bordure);
+}
+
+.filtres[hidden] {
+    display: none;
+}
+
+.filtre {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--clinique);
+    background: #ffffff;
+    border: 1px solid var(--clinique);
+    border-radius: 999px;
+    cursor: pointer;
+}
+
+.filtre:hover {
+    background: var(--critique-fond);
+}
+
+.filtre[aria-pressed="true"] {
+    color: #ffffff;
+    background: var(--clinique);
+}
+
+.filtre-nombre {
+    min-width: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    font-size: 11px;
+    text-align: center;
+    background: var(--critique-fond);
+    color: var(--clinique-fonce);
+}
+
+.filtre[aria-pressed="true"] .filtre-nombre {
+    background: var(--clinique-fonce);
+    color: #ffffff;
+}
+
+.carte[hidden] {
+    display: none;
+}
+
 .bandeau {
     margin: 12px 15px 0;
     padding: 8px 12px;
@@ -216,16 +277,31 @@ html, body {
 /* RDV étudiant : mention CVEC et établissement */
 .etudiant {
     display: inline-flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 8px;
+    max-width: 100%;
+    gap: 6px 12px;
     margin-top: 6px;
-    padding: 3px 10px 3px 6px;
-    border: 1px solid #f3e27a;
+    padding: 4px 10px 4px 6px;
+    border: 1px dashed var(--bordure);
     border-radius: 6px;
+}
+
+/* RDV étudiant : encart aux couleurs de la CVEC */
+.etudiant.actif {
+    border: 1px solid #f3e27a;
     background: #fffbe0;
 }
 
-.etudiant[hidden] {
+.etudiant-details {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.etudiant-details[hidden] {
     display: none;
 }
 
@@ -235,15 +311,26 @@ html, body {
     width: auto;
 }
 
-.etudiant-texte {
-    font-size: 12px;
-    font-weight: 600;
+.champ-etablissement {
+    min-width: 0;
 }
 
-.etablissement.non-renseigne {
+.champ-etablissement select {
+    width: auto;
+    max-width: 100%;
+    padding: 3px 6px;
+    font-size: 12px;
+    font-weight: 600;
+    background: #ffffff;
+}
+
+.champ-etablissement.manquant select {
     font-weight: 500;
     font-style: italic;
-    color: var(--texte-doux);
+    color: var(--alerte);
+    border-style: dashed;
+    border-color: var(--alerte);
+    background: var(--alerte-fond);
 }
 
 .alertes {
@@ -498,6 +585,11 @@ html, body {
     color: var(--texte-doux);
 }
 
+.champ-message.avertissement {
+    font-weight: 600;
+    color: var(--alerte);
+}
+
 .champ-message.invalide {
     font-weight: 600;
     color: var(--clinique);
@@ -520,17 +612,20 @@ html, body {
     cursor: pointer;
 }
 
-/* Interrupteur visioconférence */
-.champ-visio {
+/* Interrupteurs (visioconférence, RDV étudiant) */
+.champ-interrupteur {
     flex-direction: row;
     align-items: center;
     gap: 8px;
-    padding-top: 18px;
     cursor: pointer;
     white-space: nowrap;
 }
 
-.champ-visio input {
+.champ-visio {
+    padding-top: 18px;
+}
+
+.champ-interrupteur input {
     position: absolute;
     opacity: 0;
     pointer-events: none;
@@ -559,20 +654,20 @@ html, body {
     transition: transform 0.2s;
 }
 
-.champ-visio input:checked + .interrupteur {
+.champ-interrupteur input:checked + .interrupteur {
     background: var(--clinique);
 }
 
-.champ-visio input:checked + .interrupteur::after {
+.champ-interrupteur input:checked + .interrupteur::after {
     transform: translateX(14px);
 }
 
-.champ-visio input:focus-visible + .interrupteur {
+.champ-interrupteur input:focus-visible + .interrupteur {
     outline: 2px solid rgba(192, 55, 55, 0.35);
     outline-offset: 2px;
 }
 
-.champ-visio .champ-label {
+.champ-interrupteur .champ-label {
     font-size: 12px;
     color: var(--texte);
 }

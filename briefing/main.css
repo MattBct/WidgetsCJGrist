@@ -194,12 +194,16 @@ html, body {
 }
 
 @media screen {
+    html,
     body {
+        min-height: 100%;
         background: #e9e9e9;
     }
 }
 
 .bandeau {
+    position: relative;
+    overflow: hidden;
     display: flex;
     align-items: center;
     gap: 20px;
@@ -207,6 +211,22 @@ html, body {
     background: var(--clinique);
     color: #ffffff;
     border-radius: 6px;
+}
+
+.bandeau-facade {
+    position: absolute;
+    right: -2%;
+    top: 50%;
+    transform: translateY(-38%);
+    width: 42%;
+    height: auto;
+    opacity: 0.22;
+    pointer-events: none;
+}
+
+.bandeau-logo,
+.bandeau-titre {
+    position: relative;
 }
 
 .bandeau-logo {
@@ -656,6 +676,14 @@ body.motif-complet .carte-motif {
 }
 
 /* ---------- Divers ---------- */
+
+.vide-illustration {
+    display: block;
+    width: 180px;
+    max-width: 60%;
+    margin: 0 auto 14px;
+    opacity: 0.5;
+}
 
 .vide-journee {
     padding: 40px 20px;

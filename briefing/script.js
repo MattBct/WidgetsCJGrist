@@ -197,7 +197,10 @@ function afficherBriefing() {
     document.getElementById('synthese').innerHTML = renderSynthese(rdvs, salles, horaires);
     document.getElementById('occupation').innerHTML = rdvs.length > 0
         ? renderTableau(rdvs, salles, horaires)
-        : `<div class="vide-journee">Aucun RDV prévu le ${echapper(libelleJour(jourSelectionne).toLowerCase())}.</div>`;
+        : `<div class="vide-journee">
+                <img src="facade_rouge.png" alt="" class="vide-illustration">
+                Aucun RDV prévu le ${echapper(libelleJour(jourSelectionne).toLowerCase())}.
+            </div>`;
     document.getElementById('emargement').innerHTML = rdvs.length > 0
         ? renderEmargement(rdvs, salles)
         : '';

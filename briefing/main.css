@@ -107,8 +107,6 @@ html, body {
     height: 16mm;
     width: auto;
     flex: 0 0 auto;
-    /* Le logo fourni est rouge : on le passe en blanc pour qu'il ressorte sur le bandeau */
-    filter: brightness(0) invert(1);
 }
 
 .bandeau-titre {

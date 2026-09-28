@@ -130,7 +130,8 @@ function getResources(records, libellesLieux = new Map()){
             const lieuId = getLieuId(element[creneau.cols.lieu.name]);
             if(lieuId && !resources.find(r => r.id === lieuId)){
                 const libelle = libellesLieux.get(element.id)?.[creneau.cols.lieu.name];
-                resources.push({ id: lieuId, title: libelle ? String(libelle) : `Salle ${lieuId}` });
+                const titreParDefaut = /^\d+$/.test(lieuId) ? `Salle ${lieuId}` : lieuId;
+                resources.push({ id: lieuId, title: libelle ? String(libelle) : titreParDefaut });
             }
         })
     });

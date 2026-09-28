@@ -4,7 +4,14 @@ body {
     font-family: 'Montserrat', sans-serif;
 }
 
-.ec-resource > * {
-    min-height: fit-content !important;
-}
 /* Style des resources */
+/* En-tête de colonne de la vue par salle : hauteur calée sur le contenu
+   (sinon la cellule est écrasée à 0 sous Firefox) et retour à la ligne des noms longs. */
+.ec-header .ec-resource > .ec-day {
+    flex: 0 0 auto;
+    min-height: 24px;
+    padding: 4px;
+    line-height: 1.2;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}

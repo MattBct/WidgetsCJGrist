@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&family=Zilla+Slab:wght@600;700&display=swap');
 
 :root {
     --clinique: #C03737;
@@ -27,30 +27,93 @@ html, body {
     font-size: 13px;
 }
 
-/* ---------- Barre d'outils ---------- */
+/* ---------- En-tête aux couleurs de la Clinique ---------- */
 
-.toolbar {
-    position: sticky;
-    top: 0;
-    z-index: 10;
+.entete {
+    position: relative;
     display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 8px;
-    padding: 10px 15px;
-    background: #ffffff;
-    border-bottom: 1px solid var(--bordure);
+    align-items: center;
+    gap: 16px;
+    min-height: 84px;
+    padding: 12px 15px;
+    overflow: hidden;
+    color: #ffffff;
+    background: var(--clinique);
 }
 
-.toolbar-titre {
-    font-size: 15px;
+.entete-logo {
+    position: relative;
+    z-index: 1;
+    flex: none;
+    height: 60px;
+    width: auto;
+}
+
+.entete-titre {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    padding-left: 16px;
+    /* Filet vertical, comme le séparateur du logo */
+    border-left: 1px solid rgba(255, 255, 255, 0.7);
+}
+
+.entete-titre h1 {
+    margin: 0;
+    font-family: 'Zilla Slab', Georgia, serif;
+    font-size: 24px;
     font-weight: 700;
-    color: var(--clinique);
+    line-height: 1;
 }
 
 .compteur {
-    color: var(--texte-doux);
-    font-weight: 500;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    background: var(--clinique-fonce);
+}
+
+.compteur[hidden] {
+    display: none;
+}
+
+/* Façade de la faculté en filigrane, estompée vers la gauche */
+.entete-illustration {
+    position: absolute;
+    right: -10px;
+    bottom: -38px;
+    height: 150px;
+    width: auto;
+    opacity: 0.3;
+    pointer-events: none;
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 45%);
+    mask-image: linear-gradient(to right, transparent, #000 45%);
+}
+
+@media (max-width: 560px) {
+    .entete {
+        gap: 12px;
+    }
+
+    .entete-logo {
+        height: 46px;
+    }
+
+    .entete-titre {
+        padding-left: 12px;
+    }
+
+    .entete-titre h1 {
+        font-size: 19px;
+    }
+
+    .entete-illustration {
+        display: none;
+    }
 }
 
 .bandeau {
@@ -71,9 +134,31 @@ html, body {
 }
 
 .message {
-    padding: 40px 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 32px 15px;
     text-align: center;
     color: var(--texte-doux);
+}
+
+.message[hidden] {
+    display: none;
+}
+
+.message-illustration {
+    width: min(260px, 70%);
+    height: auto;
+    opacity: 0.55;
+}
+
+.message p {
+    margin: 0;
+    font-family: 'Zilla Slab', Georgia, serif;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--clinique-fonce);
 }
 
 /* ---------- Cartes ---------- */

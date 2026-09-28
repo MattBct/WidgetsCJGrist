@@ -15,15 +15,22 @@
   </head>
 
   <body>
-    <nav class="toolbar">
-      <div class="toolbar-titre">Demandes de RDV</div>
-      <div class="compteur" id="compteur"></div>
-    </nav>
+    <header class="entete">
+      <img class="entete-logo" src="logoCJ_blanc.png" alt="Clinique Juridique — Faculté de droit, Université Jean Moulin Lyon III">
+      <div class="entete-titre">
+        <h1>Demandes de RDV</h1>
+        <span class="compteur" id="compteur" hidden></span>
+      </div>
+      <img class="entete-illustration" src="facade_blanc.png" alt="" aria-hidden="true">
+    </header>
 
     <div class="bandeau" id="bandeau" hidden></div>
 
     <main class="liste" id="liste"></main>
-    <div class="message" id="message" hidden></div>
+    <div class="message" id="message" hidden>
+      <img class="message-illustration" src="facade.png" alt="" aria-hidden="true">
+      <p id="message-texte"></p>
+    </div>
 
     <div class="toast" id="toast" hidden></div>
 

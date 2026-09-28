@@ -301,13 +301,15 @@ function plur(n, singulier, pluriel) {
 
 function afficher(dossiers) {
     const message = document.getElementById('message');
+    const texteMessage = document.getElementById('message-texte');
+    const compteur = document.getElementById('compteur');
     verifierOptions();
 
     if (!dossiers) {
         cartes.forEach(carte => carte.element.remove());
         cartes.clear();
-        document.getElementById('compteur').textContent = '';
-        message.textContent = 'Associez les colonnes du widget dans le panneau de configuration Grist.';
+        compteur.hidden = true;
+        texteMessage.textContent = 'Associez les colonnes du widget dans le panneau de configuration Grist.';
         message.hidden = false;
         return;
     }
@@ -332,8 +334,9 @@ function afficher(dossiers) {
     ordonner(dossiers.map(d => d.id));
 
     const n = dossiers.length;
-    document.getElementById('compteur').textContent = `${n} ${plur(n, 'demande')} à traiter`;
-    message.textContent = 'Aucune demande de RDV à traiter.';
+    compteur.textContent = `${n} ${plur(n, 'demande')} à traiter`;
+    compteur.hidden = n === 0;
+    texteMessage.textContent = 'Aucune demande de RDV à traiter.';
     message.hidden = n > 0;
 }
 

@@ -23,6 +23,8 @@ const COLONNES = [
     { name: "Lieu_RDV_2", title: "Lieu RDV 2", type: "Ref,Choice", optional: false, description: "Salle du deuxième rendez-vous (colonne Référence ou Choix)" },
     { name: "Visioconference", title: "Visioconférence", type: "Bool", optional: false },
     { name: "Commentaires", title: "Commentaires", type: "Text", optional: false },
+    { name: "Motif_RDV", title: "Motif du RDV (patient)", type: "Text", optional: false, description: "Motif détaillé rédigé par le patient" },
+    { name: "Motifs_standardises", title: "Motifs standardisés", type: "ChoiceList,Text", optional: false, description: "Motifs standardisés (colonne Choix multiples), affichés en pastilles aux couleurs définies dans Grist" },
     { name: "Etudiant", title: "RDV étudiant", type: "Bool", optional: false, description: "Affiche la mention « Financé par la CVEC » et l'établissement" },
     { name: "Etablissement_COMUE", title: "Établissement COMUE", type: "Choice,Text", optional: false, description: "Établissement de l'étudiant, affiché si RDV étudiant" },
     { name: "Statut_RDV", title: "Statut de la demande", type: "Choice,Text", optional: false, description: `Colonne filtrée dans la vue ; reçoit « ${STATUT_CONFIRME} » ou « ${STATUT_REJETE} » via les boutons du widget` },
@@ -33,6 +35,7 @@ const TYPES_CHAMPS = {
     Mail_patient: 'texte',
     Telephone_patient: 'texte',
     Commentaires: 'texte',
+    Motif_RDV: 'texte',
     Creneau_RDV_1: 'date',
     Creneau_RDV_2: 'date',
     Lieu_RDV_1: 'lieu',
@@ -147,7 +150,15 @@ function creerSourceGrist() {
 
             const iStatut = trouverColonne(mappings.Statut_RDV);
             const statuts = iStatut >= 0 && colonnes.type[iStatut] === 'Choice' ? (lireWidgetOptions(iStatut).choices || []) : null;
-            return { lieux, statuts };
+            // Motifs standardisés : choix proposés et couleurs des pastilles, tels que définis dans Grist
+            const iMotifs = trouverColonne(mappings.Motifs_standardises);
+            const optionsMotifs = iMotifs >= 0 ? lireWidgetOptions(iMotifs) : {};
+            const motifs = {
+                type: iMotifs >= 0 && colonnes.type[iMotifs] !== 'ChoiceList' ? 'texte' : 'liste',
+                choix: optionsMotifs.choices || [],
+                styles: optionsMotifs.choiceOptions || {},
+            };
+            return { lieux, statuts, motifs };
         },
 
         selectionner(rowId) {
@@ -167,11 +178,11 @@ function creerSourceDemo() {
     ];
     const date = (jour, heures, minutes = 0) => new Date(Date.UTC(2026, 9, jour, heures - 2, minutes));
     const dossiers = [
-        { id: 41, id_rdv_clinique: 'K7QXM', Nom_patient: 'MARTIN', Prenom_patient: 'Camille', Mail_patient: 'camille.martin@exemple.fr', Telephone_patient: '06 12 34 56 78', Creneau_RDV_1: date(6, 14), Lieu_RDV_1: 1, Creneau_RDV_2: null, Lieu_RDV_2: 0, Visioconference: false, Commentaires: 'Souhaite un RDV en fin de journée.', Statut_RDV: STATUT_DEMANDE },
-        { id: 42, id_rdv_clinique: '3HPAT', Nom_patient: 'NGUYEN', Prenom_patient: 'Thomas', Mail_patient: '', Telephone_patient: '07 45 21 98 03', Creneau_RDV_1: date(7, 10, 30), Lieu_RDV_1: 3, Creneau_RDV_2: date(21, 10, 30), Lieu_RDV_2: 3, Visioconference: true, Commentaires: '', Etudiant: true, Etablissement_COMUE: 'Université Lumière Lyon 2', Statut_RDV: STATUT_DEMANDE },
-        { id: 43, id_rdv_clinique: 'WD9RC', Nom_patient: 'BERNARD', Prenom_patient: 'Léa', Mail_patient: 'lea.bernard@exemple.org', Telephone_patient: '', Creneau_RDV_1: null, Lieu_RDV_1: 0, Creneau_RDV_2: null, Lieu_RDV_2: 0, Visioconference: false, Commentaires: 'Litige bailleur — pièces transmises par mail.', Statut_RDV: STATUT_DEMANDE },
-        { id: 44, id_rdv_clinique: 'B4NZE', Nom_patient: 'HADDAD', Prenom_patient: 'Yanis', Mail_patient: '', Telephone_patient: '', Creneau_RDV_1: date(8, 9), Lieu_RDV_1: 0, Creneau_RDV_2: null, Lieu_RDV_2: 0, Visioconference: false, Commentaires: 'Demande déposée à l’accueil, coordonnées non laissées.', Etudiant: true, Etablissement_COMUE: '', Statut_RDV: STATUT_DEMANDE },
-        { id: 45, id_rdv_clinique: 'Q2UFL', Nom_patient: 'LEROY', Prenom_patient: 'Inès', Mail_patient: 'ines.leroy@exemple', Telephone_patient: '06 98 76 54 32', Creneau_RDV_1: date(9, 11), Lieu_RDV_1: 2, Creneau_RDV_2: date(23, 11), Lieu_RDV_2: 4, Visioconference: false, Commentaires: '', Etudiant: true, Etablissement_COMUE: 'Université Jean Moulin Lyon 3', Statut_RDV: STATUT_DEMANDE },
+        { id: 41, Motif_RDV: "Mon propriétaire refuse de me rendre mon dépôt de garantie (850 €) alors que l'état des lieux de sortie ne mentionne aucune dégradation. J'ai quitté le logement il y a trois mois et il ne répond plus à mes relances par mail ni par courrier.\nJe voudrais savoir quels sont mes recours et s'il faut passer par une mise en demeure avant de saisir le tribunal.", Motifs_standardises: ['Logement', 'Consommation'], id_rdv_clinique: 'K7QXM', Nom_patient: 'MARTIN', Prenom_patient: 'Camille', Mail_patient: 'camille.martin@exemple.fr', Telephone_patient: '06 12 34 56 78', Creneau_RDV_1: date(6, 14), Lieu_RDV_1: 1, Creneau_RDV_2: null, Lieu_RDV_2: 0, Visioconference: false, Commentaires: 'Souhaite un RDV en fin de journée.', Statut_RDV: STATUT_DEMANDE },
+        { id: 42, Motif_RDV: "Contestation d'une rupture de période d'essai.", Motifs_standardises: ['Travail'], id_rdv_clinique: '3HPAT', Nom_patient: 'NGUYEN', Prenom_patient: 'Thomas', Mail_patient: '', Telephone_patient: '07 45 21 98 03', Creneau_RDV_1: date(7, 10, 30), Lieu_RDV_1: 3, Creneau_RDV_2: date(21, 10, 30), Lieu_RDV_2: 3, Visioconference: true, Commentaires: '', Etudiant: true, Etablissement_COMUE: 'Université Lumière Lyon 2', Statut_RDV: STATUT_DEMANDE },
+        { id: 43, Motif_RDV: "Litige avec mon bailleur social concernant des charges locatives régularisées sur trois ans d'un coup. Le montant réclamé représente plus de deux mois de loyer et je n'ai reçu aucun justificatif malgré ma demande écrite.", Motifs_standardises: ['Logement'], id_rdv_clinique: 'WD9RC', Nom_patient: 'BERNARD', Prenom_patient: 'Léa', Mail_patient: 'lea.bernard@exemple.org', Telephone_patient: '', Creneau_RDV_1: null, Lieu_RDV_1: 0, Creneau_RDV_2: null, Lieu_RDV_2: 0, Visioconference: false, Commentaires: 'Litige bailleur — pièces transmises par mail.', Statut_RDV: STATUT_DEMANDE },
+        { id: 44, Motif_RDV: "", Motifs_standardises: [], id_rdv_clinique: 'B4NZE', Nom_patient: 'HADDAD', Prenom_patient: 'Yanis', Mail_patient: '', Telephone_patient: '', Creneau_RDV_1: date(8, 9), Lieu_RDV_1: 0, Creneau_RDV_2: null, Lieu_RDV_2: 0, Visioconference: false, Commentaires: 'Demande déposée à l’accueil, coordonnées non laissées.', Etudiant: true, Etablissement_COMUE: '', Statut_RDV: STATUT_DEMANDE },
+        { id: 45, Motif_RDV: "Renouvellement de titre de séjour étudiant : la préfecture m'a délivré un récépissé qui expire avant la date du rendez-vous qu'elle m'a fixé. Je crains de perdre mon droit de travailler en parallèle de mes études.", Motifs_standardises: ['Droit des étrangers', 'Administratif'], id_rdv_clinique: 'Q2UFL', Nom_patient: 'LEROY', Prenom_patient: 'Inès', Mail_patient: 'ines.leroy@exemple', Telephone_patient: '06 98 76 54 32', Creneau_RDV_1: date(9, 11), Lieu_RDV_1: 2, Creneau_RDV_2: date(23, 11), Lieu_RDV_2: 4, Visioconference: false, Commentaires: '', Etudiant: true, Etablissement_COMUE: 'Université Jean Moulin Lyon 3', Statut_RDV: STATUT_DEMANDE },
     ];
 
     let surDonnees = null;
@@ -197,6 +208,17 @@ function creerSourceDemo() {
             return {
                 lieux: { Lieu_RDV_1: { type: 'ref', choix: salles }, Lieu_RDV_2: { type: 'ref', choix: salles } },
                 statuts: [STATUT_DEMANDE, STATUT_CONFIRME, STATUT_REJETE],
+                motifs: {
+                    type: 'liste',
+                    choix: ['Logement', 'Travail', 'Famille', 'Consommation', 'Droit des étrangers', 'Administratif', 'Pénal'],
+                    styles: {
+                    'Logement': { fillColor: '#DCEBFF', textColor: '#1F4E8C' },
+                    'Consommation': { fillColor: '#FFE8CC', textColor: '#8A4B00' },
+                    'Travail': { fillColor: '#DFF3E4', textColor: '#1E6B35' },
+                    'Droit des étrangers': { fillColor: '#EDE3FF', textColor: '#5B2E9E' },
+                    'Administratif': { fillColor: '#E6E6E6', textColor: '#3A3A3A' },
+                    },
+                },
             };
         },
 
@@ -377,6 +399,8 @@ function majCarte(carte) {
     element.querySelector('.nom').textContent = String(dossier.Nom_patient || '').toUpperCase();
     element.querySelector('.prenom').textContent = dossier.Prenom_patient || '';
 
+    majMotifsStandardises(element, dossier);
+
     // RDV étudiant : mention CVEC et établissement (lecture seule)
     const etudiant = element.querySelector('.etudiant');
     const etablissement = String(dossier.Etablissement_COMUE || '').trim();
@@ -403,6 +427,9 @@ function majCarte(carte) {
         if (VALIDATEURS[champ]) {
             afficherValidation(input, VALIDATEURS[champ](valeur));
         }
+        if (input.tagName === 'TEXTAREA') {
+            ajusterHauteur(input);
+        }
     }
 
     // Vue non filtrée sur le statut : la demande traitée reste affichée, boutons désactivés
@@ -418,6 +445,105 @@ function majCarte(carte) {
         }
     }
     majAlertes(element);
+}
+
+// ChoiceList Grist (liste, éventuellement encodée ['L', ...]) ou texte séparé par des virgules
+function lireListe(valeur) {
+    if (Array.isArray(valeur)) {
+        return (valeur[0] === 'L' ? valeur.slice(1) : valeur).map(v => String(v).trim()).filter(Boolean);
+    }
+    if (typeof valeur === 'string') {
+        return valeur.split(/[,;\n]/).map(v => v.trim()).filter(Boolean);
+    }
+    return [];
+}
+
+// Motifs standardisés : pastilles retirables (×) + liste « Ajouter un motif » avec les choix restants
+function typeMotifs(valeur) {
+    return options?.motifs?.type ?? (typeof valeur === 'string' ? 'texte' : 'liste');
+}
+
+function afficherMotifs(zone, motifs) {
+    const choix = options?.motifs?.choix ?? [];
+    const signature = JSON.stringify([motifs, choix]);
+    if (zone.dataset.signature === signature) {
+        return;
+    }
+    zone.dataset.signature = signature;
+    zone.dataset.motifs = JSON.stringify(motifs);
+
+    const pastilles = motifs.map(motif => {
+        const pastille = document.createElement('span');
+        const style = options?.motifs?.styles?.[motif];
+        pastille.className = 'motif-pastille';
+        pastille.textContent = motif;
+        if (style?.fillColor) {
+            pastille.style.background = style.fillColor;
+        }
+        if (style?.textColor) {
+            pastille.style.color = style.textColor;
+        }
+        const retirer = document.createElement('button');
+        retirer.type = 'button';
+        retirer.className = 'motif-retirer';
+        retirer.dataset.motif = motif;
+        retirer.title = `Retirer « ${motif} »`;
+        retirer.setAttribute('aria-label', retirer.title);
+        retirer.textContent = '×';
+        pastille.append(retirer);
+        return pastille;
+    });
+    const liste = zone.querySelector('.motifs-liste');
+    liste.replaceChildren(...pastilles);
+    liste.classList.toggle('vide', motifs.length === 0);
+
+    const restants = choix.filter(c => !motifs.includes(c));
+    const ajout = zone.querySelector('.motif-ajout');
+    ajout.replaceChildren(new Option('+ Ajouter un motif', ''), ...restants.map(c => new Option(c, c)));
+    ajout.hidden = restants.length === 0;
+}
+
+function majMotifsStandardises(element, dossier) {
+    // Ne pas écraser un ajout / retrait en cours d'enregistrement
+    if (!enCours.has(`${dossier.id}:Motifs_standardises`)) {
+        afficherMotifs(element.querySelector('.motifs-standardises'), lireListe(dossier.Motifs_standardises));
+    }
+}
+
+async function sauvegarderMotifs(element, motifs) {
+    const carte = cartes.get(Number(element.dataset.id));
+    if (!carte) {
+        return;
+    }
+    const champ = 'Motifs_standardises';
+    const zone = element.querySelector('.motifs-standardises');
+    const valeur = typeMotifs(carte.dossier[champ]) === 'texte' ? motifs.join(', ') : ['L', ...motifs];
+    const cle = `${carte.dossier.id}:${champ}`;
+    enCours.set(cle, valeur);
+    afficherMotifs(zone, motifs);
+    marquer(zone, 'enregistrement');
+    try {
+        await ecrire(carte.dossier.id, { [champ]: valeur });
+        carte.dossier = { ...carte.dossier, [champ]: valeur };
+        marquer(zone, 'enregistre');
+    } catch (e) {
+        console.error(`Échec de l'enregistrement de ${champ} :`, e);
+        marquer(zone, 'erreur', e.message);
+        afficherToast(`Échec de l'enregistrement : ${e.message}`);
+        afficherMotifs(zone, lireListe(carte.dossier[champ]));
+    } finally {
+        enCours.delete(cle);
+    }
+}
+
+function motifsAffiches(element) {
+    return JSON.parse(element.querySelector('.motifs-standardises').dataset.motifs || '[]');
+}
+
+// Zones de texte ajustées à leur contenu (plafonnées par max-height en CSS)
+function ajusterHauteur(textarea) {
+    textarea.style.height = 'auto';
+    textarea.style.height = `${textarea.scrollHeight + 2}px`;
 }
 
 function remplirSelect(select, champ, valeur) {
@@ -711,8 +837,13 @@ liste.addEventListener('focusout', (e) => {
 
 // Listes et cases à cocher : enregistrées dès le choix
 liste.addEventListener('change', (e) => {
-    if (e.target.tagName === 'SELECT' || e.target.type === 'checkbox') {
+    if (e.target.matches('[data-champ]') && (e.target.tagName === 'SELECT' || e.target.type === 'checkbox')) {
         sauvegarder(e.target);
+    }
+    // Ajout d'un motif standardisé
+    if (e.target.matches('.motif-ajout') && e.target.value) {
+        const element = e.target.closest('.carte');
+        sauvegarderMotifs(element, [...motifsAffiches(element), e.target.value]);
     }
 });
 
@@ -720,6 +851,9 @@ liste.addEventListener('input', (e) => {
     const element = e.target.closest('.carte');
     if (element) {
         majAlertes(element);
+    }
+    if (e.target.tagName === 'TEXTAREA') {
+        ajusterHauteur(e.target);
     }
     // Pendant la frappe, l'erreur s'efface dès que la saisie devient valide (elle ne s'affiche qu'en sortie de champ)
     const validateur = VALIDATEURS[e.target.dataset?.champ];
@@ -739,6 +873,12 @@ liste.addEventListener('keydown', (e) => {
 liste.addEventListener('focusin', (e) => selectionner(e.target.closest('.carte')));
 
 liste.addEventListener('click', (e) => {
+    const retirer = e.target.closest('.motif-retirer');
+    if (retirer) {
+        const element = retirer.closest('.carte');
+        sauvegarderMotifs(element, motifsAffiches(element).filter(m => m !== retirer.dataset.motif));
+        return;
+    }
     const suggestion = e.target.closest('.suggestion');
     if (suggestion) {
         e.preventDefault();
@@ -754,3 +894,12 @@ liste.addEventListener('click', (e) => {
         selectionner(e.target.closest('.carte'));
     }
 });
+
+// La largeur et la police (chargée après coup) changent la hauteur utile des zones de texte
+const recalculerHauteurs = () => liste.querySelectorAll('textarea').forEach(ajusterHauteur);
+let minuterieRedimensionnement = null;
+window.addEventListener('resize', () => {
+    clearTimeout(minuterieRedimensionnement);
+    minuterieRedimensionnement = setTimeout(recalculerHauteurs, 150);
+});
+document.fonts?.ready.then(recalculerHauteurs);

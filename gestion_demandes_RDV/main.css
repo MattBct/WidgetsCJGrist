@@ -324,6 +324,84 @@ html, body {
     background: var(--rdv-2);
 }
 
+/* ---------- Motif du RDV ---------- */
+
+.motif {
+    display: grid;
+    gap: 10px;
+}
+
+.motifs-standardises {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+}
+
+.motifs-liste {
+    display: contents;
+}
+
+.motifs-liste.vide::before {
+    content: 'Aucun motif standardisé';
+    font-size: 12px;
+    font-style: italic;
+    color: var(--texte-doux);
+}
+
+.motif-pastille {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 2px 4px 2px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--clinique-fonce);
+    background: var(--rdv-1);
+}
+
+.motif-retirer {
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    font: inherit;
+    font-size: 14px;
+    line-height: 1;
+    color: inherit;
+    background: none;
+    border: 0;
+    border-radius: 50%;
+    cursor: pointer;
+    opacity: 0.6;
+}
+
+.motif-retirer:hover,
+.motif-retirer:focus-visible {
+    opacity: 1;
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.champ .motif-ajout {
+    width: auto;
+    padding: 3px 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--clinique);
+    border-style: dashed;
+    border-color: var(--clinique);
+    border-radius: 999px;
+    cursor: pointer;
+}
+
+.motif-ajout[hidden] {
+    display: none;
+}
+
+.motif textarea {
+    border-left: 3px solid var(--rdv-2);
+}
+
 /* ---------- Champs ---------- */
 
 .champ {
@@ -378,7 +456,10 @@ html, body {
 }
 
 .champ textarea {
-    resize: vertical;
+    /* Hauteur ajustée au contenu par le script, plafonnée ici */
+    max-height: 16em;
+    resize: none;
+    line-height: 1.45;
 }
 
 .champ input:focus,

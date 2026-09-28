@@ -251,9 +251,16 @@ html, body {
     gap: 4px;
 }
 
+.carte-entete {
+    margin-bottom: 1px;
+}
+
+/* Identifiant mis en avant sobrement : plus grand, gras et espacé */
 .carte-id {
+    font-size: 1.2em;
     font-weight: 800;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.1em;
+    line-height: 1.25;
 }
 
 .badge {
@@ -267,9 +274,44 @@ html, body {
     color: var(--clinique-fonce);
 }
 
-.badge.visio {
+/* RDV en visioconférence : bandeau noir en tête de carte + contour pointillé */
+.carte.carte-visio {
+    outline: 1.5px dashed var(--texte);
+    outline-offset: -1.5px;
+}
+
+.bandeau-visio {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin: -5px -6px 3px -6px;
+    padding: 2px 6px;
+    border-radius: 0 4px 0 0;
     background: var(--texte);
     color: #ffffff;
+    font-size: 0.85em;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.icone-visio {
+    width: 1.3em;
+    height: 1.3em;
+    flex: 0 0 auto;
+    fill: currentColor;
+}
+
+.chiffre-visio {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.chiffre-visio .icone-visio {
+    width: 1.5em;
+    height: 1.5em;
+    fill: var(--clinique);
 }
 
 .pastille {
@@ -331,7 +373,182 @@ body.motif-complet .carte-motif {
 }
 
 .carte.selectionnee {
-    outline: 2px solid var(--clinique);
+    box-shadow: 0 0 0 2px var(--clinique);
+}
+
+/* ---------- Feuille d'émargement ---------- */
+
+.emargement-section {
+    margin-top: 18px;
+}
+
+.titre-section {
+    margin: 0 0 8px 0;
+    padding: 5px 10px;
+    border-left: 5px solid var(--clinique);
+    background: var(--rdv-1);
+    color: var(--clinique-fonce);
+    font-size: 1.2em;
+    font-weight: 800;
+}
+
+.emargement {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+.emargement th,
+.emargement td {
+    border: 1px solid var(--bordure);
+    padding: 5px 6px;
+    vertical-align: top;
+    overflow-wrap: anywhere;
+}
+
+.emargement thead th {
+    background: var(--clinique-fonce);
+    color: #ffffff;
+    font-weight: 700;
+    text-align: left;
+}
+
+.emargement thead {
+    display: table-header-group;
+}
+
+.emargement tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+}
+
+.col-em-horaire { width: 14%; }
+.col-em-rdv { width: 18%; }
+.col-em-cliniciens { width: 33%; }
+.col-em-patient { width: 11%; }
+
+.em-horaire {
+    background: var(--fond-doux);
+}
+
+.em-horaire strong {
+    display: block;
+    font-size: 1.1em;
+    font-weight: 800;
+}
+
+.em-horaire span {
+    color: var(--texte-doux);
+    font-size: 0.9em;
+}
+
+/* Rappel de la couleur du RDV (1er / 2nd) par un liseré à gauche */
+.em-rdv {
+    border-left: 5px solid var(--rdv-1) !important;
+}
+
+.em-rdv.rdv-2 {
+    border-left-color: var(--rdv-2) !important;
+}
+
+.em-rdv .carte-id,
+.em-rdv .carte-patient {
+    display: block;
+}
+
+.em-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    margin: 2px 0;
+}
+
+.em-badges .badge {
+    border: 1px solid var(--bordure);
+}
+
+.badge-visio {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    background: var(--texte);
+    border-color: var(--texte) !important;
+    color: #ffffff;
+}
+
+.badge-visio .icone-visio {
+    width: 1.2em;
+    height: 1.2em;
+}
+
+/* Case à cocher au stylo */
+.a-cocher {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 5.5mm;
+}
+
+.case {
+    flex: 0 0 auto;
+    width: 3.5mm;
+    height: 3.5mm;
+    border: 1.2px solid var(--texte);
+    border-radius: 1px;
+    background: #ffffff;
+}
+
+/* Ligne pointillée pour écrire à la main */
+.ligne-ecriture {
+    display: block;
+    flex: 1 1 auto;
+    height: 5.5mm;
+    border-bottom: 1px dotted #8a8a8a;
+}
+
+/* Ligne à côté d'une case : alignée sur le bas de la case */
+.a-cocher .ligne-ecriture {
+    height: 3.5mm;
+}
+
+.ligne-ecriture.courte {
+    display: inline-block;
+    width: 12mm;
+    height: 4mm;
+    vertical-align: bottom;
+}
+
+.clinicien-nom {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.clinicien-tel {
+    flex: 0 0 auto;
+    color: var(--texte-doux);
+    font-size: 0.9em;
+    white-space: nowrap;
+}
+
+.non-renseigne {
+    color: var(--texte-doux);
+    font-size: 0.85em;
+    font-style: italic;
+}
+
+.em-heure-arrivee {
+    margin-top: 2px;
+    white-space: nowrap;
+}
+
+.em-commentaire {
+    margin-bottom: 2px;
+    padding: 3px 5px;
+    border-left: 3px solid var(--bordure);
+    background: var(--fond-doux);
+    font-size: 0.9em;
+    font-style: italic;
+    white-space: pre-line;
 }
 
 /* ---------- Divers ---------- */
@@ -377,11 +594,17 @@ body.motif-complet .carte-motif {
         box-shadow: none;
     }
 
+    /* La feuille d'émargement démarre sur une nouvelle page */
+    .emargement-section {
+        margin-top: 0;
+        break-before: page;
+    }
+
     .carte {
         cursor: default;
     }
 
     .carte.selectionnee {
-        outline: none;
+        box-shadow: none;
     }
 }

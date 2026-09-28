@@ -12,13 +12,21 @@ const COLONNES = [
     { name: "Creneau_RDV_2", title: "Créneau RDV 2", type: "DateTime", optional: false, description: "Créneau horaire du deuxième rendez-vous" },
     { name: "Lieu_RDV_2", title: "Lieu RDV 2", type: "Ref,Text,Choice", optional: false, description: "Salle du deuxième rendez-vous (colonne Référence, ou colonne formule texte ex. $Lieu_RDV_2.Nom pour afficher le nom de la salle)" },
     { name: "Visioconference", title: "Visioconférence", type: "Bool", optional: true, description: "RDV en visioconférence (affiche une vignette Visio, le RDV reste dans sa salle)" },
+    { name: "Cliniciens_briefing", title: "Cliniciens (briefing)", type: "Any,RefList,Text", optional: true, description: "Colonne formule donnant le nom et le téléphone de chaque clinicien : [[c.Prenom + \" \" + c.Nom.upper(), c.Telephone] for c in $Cliniciens_affectes]" },
+    { name: "Commentaires", title: "Commentaires", type: "Text", optional: true, description: "Commentaires affichés sur la feuille d'émargement" },
 ];
+
+// Nombre minimal de lignes clinicien par RDV : complété par des lignes vierges à remplir à la main
+const NB_LIGNES_CLINICIENS_MIN = 5;
 
 // Mêmes couleurs que le widget calendrier
 const CRENEAUX_RDV = [
     { ordre: 1, date: "Creneau_RDV_1", lieu: "Lieu_RDV_1", badge: "RDV 1", label: "Premier RDV (initial)", classe: "rdv-1" },
     { ordre: 2, date: "Creneau_RDV_2", lieu: "Lieu_RDV_2", badge: "RDV 2", label: "Second RDV (restitution)", classe: "rdv-2" },
 ];
+
+// Icône caméra (SVG inline : rendu identique à l'écran et à l'impression, contrairement aux emojis)
+const ICONE_VISIO = '<svg class="icone-visio" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="M16 10.5 22 7v10l-6-3.5z"/></svg>';
 
 const SANS_SALLE = { cle: "__sans_salle", libelle: "Sans salle", ordre: 1 };
 
@@ -70,26 +78,59 @@ function libelleJour(cle) {
     return texte.charAt(0).toUpperCase() + texte.slice(1);
 }
 
-// ---------- Salles ----------
+// ---------- Références (salles, cliniciens) ----------
 
-// Une colonne Ref peut arriver sous forme d'identifiant, d'objet Reference ({tableId, rowId})
-// ou d'enregistrement développé ; une colonne texte donne directement le nom de la salle.
-function getSalle(valeur) {
+// Une référence peut arriver sous forme d'identifiant, d'objet Reference ({tableId, rowId})
+// ou d'enregistrement développé ; une colonne texte donne directement le libellé.
+// Retourne { id, libelle } (libelle vide si Grist ne transmet que l'identifiant), ou null.
+function lireReference(valeur) {
     if (valeur === null || valeur === undefined || valeur === '' || valeur === 0) {
-        return SANS_SALLE;
+        return null;
     }
     if (typeof valeur === 'number') {
-        return { cle: String(valeur), libelle: `Salle ${valeur}`, ordre: 0 };
+        return { id: String(valeur), libelle: '' };
     }
     if (typeof valeur === 'object') {
         const id = valeur.rowId ?? valeur.id;
         if (!id) {
-            return SANS_SALLE;
+            return null;
         }
         const libelle = Object.entries(valeur).find(([cle, v]) => !['tableId', 'rowId', 'id'].includes(cle) && typeof v === 'string' && v.trim())?.[1];
-        return { cle: String(id), libelle: libelle || `Salle ${id}`, ordre: 0 };
+        return { id: String(id), libelle: libelle || '' };
     }
-    return { cle: String(valeur), libelle: String(valeur), ordre: 0 };
+    const texte = String(valeur).trim();
+    return texte ? { id: texte, libelle: texte } : null;
+}
+
+function getSalle(valeur) {
+    const reference = lireReference(valeur);
+    if (!reference) {
+        return SANS_SALLE;
+    }
+    return { cle: reference.id, libelle: reference.libelle || `Salle ${reference.id}`, ordre: 0 };
+}
+
+// Liste de cliniciens -> [{ nom, telephone }]. Formats acceptés pour chaque clinicien :
+// - paire [nom, téléphone] (colonne formule conseillée : le téléphone reste lié à la bonne personne) ;
+// - texte "Nom | Téléphone" (une ligne par clinicien) ou nom seul ;
+// - référence brute (RefList) : seul l'identifiant est connu.
+function getCliniciens(valeur) {
+    if (valeur === null || valeur === undefined || valeur === '') {
+        return [];
+    }
+    const elements = Array.isArray(valeur) ? valeur : String(valeur).split(/[\n;]/);
+    return elements.map(element => {
+        if (Array.isArray(element)) {
+            const [nom, telephone] = element;
+            return { nom: String(nom ?? '').trim(), telephone: String(telephone ?? '').trim() };
+        }
+        if (typeof element === 'string') {
+            const [nom, telephone] = element.split('|');
+            return { nom: nom.trim(), telephone: String(telephone ?? '').trim() };
+        }
+        const reference = lireReference(element);
+        return reference ? { nom: reference.libelle || `Clinicien n°${reference.id}`, telephone: '' } : null;
+    }).filter(clinicien => clinicien && clinicien.nom);
 }
 
 function comparerSalles(a, b) {
@@ -119,6 +160,8 @@ function getRdvDuJour(cle) {
                 mail: dossier.Mail_patient || '',
                 motif: String(dossier.Motif_RDV || '').trim(),
                 visio: dossier.Visioconference === true,
+                cliniciens: getCliniciens(dossier.Cliniciens_briefing),
+                commentaires: String(dossier.Commentaires || '').trim(),
             });
         });
     });
@@ -154,12 +197,16 @@ function afficherBriefing() {
     document.getElementById('occupation').innerHTML = rdvs.length > 0
         ? renderTableau(rdvs, salles, horaires)
         : `<div class="vide-journee">Aucun RDV prévu le ${echapper(libelleJour(jourSelectionne).toLowerCase())}.</div>`;
+    document.getElementById('emargement').innerHTML = rdvs.length > 0
+        ? renderEmargement(rdvs, salles)
+        : '';
 }
 
 function renderSynthese(rdvs, salles, horaires) {
     const nbRdv1 = rdvs.filter(rdv => rdv.creneau.ordre === 1).length;
     const nbRdv2 = rdvs.filter(rdv => rdv.creneau.ordre === 2).length;
     const nbSalles = salles.filter(s => s !== SANS_SALLE).length;
+    const nbVisio = rdvs.filter(rdv => rdv.visio).length;
     const plage = horaires.length > 0 ? `${horaires[0]} → ${horaires[horaires.length - 1]}` : '—';
 
     const legende = CRENEAUX_RDV.map(c => `<span class="legende-item"><span class="pastille ${c.classe}"></span>${echapper(c.label)}</span>`).join('');
@@ -170,6 +217,7 @@ function renderSynthese(rdvs, salles, horaires) {
             <span class="chiffre"><strong>${nbRdv1}</strong> ${plur(nbRdv1, 'premier', 'premiers')}</span>
             <span class="chiffre"><strong>${nbRdv2}</strong> ${plur(nbRdv2, 'second', 'seconds')}</span>
             <span class="chiffre"><strong>${nbSalles}</strong> ${plur(nbSalles, 'salle occupée', 'salles occupées')}</span>
+            ${nbVisio > 0 ? `<span class="chiffre chiffre-visio">${ICONE_VISIO}<strong>${nbVisio}</strong> en visio</span>` : ''}
             <span class="chiffre"><strong>${plage}</strong></span>
         </div>
         <div class="legende">${legende}</div>
@@ -214,18 +262,83 @@ function renderCarte(rdv) {
     const selection = rdv.rowId === rowIdSelectionne ? ' selectionnee' : '';
 
     return `
-        <div class="carte ${rdv.creneau.classe}${selection}" data-row-id="${rdv.rowId}">
+        <div class="carte ${rdv.creneau.classe}${rdv.visio ? ' carte-visio' : ''}${selection}" data-row-id="${rdv.rowId}">
+            ${rdv.visio ? `<div class="bandeau-visio">${ICONE_VISIO}Visioconférence</div>` : ''}
             <div class="carte-entete">
                 <span class="carte-id">${echapper(rdv.identifiant) || '—'}</span>
-                <span>
-                    ${rdv.visio ? '<span class="badge visio">Visio</span>' : ''}
-                    <span class="badge">${rdv.creneau.badge}</span>
-                </span>
+                <span class="badge">${rdv.creneau.badge}</span>
             </div>
             <span class="carte-patient">${echapper(rdv.nom)} ${echapper(rdv.prenom)}</span>
             ${contact}
             <span class="carte-motif${rdv.motif ? '' : ' vide'}">${rdv.motif ? echapper(rdv.motif) : 'Motif non renseigné'}</span>
         </div>
+    `;
+}
+
+// ---------- Feuille d'émargement (à remplir à la main) ----------
+
+function renderEmargement(rdvs, salles) {
+    const ordreSalle = salle => salles.findIndex(s => s.cle === salle.cle);
+    const rdvsTries = [...rdvs].sort((a, b) => a.debut - b.debut || ordreSalle(a.salle) - ordreSalle(b.salle));
+
+    return `
+        <h2 class="titre-section">Émargement des RDV - ${echapper(libelleJour(jourSelectionne))}</h2>
+        <table class="emargement">
+            <colgroup>
+                <col class="col-em-horaire"><col class="col-em-rdv"><col class="col-em-cliniciens"><col class="col-em-patient"><col>
+            </colgroup>
+            <thead>
+                <tr>
+                    <th>Heure / salle</th>
+                    <th>RDV</th>
+                    <th>Cliniciens présents</th>
+                    <th>Patient</th>
+                    <th>Commentaires / notes</th>
+                </tr>
+            </thead>
+            <tbody>${rdvsTries.map(renderLigneEmargement).join('')}</tbody>
+        </table>
+    `;
+}
+
+function renderLigneEmargement(rdv) {
+    const nbLignesVierges = Math.max(0, NB_LIGNES_CLINICIENS_MIN - rdv.cliniciens.length);
+    const cliniciens = (rdv.cliniciens.length > 0 ? '' : '<div class="non-renseigne">Non renseignés</div>')
+        + rdv.cliniciens.map(clinicien => `
+            <div class="a-cocher">
+                <span class="case"></span>
+                <span class="clinicien-nom">${echapper(clinicien.nom)}</span>
+                ${clinicien.telephone ? `<span class="clinicien-tel">☎&nbsp;${echapper(clinicien.telephone)}</span>` : ''}
+            </div>`).join('')
+        + '<div class="a-cocher"><span class="case"></span><span class="ligne-ecriture"></span></div>'.repeat(nbLignesVierges);
+
+    return `
+        <tr>
+            <td class="em-horaire">
+                <strong>${rdv.horaire}</strong>
+                <span>${echapper(rdv.salle.libelle)}</span>
+            </td>
+            <td class="em-rdv ${rdv.creneau.classe}">
+                <span class="carte-id">${echapper(rdv.identifiant) || '—'}</span>
+                <span class="em-badges">
+                    <span class="badge">${rdv.creneau.badge}</span>
+                    ${rdv.visio ? `<span class="badge badge-visio">${ICONE_VISIO}Visio</span>` : ''}
+                </span>
+                <span class="carte-patient">${echapper(rdv.nom)} ${echapper(rdv.prenom)}</span>
+            </td>
+            <td class="em-cliniciens">${cliniciens}</td>
+            <td class="em-patient">
+                <div class="a-cocher"><span class="case"></span>Arrivé</div>
+                <div class="a-cocher"><span class="case"></span>Absent</div>
+                <div class="em-heure-arrivee">à <span class="ligne-ecriture courte"></span></div>
+            </td>
+            <td class="em-notes">
+                ${rdv.commentaires ? `<div class="em-commentaire">${echapper(rdv.commentaires)}</div>` : ''}
+                <span class="ligne-ecriture"></span>
+                <span class="ligne-ecriture"></span>
+                ${rdv.commentaires ? '' : '<span class="ligne-ecriture"></span>'}
+            </td>
+        </tr>
     `;
 }
 

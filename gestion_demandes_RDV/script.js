@@ -84,6 +84,8 @@ source.demarrer(async (dossiers, rechargerOptions) => {
 
 function creerSourceGrist() {
     let mappings = null;
+    const idTable = () => grist.selectedTable.getTableId?.() ?? grist.getSelectedTableId?.();
+    const versColonnes = champs => Object.fromEntries(Object.entries(champs).map(([nom, valeur]) => [mappings[nom], valeur]));
 
     return {
         demarrer(surDonnees) {
@@ -97,11 +99,26 @@ function creerSourceGrist() {
         },
 
         async enregistrer(rowId, champs) {
-            const fields = {};
-            for (const [nom, valeur] of Object.entries(champs)) {
-                fields[mappings[nom]] = valeur;
+            await grist.selectedTable.update({ id: rowId, fields: versColonnes(champs) });
+        },
+
+        // Crée le RDV puis relit l'identifiant attribué par Grist (formule d'initialisation de id_rdv_clinique).
+        // Le RDV étant confirmé, il sort du filtre de la vue : on le relit directement dans la table.
+        async creer(champs) {
+            const resultat = await grist.selectedTable.create({ fields: versColonnes(champs) });
+            const rowId = Array.isArray(resultat) ? resultat[0].id : resultat.id;
+            const colId = mappings.id_rdv_clinique;
+            try {
+                const record = await grist.fetchSelectedRecord(rowId, { includeColumns: 'all' });
+                if (record?.[colId]) {
+                    return { rowId, identifiant: String(record[colId]) };
+                }
+            } catch (e) {
+                console.warn('Lecture du RDV créé via la vue impossible, lecture de la table :', e);
             }
-            await grist.selectedTable.update({ id: rowId, fields });
+            const table = await grist.docApi.fetchTable(await idTable());
+            const i = table.id.indexOf(rowId);
+            return { rowId, identifiant: i >= 0 ? String(table[colId]?.[i] ?? '') : '' };
         },
 
         // Lit les métadonnées du document pour proposer toutes les salles (colonne Référence)
@@ -110,7 +127,7 @@ function creerSourceGrist() {
             if (!mappings) {
                 return null;
             }
-            const tableId = await (grist.selectedTable.getTableId?.() ?? grist.getSelectedTableId?.());
+            const tableId = await idTable();
             const [tables, colonnes] = await Promise.all([
                 grist.docApi.fetchTable('_grist_Tables'),
                 grist.docApi.fetchTable('_grist_Tables_column'),
@@ -231,6 +248,23 @@ function creerSourceDemo() {
             };
         },
 
+        async creer(champs) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+            const rowId = Math.max(...dossiers.map(d => d.id)) + 1;
+            // Même calcul que la formule d'initialisation de id_rdv_clinique dans Grist
+            const CARACTERES = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let n = (rowId * 2654435761) % (32 ** 5);
+            let identifiant = '';
+            for (let i = 0; i < 5; i++) {
+                identifiant = CARACTERES[n % 32] + identifiant;
+                n = Math.floor(n / 32);
+            }
+            dossiers.push({ ...champs, id: rowId, id_rdv_clinique: identifiant, Nom_patient: String(champs.Nom_patient).toUpperCase() });
+            afficherBandeau('info', `Mode démonstration : données fictives. Dernière écriture simulée : AddRecord ligne ${rowId} (${identifiant}) → Statut_RDV = "${champs.Statut_RDV}"`);
+            publier();
+            return { rowId, identifiant };
+        },
+
         selectionner() {},
     };
 }
@@ -344,6 +378,8 @@ function afficher(dossiers) {
     const texteMessage = document.getElementById('message-texte');
     const compteur = document.getElementById('compteur');
     verifierOptions();
+    // Création possible dès que les colonnes sont associées
+    document.getElementById('nouveau-rdv').hidden = !dossiers;
 
     if (!dossiers) {
         cartes.forEach(carte => carte.element.remove());
@@ -405,6 +441,7 @@ function appliquerFiltre() {
     document.getElementById('filtres').hidden = dossiers.length === 0;
     document.getElementById('message-texte').textContent = FILTRES[filtreActif].vide;
     document.getElementById('message').hidden = visibles > 0;
+    recalculerHauteurs();
 }
 
 document.getElementById('filtres').addEventListener('click', (e) => {
@@ -439,7 +476,9 @@ function creerCarte(rowId) {
 
 function majCarte(carte) {
     const { element, dossier } = carte;
-    element.querySelector('.id-rdv').textContent = dossier.id_rdv_clinique || `Demande n°${dossier.id}`;
+    const identifiant = String(dossier.id_rdv_clinique || '').trim();
+    element.querySelector('.id-rdv-valeur').textContent = identifiant || `ligne ${dossier.id}`;
+    element.querySelector('.id-rdv .copier').hidden = !identifiant;
     element.querySelector('.nom').textContent = String(dossier.Nom_patient || '').toUpperCase();
     element.querySelector('.prenom').textContent = dossier.Prenom_patient || '';
 
@@ -579,6 +618,10 @@ function motifsAffiches(element) {
 
 // Zones de texte ajustées à leur contenu (plafonnées par max-height en CSS)
 function ajusterHauteur(textarea) {
+    // Élément masqué (carte filtrée, formulaire fermé) : pas de hauteur mesurable, recalculée à l'affichage
+    if (!textarea.offsetParent) {
+        return;
+    }
     textarea.style.height = 'auto';
     textarea.style.height = `${textarea.scrollHeight + 2}px`;
 }
@@ -1003,6 +1046,11 @@ liste.addEventListener('keydown', (e) => {
 liste.addEventListener('focusin', (e) => selectionner(e.target.closest('.carte')));
 
 liste.addEventListener('click', (e) => {
+    const copie = e.target.closest('.copier');
+    if (copie) {
+        copierIdentifiant(copie);
+        return;
+    }
     const retirer = e.target.closest('.motif-retirer');
     if (retirer) {
         const element = retirer.closest('.carte');
@@ -1026,10 +1074,252 @@ liste.addEventListener('click', (e) => {
 });
 
 // La largeur et la police (chargée après coup) changent la hauteur utile des zones de texte
-const recalculerHauteurs = () => liste.querySelectorAll('textarea').forEach(ajusterHauteur);
+function recalculerHauteurs() {
+    document.querySelectorAll('textarea').forEach(ajusterHauteur);
+}
 let minuterieRedimensionnement = null;
 window.addEventListener('resize', () => {
     clearTimeout(minuterieRedimensionnement);
     minuterieRedimensionnement = setTimeout(recalculerHauteurs, 150);
 });
 document.fonts?.ready.then(recalculerHauteurs);
+
+// ---------- Identifiant : copie dans le presse-papiers ----------
+
+async function copierIdentifiant(bouton) {
+    const texte = bouton.closest('.id-rdv').querySelector('.id-rdv-valeur').textContent.trim();
+    try {
+        await navigator.clipboard.writeText(texte);
+    } catch {
+        // Presse-papiers non autorisé dans l'iframe : copie via une zone de texte temporaire
+        const zone = document.createElement('textarea');
+        zone.value = texte;
+        zone.style.position = 'fixed';
+        zone.style.opacity = '0';
+        document.body.append(zone);
+        zone.select();
+        document.execCommand('copy');
+        zone.remove();
+    }
+    bouton.classList.add('copie');
+    bouton.title = 'Copié !';
+    setTimeout(() => {
+        bouton.classList.remove('copie');
+        bouton.title = "Copier l'identifiant";
+    }, 1500);
+}
+
+// ---------- Formulaire : ajout d'un RDV confirmé ----------
+
+const fondFormulaire = document.getElementById('formulaire-fond');
+const formulaire = document.getElementById('formulaire-rdv');
+const succes = document.getElementById('formulaire-succes');
+const champFormulaire = champ => formulaire.querySelector(`[data-champ="${champ}"]`);
+// Dans le formulaire, l'ordre des créneaux n'est signalé que sur le RDV 2 (pas d'erreur en double)
+const validerDansFormulaire = (champ, valeur) => VALIDATEURS[champ](valeur, champ === 'Creneau_RDV_1' ? null : formulaire);
+
+function ouvrirFormulaire() {
+    reinitialiserFormulaire();
+    fondFormulaire.hidden = false;
+    document.body.classList.add('formulaire-ouvert');
+    formulaire.querySelectorAll('textarea').forEach(ajusterHauteur);
+    champFormulaire('Nom_patient').focus();
+}
+
+function fermerFormulaire() {
+    fondFormulaire.hidden = true;
+    document.body.classList.remove('formulaire-ouvert');
+    document.getElementById('nouveau-rdv').focus();
+}
+
+function reinitialiserFormulaire() {
+    formulaire.reset();
+    formulaire.hidden = false;
+    succes.hidden = true;
+    document.getElementById('formulaire-erreurs').hidden = true;
+    for (const input of formulaire.querySelectorAll('[data-champ]')) {
+        if (input.tagName === 'SELECT') {
+            remplirSelect(input, input.dataset.champ, null);
+            input.value = '';
+        }
+        if (input.closest('.champ').querySelector('.champ-message')) {
+            afficherValidation(input, { valide: true });
+        }
+    }
+    formulaire.querySelector('.etudiant-details').hidden = true;
+    formulaire.querySelector('.etudiant').classList.remove('actif');
+    formulaire.querySelectorAll('textarea').forEach(ajusterHauteur);
+
+    // Motifs standardisés : une case à cocher par choix de la colonne
+    const motifs = (options?.motifs?.choix ?? []).map(motif => {
+        const style = options?.motifs?.styles?.[motif];
+        const etiquette = document.createElement('label');
+        etiquette.className = 'motif-choix';
+        etiquette.style.setProperty('--motif-fond', style?.fillColor || 'var(--rdv-1)');
+        etiquette.style.setProperty('--motif-texte', style?.textColor || 'var(--clinique-fonce)');
+        const caseMotif = document.createElement('input');
+        caseMotif.type = 'checkbox';
+        caseMotif.value = motif;
+        etiquette.append(caseMotif, motif);
+        return etiquette;
+    });
+    const zoneMotifs = document.getElementById('formulaire-motifs');
+    zoneMotifs.replaceChildren(...motifs);
+    zoneMotifs.classList.toggle('vide', motifs.length === 0);
+
+    const bouton = document.getElementById('formulaire-valider');
+    bouton.disabled = false;
+    bouton.textContent = 'Ajouter et confirmer le RDV';
+}
+
+// Contrôles avant création : champs obligatoires, contact, formats, cohérence des créneaux
+function verifierFormulaire() {
+    const erreurs = [];
+    const signaler = (input, message) => {
+        afficherValidation(input, { valide: false, message });
+        erreurs.push({ input, message });
+    };
+
+    for (const input of formulaire.querySelectorAll('[data-requis]')) {
+        if (!input.value.trim() && !input.validity.badInput) {
+            signaler(input, `${input.dataset.requis} : obligatoire`);
+        }
+    }
+    for (const [champ, validateur] of Object.entries(VALIDATEURS)) {
+        const input = champFormulaire(champ);
+        if (input.validity.badInput) {
+            signaler(input, 'Date incomplète');
+            continue;
+        }
+        const resultat = validerDansFormulaire(champ, input.value);
+        if (!resultat.valide) {
+            signaler(input, resultat.message);
+        } else if (input.value.trim() || !input.dataset.requis) {
+            input.value = resultat.valeur;
+            afficherValidation(input, resultat);
+        }
+    }
+    if (!valeurChamp(formulaire, 'Mail_patient') && !valeurChamp(formulaire, 'Telephone_patient')) {
+        erreurs.push({ input: champFormulaire('Mail_patient'), message: 'Au moins un moyen de contact : email ou téléphone' });
+    }
+    if (valeurChamp(formulaire, 'Etudiant') && !valeurChamp(formulaire, 'Etablissement_COMUE')) {
+        signaler(champFormulaire('Etablissement_COMUE'), 'Établissement obligatoire pour un RDV étudiant');
+    }
+    return erreurs;
+}
+
+function lireFormulaire() {
+    const champs = { Statut_RDV: STATUT_CONFIRME };
+    for (const input of formulaire.querySelectorAll('[data-champ]')) {
+        const champ = input.dataset.champ;
+        const saisie = input.type === 'checkbox' ? input.checked : input.value;
+        champs[champ] = TYPES_CHAMPS[champ] ? depuisSaisie(champ, saisie, null) : String(saisie).trim();
+    }
+    const motifs = [...document.querySelectorAll('#formulaire-motifs input:checked')].map(c => c.value);
+    champs.Motifs_standardises = options?.motifs?.type === 'texte' ? motifs.join(', ') : ['L', ...motifs];
+    if (!champs.Etudiant) {
+        champs.Etablissement_COMUE = '';
+    }
+    return champs;
+}
+
+async function soumettreFormulaire(e) {
+    e.preventDefault();
+    const zoneErreurs = document.getElementById('formulaire-erreurs');
+    const erreurs = verifierFormulaire();
+    if (erreurs.length) {
+        const liste = document.createElement('ul');
+        liste.append(...erreurs.map(erreur => Object.assign(document.createElement('li'), { textContent: erreur.message })));
+        zoneErreurs.replaceChildren(`${erreurs.length} ${plur(erreurs.length, 'point')} à corriger avant d'ajouter le RDV :`, liste);
+        zoneErreurs.hidden = false;
+        zoneErreurs.scrollIntoView({ block: 'nearest' });
+        erreurs[0].input.focus();
+        return;
+    }
+    zoneErreurs.hidden = true;
+
+    const bouton = document.getElementById('formulaire-valider');
+    bouton.disabled = true;
+    bouton.textContent = 'Ajout en cours…';
+    const champs = lireFormulaire();
+    try {
+        await fileEcritures;
+        const { rowId, identifiant } = await source.creer(champs);
+        afficherSucces(rowId, identifiant);
+    } catch (erreur) {
+        console.error('Échec de la création du RDV :', erreur);
+        zoneErreurs.replaceChildren(`Le RDV n'a pas pu être ajouté : ${erreur.message}`);
+        zoneErreurs.hidden = false;
+        bouton.disabled = false;
+        bouton.textContent = 'Ajouter et confirmer le RDV';
+    }
+}
+
+function afficherSucces(rowId, identifiant) {
+    const libelle = champ => {
+        const select = champFormulaire(champ);
+        return select.value ? select.selectedOptions[0].text : '';
+    };
+    const creneau = n => {
+        const date = champFormulaire(`Creneau_RDV_${n}`).value;
+        return date ? `${formaterSaisieDate(date)}${libelle(`Lieu_RDV_${n}`) ? ` — ${libelle(`Lieu_RDV_${n}`)}` : ''}` : '';
+    };
+    const lignes = [
+        ['Patient', `${valeurChamp(formulaire, 'Nom_patient').toUpperCase()} ${valeurChamp(formulaire, 'Prenom_patient')}`],
+        ['RDV 1', creneau(1)],
+        ['RDV 2', creneau(2)],
+        ['Visioconférence', valeurChamp(formulaire, 'Visioconference') ? 'Oui' : ''],
+        ['Étudiant', valeurChamp(formulaire, 'Etudiant') ? libelle('Etablissement_COMUE') : ''],
+    ].filter(([, valeur]) => valeur);
+
+    document.getElementById('succes-identifiant').textContent = identifiant || `ligne ${rowId}`;
+    succes.querySelector('.copier').hidden = !identifiant;
+    document.getElementById('succes-recap').replaceChildren(...lignes.flatMap(([terme, valeur]) => [
+        Object.assign(document.createElement('dt'), { textContent: terme }),
+        Object.assign(document.createElement('dd'), { textContent: valeur }),
+    ]));
+    formulaire.hidden = true;
+    succes.hidden = false;
+    document.getElementById('succes-titre').focus();
+}
+
+document.getElementById('nouveau-rdv').addEventListener('click', ouvrirFormulaire);
+document.getElementById('succes-nouveau').addEventListener('click', () => {
+    reinitialiserFormulaire();
+    champFormulaire('Nom_patient').focus();
+});
+formulaire.addEventListener('submit', soumettreFormulaire);
+
+fondFormulaire.addEventListener('click', (e) => {
+    if (e.target === fondFormulaire || e.target.closest('[data-fermer]')) {
+        fermerFormulaire();
+    } else if (e.target.closest('.copier')) {
+        copierIdentifiant(e.target.closest('.copier'));
+    }
+});
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !fondFormulaire.hidden) {
+        fermerFormulaire();
+    }
+});
+
+// Saisie dans le formulaire (listes et cases déclenchent aussi « input ») : l'erreur d'un champ s'efface dès qu'il est corrigé
+formulaire.addEventListener('input', (e) => {
+    const input = e.target.closest('[data-champ]');
+    if (input?.tagName === 'TEXTAREA') {
+        ajusterHauteur(input);
+    }
+    if (input?.dataset.champ === 'Etudiant') {
+        formulaire.querySelector('.etudiant-details').hidden = !input.checked;
+        formulaire.querySelector('.etudiant').classList.toggle('actif', input.checked);
+    }
+    if (!input || input.getAttribute('aria-invalid') !== 'true') {
+        return;
+    }
+    const validateur = VALIDATEURS[input.dataset.champ];
+    const requisOk = !input.dataset.requis || input.value.trim();
+    if (requisOk && (!validateur || validerDansFormulaire(input.dataset.champ, input.value).valide)) {
+        afficherValidation(input, { valide: true });
+    }
+});

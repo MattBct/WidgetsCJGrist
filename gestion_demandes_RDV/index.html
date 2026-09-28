@@ -24,10 +24,13 @@
       <img class="entete-illustration" src="facade_blanc.png" alt="" aria-hidden="true">
     </header>
 
-    <nav class="filtres" id="filtres" aria-label="Filtrer les demandes" hidden>
-      <button type="button" class="filtre" data-filtre="tous" aria-pressed="true">Toutes <span class="filtre-nombre"></span></button>
-      <button type="button" class="filtre" data-filtre="etudiants" aria-pressed="false">Étudiants <span class="filtre-nombre"></span></button>
-      <button type="button" class="filtre" data-filtre="non-etudiants" aria-pressed="false">Non étudiants <span class="filtre-nombre"></span></button>
+    <nav class="barre-outils">
+      <div class="filtres" id="filtres" role="group" aria-label="Filtrer les demandes" hidden>
+        <button type="button" class="filtre" data-filtre="tous" aria-pressed="true">Toutes <span class="filtre-nombre"></span></button>
+        <button type="button" class="filtre" data-filtre="etudiants" aria-pressed="false">Étudiants <span class="filtre-nombre"></span></button>
+        <button type="button" class="filtre" data-filtre="non-etudiants" aria-pressed="false">Non étudiants <span class="filtre-nombre"></span></button>
+      </div>
+      <button type="button" class="btn btn-principal nouveau-rdv" id="nouveau-rdv" hidden>+ Nouveau RDV</button>
     </nav>
 
     <div class="bandeau" id="bandeau" hidden></div>
@@ -40,11 +43,149 @@
 
     <div class="toast" id="toast" hidden></div>
 
+    <!-- Formulaire d'ajout d'un RDV confirmé (saisie manuelle par le secrétariat) -->
+    <div class="formulaire-fond" id="formulaire-fond" hidden>
+      <section class="formulaire" role="dialog" aria-modal="true" aria-labelledby="formulaire-titre">
+        <header class="formulaire-entete">
+          <h2 id="formulaire-titre">Nouveau RDV confirmé</h2>
+          <button type="button" class="formulaire-fermer" data-fermer aria-label="Fermer">×</button>
+        </header>
+
+        <form id="formulaire-rdv" novalidate>
+          <div class="formulaire-erreurs" id="formulaire-erreurs" role="alert" hidden></div>
+
+          <fieldset class="formulaire-groupe">
+            <legend>Patient</legend>
+            <div class="bloc">
+              <label class="champ">
+                <span class="champ-label">Nom *</span>
+                <input type="text" data-champ="Nom_patient" data-requis="Nom" autocomplete="off">
+                <span class="champ-message" aria-live="polite"></span>
+              </label>
+              <label class="champ">
+                <span class="champ-label">Prénom *</span>
+                <input type="text" data-champ="Prenom_patient" data-requis="Prénom" autocomplete="off">
+                <span class="champ-message" aria-live="polite"></span>
+              </label>
+              <label class="champ">
+                <span class="champ-label">Email</span>
+                <input type="email" data-champ="Mail_patient" autocomplete="off" spellcheck="false">
+                <span class="champ-message" aria-live="polite"></span>
+              </label>
+              <label class="champ">
+                <span class="champ-label">Téléphone</span>
+                <input type="tel" data-champ="Telephone_patient" autocomplete="off">
+                <span class="champ-message" aria-live="polite"></span>
+              </label>
+            </div>
+            <p class="formulaire-aide">* obligatoire — au moins un moyen de contact (email ou téléphone).</p>
+            <div class="etudiant">
+              <label class="champ champ-interrupteur">
+                <input type="checkbox" data-champ="Etudiant">
+                <span class="interrupteur" aria-hidden="true"></span>
+                <span class="champ-label">RDV étudiant</span>
+              </label>
+              <div class="etudiant-details" hidden>
+                <img class="logo-cvec" src="logo_CVEC.png" alt="Financé par la CVEC">
+                <label class="champ champ-etablissement">
+                  <select data-champ="Etablissement_COMUE" aria-label="Établissement COMUE"></select>
+                  <span class="champ-message" aria-live="polite"></span>
+                </label>
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset class="formulaire-groupe">
+            <legend>Motif</legend>
+            <div class="champ">
+              <span class="champ-label">Motifs standardisés</span>
+              <div class="formulaire-motifs" id="formulaire-motifs"></div>
+            </div>
+            <label class="champ">
+              <span class="champ-label">Motif détaillé</span>
+              <textarea data-champ="Motif_RDV" rows="3"></textarea>
+            </label>
+          </fieldset>
+
+          <fieldset class="formulaire-groupe">
+            <legend>Créneaux</legend>
+            <div class="bloc creneaux">
+              <div class="creneau rdv-1">
+                <div class="creneau-titre"><span class="badge">RDV 1</span> Premier RDV (initial)</div>
+                <label class="champ">
+                  <span class="champ-label">Date et heure *</span>
+                  <input type="datetime-local" data-champ="Creneau_RDV_1" data-requis="Date du RDV 1" step="300">
+                  <span class="champ-message" aria-live="polite"></span>
+                </label>
+                <label class="champ">
+                  <span class="champ-label">Lieu *</span>
+                  <select data-champ="Lieu_RDV_1" data-requis="Lieu du RDV 1"></select>
+                  <span class="champ-message" aria-live="polite"></span>
+                </label>
+              </div>
+              <div class="creneau rdv-2">
+                <div class="creneau-titre"><span class="badge">RDV 2</span> Second RDV (restitution)</div>
+                <label class="champ">
+                  <span class="champ-label">Date et heure</span>
+                  <input type="datetime-local" data-champ="Creneau_RDV_2" step="300">
+                  <span class="champ-message" aria-live="polite"></span>
+                </label>
+                <label class="champ">
+                  <span class="champ-label">Lieu</span>
+                  <select data-champ="Lieu_RDV_2"></select>
+                  <span class="champ-message" aria-live="polite"></span>
+                </label>
+              </div>
+            </div>
+            <label class="champ champ-interrupteur">
+              <input type="checkbox" data-champ="Visioconference">
+              <span class="interrupteur" aria-hidden="true"></span>
+              <span class="champ-label">Visioconférence</span>
+            </label>
+          </fieldset>
+
+          <fieldset class="formulaire-groupe">
+            <legend>Commentaires</legend>
+            <label class="champ">
+              <span class="champ-label">Commentaires internes</span>
+              <textarea data-champ="Commentaires" rows="2"></textarea>
+            </label>
+          </fieldset>
+
+          <footer class="formulaire-pied">
+            <button type="button" class="btn btn-secondaire" data-fermer>Annuler</button>
+            <button type="submit" class="btn btn-principal" id="formulaire-valider">Ajouter et confirmer le RDV</button>
+          </footer>
+        </form>
+
+        <!-- Retour après création : identifiant attribué par Grist et récapitulatif -->
+        <div class="formulaire-succes" id="formulaire-succes" hidden>
+          <div class="succes-icone" aria-hidden="true">✓</div>
+          <p class="succes-titre" id="succes-titre" tabindex="-1">RDV ajouté et confirmé</p>
+          <div class="id-rdv id-rdv-grand">
+            <span class="id-rdv-libelle">N° RDV</span>
+            <span class="id-rdv-valeur" id="succes-identifiant"></span>
+            <button type="button" class="copier" title="Copier l'identifiant" aria-label="Copier l'identifiant"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg></button>
+          </div>
+          <p class="succes-aide">Identifiant à communiquer au patient.</p>
+          <dl class="succes-recap" id="succes-recap"></dl>
+          <footer class="formulaire-pied">
+            <button type="button" class="btn btn-secondaire" id="succes-nouveau">Ajouter un autre RDV</button>
+            <button type="button" class="btn btn-principal" data-fermer>Fermer</button>
+          </footer>
+        </div>
+      </section>
+    </div>
+
     <template id="modele-carte">
       <article class="carte">
         <header class="carte-entete">
           <div class="identite">
-            <span class="id-rdv"></span>
+            <div class="id-rdv">
+              <span class="id-rdv-libelle">N° RDV</span>
+              <span class="id-rdv-valeur"></span>
+              <button type="button" class="copier" title="Copier l'identifiant" aria-label="Copier l'identifiant"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg></button>
+            </div>
             <h2 class="patient"><span class="nom"></span> <span class="prenom"></span></h2>
             <div class="etudiant">
               <label class="champ champ-interrupteur">

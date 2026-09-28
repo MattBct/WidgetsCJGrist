@@ -118,16 +118,33 @@ html, body {
 
 /* ---------- Filtre étudiant / non étudiant ---------- */
 
-.filtres {
+.barre-outils {
     position: sticky;
     top: 0;
     z-index: 5;
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    align-items: center;
+    gap: 8px;
     padding: 10px 15px;
     background: #ffffff;
     border-bottom: 1px solid var(--bordure);
+}
+
+.filtres {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.btn.nouveau-rdv {
+    margin-left: auto;
+    padding: 6px 14px;
+    font-size: 12px;
+}
+
+.nouveau-rdv[hidden] {
+    display: none;
 }
 
 .filtres[hidden] {
@@ -258,10 +275,81 @@ html, body {
 }
 
 .id-rdv {
-    font-size: 11px;
+    display: inline-flex;
+    align-items: stretch;
+    margin-bottom: 6px;
+    overflow: hidden;
+    border: 1px solid var(--clinique);
+    border-radius: 6px;
+    background: #ffffff;
+}
+
+.id-rdv-libelle {
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    font-size: 10px;
     font-weight: 700;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.08em;
+    color: #ffffff;
+    background: var(--clinique);
+}
+
+.id-rdv-valeur {
+    padding: 2px 10px;
+    font-family: 'Zilla Slab', Georgia, serif;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    color: var(--clinique-fonce);
+    user-select: all;
+}
+
+.copier {
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    color: var(--texte-doux);
+    background: none;
+    border: 0;
+    border-left: 1px solid var(--bordure);
+    cursor: pointer;
+}
+
+.copier svg {
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+}
+
+.copier:hover {
     color: var(--clinique);
+    background: var(--critique-fond);
+}
+
+.copier.copie {
+    color: var(--ok);
+}
+
+.copier[hidden] {
+    display: none;
+}
+
+.id-rdv-grand .id-rdv-libelle {
+    padding: 0 12px;
+    font-size: 12px;
+}
+
+.id-rdv-grand .id-rdv-valeur {
+    padding: 4px 16px;
+    font-size: 34px;
+}
+
+.id-rdv-grand .copier svg {
+    width: 20px;
+    height: 20px;
 }
 
 .patient {
@@ -751,4 +839,267 @@ html, body {
     color: #ffffff;
     background: var(--clinique-fonce);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* ---------- Formulaire d'ajout d'un RDV confirmé ---------- */
+
+body.formulaire-ouvert {
+    overflow: hidden;
+}
+
+.formulaire-fond {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 16px;
+    overflow-y: auto;
+    background: rgba(29, 29, 29, 0.55);
+}
+
+.formulaire-fond[hidden] {
+    display: none;
+}
+
+.formulaire {
+    width: min(760px, 100%);
+    overflow: hidden;
+    background: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+}
+
+.formulaire-entete {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 18px;
+    color: #ffffff;
+    background: var(--clinique);
+}
+
+.formulaire-entete h2 {
+    margin: 0;
+    font-family: 'Zilla Slab', Georgia, serif;
+    font-size: 21px;
+    font-weight: 700;
+}
+
+.formulaire-fermer {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    font-size: 24px;
+    line-height: 1;
+    color: #ffffff;
+    background: none;
+    border: 0;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.formulaire-fermer:hover {
+    background: var(--clinique-fonce);
+}
+
+#formulaire-rdv {
+    display: grid;
+    gap: 14px;
+    padding: 16px 18px 18px;
+}
+
+#formulaire-rdv[hidden] {
+    display: none;
+}
+
+.formulaire-groupe {
+    display: grid;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.formulaire-groupe legend {
+    margin-bottom: 8px;
+    padding: 0;
+    font-family: 'Zilla Slab', Georgia, serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--clinique-fonce);
+}
+
+.formulaire-aide {
+    margin: -4px 0 0;
+    font-size: 11px;
+    color: var(--texte-doux);
+}
+
+.formulaire-groupe .etudiant {
+    justify-self: start;
+    margin-top: 0;
+}
+
+.formulaire-erreurs {
+    padding: 10px 14px;
+    font-weight: 600;
+    color: var(--clinique-fonce);
+    background: var(--critique-fond);
+    border-left: 4px solid var(--clinique);
+    border-radius: 6px;
+}
+
+.formulaire-erreurs[hidden] {
+    display: none;
+}
+
+.formulaire-erreurs ul {
+    margin: 6px 0 0;
+    padding-left: 18px;
+    font-weight: 500;
+}
+
+.formulaire-motifs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.formulaire-motifs.vide::before {
+    content: 'Aucun choix défini sur la colonne';
+    font-size: 12px;
+    font-style: italic;
+    color: var(--texte-doux);
+}
+
+/* Motif à cocher : contour neutre, couleurs de la pastille une fois coché */
+.motif-choix {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--texte-doux);
+    background: #ffffff;
+    border: 1px solid var(--bordure);
+    border-radius: 999px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.motif-choix input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.motif-choix:has(input:checked) {
+    color: var(--motif-texte);
+    background: var(--motif-fond);
+    border-color: transparent;
+}
+
+.motif-choix:has(input:checked)::before {
+    content: '✓';
+    margin-right: 4px;
+}
+
+.motif-choix:has(input:focus-visible) {
+    outline: 2px solid rgba(192, 55, 55, 0.35);
+    outline-offset: 2px;
+}
+
+.formulaire-pied {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+    padding-top: 12px;
+    border-top: 1px solid var(--bordure);
+}
+
+.formulaire-succes {
+    display: grid;
+    justify-items: center;
+    gap: 10px;
+    padding: 28px 18px 18px;
+    text-align: center;
+}
+
+.formulaire-succes[hidden] {
+    display: none;
+}
+
+.formulaire-succes .formulaire-pied {
+    justify-self: stretch;
+    margin-top: 6px;
+}
+
+.succes-icone {
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    font-size: 28px;
+    font-weight: 700;
+    color: #ffffff;
+    background: var(--ok);
+    border-radius: 50%;
+}
+
+.succes-titre {
+    margin: 0;
+    font-family: 'Zilla Slab', Georgia, serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--texte);
+    outline: none;
+}
+
+.succes-aide {
+    margin: -2px 0 4px;
+    font-size: 12px;
+    color: var(--texte-doux);
+}
+
+.succes-recap {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 6px 14px;
+    width: min(460px, 100%);
+    margin: 0;
+    padding: 12px 16px;
+    text-align: left;
+    background: var(--fond-doux);
+    border-radius: 8px;
+}
+
+.succes-recap dt {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--texte-doux);
+}
+
+.succes-recap dd {
+    margin: 0;
+    font-weight: 600;
+}
+
+@media (max-width: 560px) {
+    .formulaire-fond {
+        padding: 0;
+    }
+
+    .formulaire {
+        min-height: 100%;
+        border-radius: 0;
+    }
+
+    .id-rdv-grand .id-rdv-valeur {
+        font-size: 28px;
+    }
 }

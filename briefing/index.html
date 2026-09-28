@@ -14,6 +14,7 @@
   <body>
     <!-- Barre d'outils : visible à l'écran uniquement, masquée à l'impression -->
     <nav class="toolbar no-print">
+      <div class="toolbar-ligne">
       <div class="toolbar-groupe">
         <button type="button" id="jour-precedent" title="Jour précédent">‹</button>
         <input type="date" id="jour" aria-label="Jour du briefing">
@@ -23,6 +24,14 @@
       <div class="toolbar-groupe">
         <label class="option"><input type="checkbox" id="motif-complet"> Motif complet</label>
         <button type="button" id="imprimer" class="principal">Imprimer / PDF</button>
+      </div>
+      </div>
+
+      <!-- Bande défilante des jours où au moins un RDV est prévu -->
+      <div class="bande-dates">
+        <button type="button" class="defiler" id="dates-gauche" title="Dates précédentes">‹</button>
+        <div class="dates-rdv" id="dates-rdv"></div>
+        <button type="button" class="defiler" id="dates-droite" title="Dates suivantes">›</button>
       </div>
     </nav>
 

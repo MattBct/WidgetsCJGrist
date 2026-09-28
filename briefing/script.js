@@ -180,6 +180,7 @@ function plur(n, singulier, pluriel) {
 
 function afficherBriefing() {
     document.getElementById('jour').value = jourSelectionne;
+    afficherBandeDates();
     document.getElementById('titre-date').textContent = libelleJour(jourSelectionne);
     document.title = `Briefing RDV du jour - ${libelleJour(jourSelectionne)}`;
 
@@ -342,6 +343,56 @@ function renderLigneEmargement(rdv) {
     `;
 }
 
+// ---------- Bande des jours avec RDV ----------
+
+// Map "AAAA-MM-JJ" -> nombre de RDV, triée par date
+function getJoursAvecRdv() {
+    const jours = new Map();
+    dossiers.forEach(dossier => {
+        CRENEAUX_RDV.forEach(creneau => {
+            const debut = versDate(dossier[creneau.date]);
+            if (debut) {
+                const cle = cleJour(debut);
+                jours.set(cle, (jours.get(cle) || 0) + 1);
+            }
+        });
+    });
+    return new Map([...jours.entries()].sort(([a], [b]) => a.localeCompare(b)));
+}
+
+function afficherBandeDates() {
+    const aujourdhui = cleJour(new Date());
+    const format = (cle, options) => new Date(cle + 'T12:00:00Z').toLocaleDateString('fr-FR', { timeZone: 'UTC', ...options });
+
+    const conteneur = document.getElementById('dates-rdv');
+    const jours = getJoursAvecRdv();
+    conteneur.innerHTML = jours.size === 0
+        ? '<span class="dates-vide">Aucun RDV programmé</span>'
+        : [...jours.entries()].map(([cle, nb]) => {
+            const classes = [
+                'date-rdv',
+                cle === jourSelectionne ? 'active' : '',
+                cle === aujourdhui ? 'aujourdhui' : '',
+                cle < aujourdhui ? 'passee' : '',
+            ].filter(Boolean).join(' ');
+            return `
+                <button type="button" class="${classes}" data-cle="${cle}" title="${echapper(libelleJour(cle))}">
+                    <span class="date-semaine">${echapper(format(cle, { weekday: 'short' }))}</span>
+                    <span class="date-rond">${format(cle, { day: 'numeric' })}</span>
+                    <span class="date-mois">${echapper(format(cle, { month: 'short' }))}</span>
+                    <span class="date-nb">${nb} RDV</span>
+                </button>`;
+        }).join('');
+
+    // Centre la bande sur le jour affiché, ou à défaut sur le prochain jour avec RDV
+    const cible = conteneur.querySelector('.date-rdv.active')
+        || [...conteneur.querySelectorAll('.date-rdv')].find(bouton => bouton.dataset.cle > jourSelectionne)
+        || conteneur.querySelector('.date-rdv:last-child');
+    if (cible) {
+        conteneur.scrollTo({ left: cible.offsetLeft - (conteneur.clientWidth - cible.offsetWidth) / 2, behavior: 'instant' });
+    }
+}
+
 // ---------- Interactions ----------
 
 function changerJour(cle) {
@@ -356,6 +407,23 @@ document.getElementById('jour').addEventListener('change', e => changerJour(e.ta
 document.getElementById('jour-precedent').addEventListener('click', () => changerJour(decalerJour(jourSelectionne, -1)));
 document.getElementById('jour-suivant').addEventListener('click', () => changerJour(decalerJour(jourSelectionne, 1)));
 document.getElementById('aujourdhui').addEventListener('click', () => changerJour(cleJour(new Date())));
+
+// Bande des dates : clic sur une date, flèches et molette pour défiler horizontalement
+const bandeDates = document.getElementById('dates-rdv');
+bandeDates.addEventListener('click', e => {
+    const bouton = e.target.closest('.date-rdv');
+    if (bouton) {
+        changerJour(bouton.dataset.cle);
+    }
+});
+bandeDates.addEventListener('wheel', e => {
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        e.preventDefault();
+        bandeDates.scrollLeft += e.deltaY;
+    }
+}, { passive: false });
+document.getElementById('dates-gauche').addEventListener('click', () => bandeDates.scrollBy({ left: -bandeDates.clientWidth * 0.8, behavior: 'smooth' }));
+document.getElementById('dates-droite').addEventListener('click', () => bandeDates.scrollBy({ left: bandeDates.clientWidth * 0.8, behavior: 'smooth' }));
 document.getElementById('imprimer').addEventListener('click', () => window.print());
 document.getElementById('motif-complet').addEventListener('change', e => document.body.classList.toggle('motif-complet', e.target.checked));
 

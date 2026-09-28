@@ -33,15 +33,18 @@ html, body {
     position: sticky;
     top: 0;
     z-index: 10;
+    padding: 8px 15px 4px;
+    background: var(--fond-doux);
+    border-bottom: 1px solid var(--bordure);
+    font-size: 13px;
+}
+
+.toolbar-ligne {
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
     gap: 8px;
-    padding: 8px 15px;
-    background: var(--fond-doux);
-    border-bottom: 1px solid var(--bordure);
-    font-size: 13px;
 }
 
 .toolbar-groupe {
@@ -51,8 +54,8 @@ html, body {
     gap: 6px;
 }
 
-.toolbar button,
-.toolbar input[type="date"] {
+.toolbar-ligne button,
+.toolbar-ligne input[type="date"] {
     font: inherit;
     padding: 5px 10px;
     border: 1px solid var(--bordure);
@@ -74,6 +77,109 @@ html, body {
     align-items: center;
     gap: 4px;
     cursor: pointer;
+}
+
+/* Bande défilante des jours avec RDV */
+.bande-dates {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 6px;
+}
+
+.bande-dates .defiler {
+    flex: 0 0 auto;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid var(--bordure);
+    border-radius: 50%;
+    background: #ffffff;
+    color: var(--texte);
+    font: inherit;
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.dates-rdv {
+    position: relative;
+    flex: 1 1 auto;
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    scrollbar-width: thin;
+    padding: 2px 0 4px;
+}
+
+.dates-vide {
+    padding: 10px;
+    color: var(--texte-doux);
+}
+
+.date-rdv {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    width: 56px;
+    padding: 2px 0;
+    border: none;
+    background: none;
+    color: var(--texte);
+    font: inherit;
+    cursor: pointer;
+}
+
+.date-semaine,
+.date-mois {
+    font-size: 0.8em;
+    color: var(--texte-doux);
+    text-transform: capitalize;
+}
+
+.date-rond {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: 1.5px solid var(--bordure);
+    border-radius: 50%;
+    background: #ffffff;
+    font-size: 1.15em;
+    font-weight: 800;
+}
+
+.date-nb {
+    font-size: 0.75em;
+    font-weight: 700;
+    color: var(--clinique);
+}
+
+.date-rdv:hover .date-rond {
+    border-color: var(--clinique);
+}
+
+.date-rdv.passee {
+    opacity: 0.55;
+}
+
+.date-rdv.aujourdhui .date-rond {
+    border: 2px solid var(--clinique);
+    color: var(--clinique);
+}
+
+.date-rdv.active {
+    opacity: 1;
+}
+
+.date-rdv.active .date-rond {
+    border-color: var(--clinique);
+    background: var(--clinique);
+    color: #ffffff;
 }
 
 /* ---------- Feuille ---------- */

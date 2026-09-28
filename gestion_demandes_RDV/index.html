@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <!-- Widget Grist de gestion des demandes de RDV : complétion des informations et confirmation.
+  La liste est filtrée directement dans Grist (filtre de la vue sur le statut).
+  Chaque modification est enregistrée dans Grist à la sortie du champ.
+  Ouvrir index.html?demo (ou hors de Grist) pour un aperçu avec des données fictives.
+  Matthieu Bouchet - Sept. 2026
+  -->
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Gestion des demandes de RDV</title>
+    <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+    <link rel="stylesheet" href="main.css">
+  </head>
+
+  <body>
+    <nav class="toolbar">
+      <div class="toolbar-titre">Demandes de RDV</div>
+      <div class="compteur" id="compteur"></div>
+    </nav>
+
+    <div class="bandeau" id="bandeau" hidden></div>
+
+    <main class="liste" id="liste"></main>
+    <div class="message" id="message" hidden></div>
+
+    <div class="toast" id="toast" hidden></div>
+
+    <template id="modele-carte">
+      <article class="carte">
+        <header class="carte-entete">
+          <div class="identite">
+            <span class="id-rdv"></span>
+            <h2 class="patient"><span class="nom"></span> <span class="prenom"></span></h2>
+          </div>
+          <div class="alertes"></div>
+        </header>
+
+        <section class="bloc contact">
+          <label class="champ">
+            <span class="champ-label">Email</span>
+            <input type="email" data-champ="Mail_patient" placeholder="Non renseigné — à compléter" autocomplete="off">
+          </label>
+          <label class="champ">
+            <span class="champ-label">Téléphone</span>
+            <input type="tel" data-champ="Telephone_patient" placeholder="Non renseigné — à compléter" autocomplete="off">
+          </label>
+        </section>
+
+        <section class="bloc creneaux">
+          <div class="creneau rdv-1">
+            <div class="creneau-titre"><span class="badge">RDV 1</span> Premier RDV (initial)</div>
+            <label class="champ">
+              <span class="champ-label">Date et heure</span>
+              <input type="datetime-local" data-champ="Creneau_RDV_1" step="300">
+            </label>
+            <label class="champ">
+              <span class="champ-label">Lieu</span>
+              <select data-champ="Lieu_RDV_1"></select>
+            </label>
+          </div>
+          <div class="creneau rdv-2">
+            <div class="creneau-titre"><span class="badge">RDV 2</span> Second RDV (restitution)</div>
+            <label class="champ">
+              <span class="champ-label">Date et heure</span>
+              <input type="datetime-local" data-champ="Creneau_RDV_2" step="300">
+            </label>
+            <label class="champ">
+              <span class="champ-label">Lieu</span>
+              <select data-champ="Lieu_RDV_2"></select>
+            </label>
+          </div>
+        </section>
+
+        <section class="bloc complements">
+          <label class="champ champ-visio">
+            <input type="checkbox" data-champ="Visioconference">
+            <span class="interrupteur" aria-hidden="true"></span>
+            <span class="champ-label">Visioconférence</span>
+          </label>
+          <label class="champ">
+            <span class="champ-label">Commentaires</span>
+            <textarea data-champ="Commentaires" rows="2" placeholder="Aucun commentaire"></textarea>
+          </label>
+        </section>
+
+        <footer class="carte-pied">
+          <button type="button" class="btn btn-secondaire" data-action="rejeter">Rejeter le RDV</button>
+          <button type="button" class="btn btn-principal" data-action="confirmer">Confirmer le RDV</button>
+        </footer>
+      </article>
+    </template>
+
+    <script src="script.js"></script>
+  </body>
+</html>

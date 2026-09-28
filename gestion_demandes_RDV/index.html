@@ -40,6 +40,10 @@
           <div class="identite">
             <span class="id-rdv"></span>
             <h2 class="patient"><span class="nom"></span> <span class="prenom"></span></h2>
+            <div class="etudiant" hidden>
+              <img class="logo-cvec" src="logo_CVEC.png" alt="Financé par la CVEC">
+              <span class="etudiant-texte">RDV étudiant · <span class="etablissement"></span></span>
+            </div>
           </div>
           <div class="alertes"></div>
         </header>
@@ -47,11 +51,13 @@
         <section class="bloc contact">
           <label class="champ">
             <span class="champ-label">Email</span>
-            <input type="email" data-champ="Mail_patient" placeholder="Non renseigné — à compléter" autocomplete="off">
+            <input type="email" data-champ="Mail_patient" placeholder="Non renseigné — à compléter" autocomplete="off" spellcheck="false">
+            <span class="champ-message" aria-live="polite"></span>
           </label>
           <label class="champ">
             <span class="champ-label">Téléphone</span>
             <input type="tel" data-champ="Telephone_patient" placeholder="Non renseigné — à compléter" autocomplete="off">
+            <span class="champ-message" aria-live="polite"></span>
           </label>
         </section>
 

@@ -213,6 +213,39 @@ html, body {
     font-weight: 700;
 }
 
+/* RDV étudiant : mention CVEC et établissement */
+.etudiant {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+    padding: 3px 10px 3px 6px;
+    border: 1px solid #f3e27a;
+    border-radius: 6px;
+    background: #fffbe0;
+}
+
+.etudiant[hidden] {
+    display: none;
+}
+
+.logo-cvec {
+    flex: none;
+    height: 24px;
+    width: auto;
+}
+
+.etudiant-texte {
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.etablissement.non-renseigne {
+    font-weight: 500;
+    font-style: italic;
+    color: var(--texte-doux);
+}
+
 .alertes {
     display: flex;
     flex-wrap: wrap;
@@ -372,6 +405,38 @@ html, body {
 .champ.erreur textarea {
     border-color: var(--clinique);
     background: var(--critique-fond);
+}
+
+/* Message de validation sous le champ (erreur de format, suggestion) */
+.champ-message:empty {
+    display: none;
+}
+
+.champ-message {
+    font-size: 11px;
+    color: var(--texte-doux);
+}
+
+.champ-message.invalide {
+    font-weight: 600;
+    color: var(--clinique);
+}
+
+.champ input[aria-invalid="true"] {
+    border-style: solid;
+    border-color: var(--clinique);
+    background: var(--critique-fond);
+}
+
+.suggestion {
+    padding: 0;
+    font: inherit;
+    font-weight: 600;
+    color: var(--clinique);
+    text-decoration: underline;
+    background: none;
+    border: 0;
+    cursor: pointer;
 }
 
 /* Interrupteur visioconférence */

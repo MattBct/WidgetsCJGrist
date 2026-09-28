@@ -1,6 +1,6 @@
 const FUSEAU = 'Europe/Paris';
 
-// Valeurs écrites dans la colonne Statut par les boutons « Confirmer le RDV » et « Rejeter le RDV ».
+// Valeurs écrites dans la colonne Statut_RDV par les boutons « Confirmer le RDV » et « Rejeter le RDV ».
 // Elles doivent faire sortir la demande du filtre de la vue Grist : la carte disparaît alors de la liste.
 const STATUT_CONFIRME = 'Confirmé';
 const STATUT_REJETE = 'Rejeté';
@@ -23,7 +23,9 @@ const COLONNES = [
     { name: "Lieu_RDV_2", title: "Lieu RDV 2", type: "Ref,Choice", optional: false, description: "Salle du deuxième rendez-vous (colonne Référence ou Choix)" },
     { name: "Visioconference", title: "Visioconférence", type: "Bool", optional: false },
     { name: "Commentaires", title: "Commentaires", type: "Text", optional: false },
-    { name: "Statut", title: "Statut de la demande", type: "Choice,Text", optional: false, description: `Colonne filtrée dans la vue ; reçoit « ${STATUT_CONFIRME} » ou « ${STATUT_REJETE} » via les boutons du widget` },
+    { name: "Etudiant", title: "RDV étudiant", type: "Bool", optional: false, description: "Affiche la mention « Financé par la CVEC » et l'établissement" },
+    { name: "Etablissement_COMUE", title: "Établissement COMUE", type: "Choice,Text", optional: false, description: "Établissement de l'étudiant, affiché si RDV étudiant" },
+    { name: "Statut_RDV", title: "Statut de la demande", type: "Choice,Text", optional: false, description: `Colonne filtrée dans la vue ; reçoit « ${STATUT_CONFIRME} » ou « ${STATUT_REJETE} » via les boutons du widget` },
 ];
 
 // Nature de chaque champ modifiable : pilote la conversion saisie <-> valeur Grist
@@ -38,7 +40,13 @@ const TYPES_CHAMPS = {
     Visioconference: 'bool',
 };
 
-const EMAIL_VALIDE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const EMAIL_VALIDE = /^[a-z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*\.[a-z]{2,}$/;
+
+// Domaines fréquents : une adresse sur un domaine très proche déclenche une suggestion de correction
+const DOMAINES_COURANTS = [
+    'gmail.com', 'hotmail.fr', 'hotmail.com', 'outlook.fr', 'outlook.com', 'live.fr', 'yahoo.fr', 'yahoo.com',
+    'icloud.com', 'orange.fr', 'wanadoo.fr', 'free.fr', 'sfr.fr', 'laposte.net', 'univ-lyon3.fr', 'univ-lyon2.fr',
+];
 
 // Hors de Grist (fichier ouvert directement, ou ?demo), le widget tourne sur des données fictives
 const MODE_DEMO = typeof grist === 'undefined' || window.self === window.top || new URLSearchParams(location.search).has('demo');
@@ -47,6 +55,7 @@ const source = MODE_DEMO ? creerSourceDemo() : creerSourceGrist();
 
 const cartes = new Map();       // rowId -> { element, dossier }
 const enCours = new Map();      // "rowId:champ" -> valeur en cours d'enregistrement (non écrasée par une mise à jour Grist)
+const saisiesRefusees = new Set(); // "rowId:champ" dont la saisie invalide n'a pas été enregistrée (conservée à l'écran)
 let options = null;             // { lieux: { Lieu_RDV_1: { type, choix } }, statuts }
 let chargementOptions = null;
 let fileEcritures = Promise.resolve();
@@ -136,7 +145,7 @@ function creerSourceGrist() {
                 lieux[champ] = { type: 'ref', choix: await tablesCibles.get(cle) };
             }
 
-            const iStatut = trouverColonne(mappings.Statut);
+            const iStatut = trouverColonne(mappings.Statut_RDV);
             const statuts = iStatut >= 0 && colonnes.type[iStatut] === 'Choice' ? (lireWidgetOptions(iStatut).choices || []) : null;
             return { lieux, statuts };
         },
@@ -148,7 +157,7 @@ function creerSourceGrist() {
 }
 
 function creerSourceDemo() {
-    const STATUT_DEMANDE = 'Demande reçue';
+    const STATUT_DEMANDE = 'Demande non traitée';
     const salles = [
         { valeur: 1, libelle: 'Salle Portalis' },
         { valeur: 2, libelle: 'Salle Cambacérès' },
@@ -158,16 +167,16 @@ function creerSourceDemo() {
     ];
     const date = (jour, heures, minutes = 0) => new Date(Date.UTC(2026, 9, jour, heures - 2, minutes));
     const dossiers = [
-        { id: 41, id_rdv_clinique: 'RDV-2026-041', Nom_patient: 'Martin', Prenom_patient: 'Camille', Mail_patient: 'camille.martin@exemple.fr', Telephone_patient: '06 12 34 56 78', Creneau_RDV_1: date(6, 14), Lieu_RDV_1: 1, Creneau_RDV_2: null, Lieu_RDV_2: 0, Visioconference: false, Commentaires: 'Souhaite un RDV en fin de journée.', Statut: STATUT_DEMANDE },
-        { id: 42, id_rdv_clinique: 'RDV-2026-042', Nom_patient: 'Nguyen', Prenom_patient: 'Thomas', Mail_patient: '', Telephone_patient: '07 45 21 98 03', Creneau_RDV_1: date(7, 10, 30), Lieu_RDV_1: 3, Creneau_RDV_2: date(21, 10, 30), Lieu_RDV_2: 3, Visioconference: true, Commentaires: '', Statut: STATUT_DEMANDE },
-        { id: 43, id_rdv_clinique: 'RDV-2026-043', Nom_patient: 'Bernard', Prenom_patient: 'Léa', Mail_patient: 'lea.bernard@exemple.org', Telephone_patient: '', Creneau_RDV_1: null, Lieu_RDV_1: 0, Creneau_RDV_2: null, Lieu_RDV_2: 0, Visioconference: false, Commentaires: 'Litige bailleur — pièces transmises par mail.', Statut: STATUT_DEMANDE },
-        { id: 44, id_rdv_clinique: 'RDV-2026-044', Nom_patient: 'Haddad', Prenom_patient: 'Yanis', Mail_patient: '', Telephone_patient: '', Creneau_RDV_1: date(8, 9), Lieu_RDV_1: 0, Creneau_RDV_2: null, Lieu_RDV_2: 0, Visioconference: false, Commentaires: 'Demande déposée à l’accueil, coordonnées non laissées.', Statut: STATUT_DEMANDE },
-        { id: 45, id_rdv_clinique: 'RDV-2026-045', Nom_patient: 'Leroy', Prenom_patient: 'Inès', Mail_patient: 'ines.leroy@exemple', Telephone_patient: '06 98 76 54 32', Creneau_RDV_1: date(9, 11), Lieu_RDV_1: 2, Creneau_RDV_2: date(23, 11), Lieu_RDV_2: 4, Visioconference: false, Commentaires: '', Statut: STATUT_DEMANDE },
+        { id: 41, id_rdv_clinique: 'K7QXM', Nom_patient: 'MARTIN', Prenom_patient: 'Camille', Mail_patient: 'camille.martin@exemple.fr', Telephone_patient: '06 12 34 56 78', Creneau_RDV_1: date(6, 14), Lieu_RDV_1: 1, Creneau_RDV_2: null, Lieu_RDV_2: 0, Visioconference: false, Commentaires: 'Souhaite un RDV en fin de journée.', Statut_RDV: STATUT_DEMANDE },
+        { id: 42, id_rdv_clinique: '3HPAT', Nom_patient: 'NGUYEN', Prenom_patient: 'Thomas', Mail_patient: '', Telephone_patient: '07 45 21 98 03', Creneau_RDV_1: date(7, 10, 30), Lieu_RDV_1: 3, Creneau_RDV_2: date(21, 10, 30), Lieu_RDV_2: 3, Visioconference: true, Commentaires: '', Etudiant: true, Etablissement_COMUE: 'Université Lumière Lyon 2', Statut_RDV: STATUT_DEMANDE },
+        { id: 43, id_rdv_clinique: 'WD9RC', Nom_patient: 'BERNARD', Prenom_patient: 'Léa', Mail_patient: 'lea.bernard@exemple.org', Telephone_patient: '', Creneau_RDV_1: null, Lieu_RDV_1: 0, Creneau_RDV_2: null, Lieu_RDV_2: 0, Visioconference: false, Commentaires: 'Litige bailleur — pièces transmises par mail.', Statut_RDV: STATUT_DEMANDE },
+        { id: 44, id_rdv_clinique: 'B4NZE', Nom_patient: 'HADDAD', Prenom_patient: 'Yanis', Mail_patient: '', Telephone_patient: '', Creneau_RDV_1: date(8, 9), Lieu_RDV_1: 0, Creneau_RDV_2: null, Lieu_RDV_2: 0, Visioconference: false, Commentaires: 'Demande déposée à l’accueil, coordonnées non laissées.', Etudiant: true, Etablissement_COMUE: '', Statut_RDV: STATUT_DEMANDE },
+        { id: 45, id_rdv_clinique: 'Q2UFL', Nom_patient: 'LEROY', Prenom_patient: 'Inès', Mail_patient: 'ines.leroy@exemple', Telephone_patient: '06 98 76 54 32', Creneau_RDV_1: date(9, 11), Lieu_RDV_1: 2, Creneau_RDV_2: date(23, 11), Lieu_RDV_2: 4, Visioconference: false, Commentaires: '', Etudiant: true, Etablissement_COMUE: 'Université Jean Moulin Lyon 3', Statut_RDV: STATUT_DEMANDE },
     ];
 
     let surDonnees = null;
     // Simule le filtre de la vue Grist sur le statut
-    const publier = () => surDonnees(structuredClone(dossiers.filter(d => d.Statut === STATUT_DEMANDE)), false);
+    const publier = () => surDonnees(structuredClone(dossiers.filter(d => d.Statut_RDV === STATUT_DEMANDE)), false);
 
     return {
         demarrer(callback) {
@@ -368,13 +377,21 @@ function majCarte(carte) {
     element.querySelector('.nom').textContent = String(dossier.Nom_patient || '').toUpperCase();
     element.querySelector('.prenom').textContent = dossier.Prenom_patient || '';
 
+    // RDV étudiant : mention CVEC et établissement (lecture seule)
+    const etudiant = element.querySelector('.etudiant');
+    const etablissement = String(dossier.Etablissement_COMUE || '').trim();
+    etudiant.hidden = dossier.Etudiant !== true;
+    etudiant.querySelector('.etablissement').textContent = etablissement || 'Établissement non renseigné';
+    etudiant.querySelector('.etablissement').classList.toggle('non-renseigne', !etablissement);
+
     for (const input of element.querySelectorAll('[data-champ]')) {
         const champ = input.dataset.champ;
         if (input.tagName === 'SELECT') {
             remplirSelect(input, champ, dossier[champ]);
         }
         // Ne jamais écraser une saisie en cours ou pas encore enregistrée
-        if (input === document.activeElement || enCours.has(`${dossier.id}:${champ}`)) {
+        const cle = `${dossier.id}:${champ}`;
+        if (input === document.activeElement || enCours.has(cle) || saisiesRefusees.has(cle)) {
             continue;
         }
         const valeur = versSaisie(champ, dossier[champ]);
@@ -383,12 +400,15 @@ function majCarte(carte) {
         } else {
             input.value = valeur;
         }
+        if (VALIDATEURS[champ]) {
+            afficherValidation(input, VALIDATEURS[champ](valeur));
+        }
     }
 
     // Vue non filtrée sur le statut : la demande traitée reste affichée, boutons désactivés
-    const traitee = Object.values(ACTIONS_STATUT).some(action => action.statut === dossier.Statut);
+    const traitee = Object.values(ACTIONS_STATUT).some(action => action.statut === dossier.Statut_RDV);
     for (const [nom, action] of Object.entries(ACTIONS_STATUT)) {
-        const actif = dossier.Statut === action.statut;
+        const actif = dossier.Statut_RDV === action.statut;
         const bouton = element.querySelector(`[data-action="${nom}"]`);
         element.classList.toggle(action.classe, actif);
         bouton.hidden = traitee && !actif;
@@ -421,9 +441,80 @@ function valeurChamp(element, champ) {
     return input.type === 'checkbox' ? input.checked : input.value.trim();
 }
 
-function telephoneValide(telephone) {
-    const chiffres = telephone.replace(/[\s.\-()]/g, '');
-    return /^(\+33|0033|0)[1-9]\d{8}$/.test(chiffres) || /^\+\d{8,15}$/.test(chiffres);
+// ---------- Validation des coordonnées ----------
+// Chaque valideur retourne { valide, valeur (normalisée), message, suggestion }. Un champ vide est valide :
+// l'absence de coordonnée est signalée par les pastilles, pas bloquée.
+
+function distance(a, b) {
+    const ligne = Array.from({ length: b.length + 1 }, (_, j) => j);
+    for (let i = 1; i <= a.length; i++) {
+        let diagonale = ligne[0];
+        ligne[0] = i;
+        for (let j = 1; j <= b.length; j++) {
+            const haut = ligne[j];
+            ligne[j] = Math.min(ligne[j] + 1, ligne[j - 1] + 1, diagonale + (a[i - 1] === b[j - 1] ? 0 : 1));
+            diagonale = haut;
+        }
+    }
+    return ligne[b.length];
+}
+
+function validerEmail(texte) {
+    const email = String(texte).trim().toLowerCase();
+    if (!email) {
+        return { valide: true, valeur: '' };
+    }
+    if (!EMAIL_VALIDE.test(email)) {
+        return { valide: false, valeur: email, message: 'Adresse invalide (ex. prenom.nom@exemple.fr)' };
+    }
+    const domaine = email.split('@')[1];
+    const proche = DOMAINES_COURANTS.includes(domaine) ? null
+        : DOMAINES_COURANTS.find(d => distance(d, domaine) <= (d.length > 8 ? 2 : 1));
+    return { valide: true, valeur: email, suggestion: proche ? email.replace(/@.*$/, `@${proche}`) : null };
+}
+
+// Numéros français normalisés en « 06 12 34 56 78 » (ou « +33 6 12 34 56 78 »), autres pays en « +… »
+function validerTelephone(texte) {
+    const brut = String(texte).trim();
+    if (!brut) {
+        return { valide: true, valeur: '' };
+    }
+    const chiffres = brut.replace(/\(0\)/g, '').replace(/[\s.\-()\/]/g, '');
+    const francais = chiffres.match(/^(\+33|0033|0)([1-9]\d{8})$/);
+    if (francais) {
+        const [, prefixe, numero] = francais;
+        const groupes = numero.slice(1).match(/\d{2}/g).join(' ');
+        return { valide: true, valeur: prefixe === '0' ? `0${numero[0]} ${groupes}` : `+33 ${numero[0]} ${groupes}` };
+    }
+    if (/^(\+|00)[1-9]\d{7,14}$/.test(chiffres)) {
+        return { valide: true, valeur: chiffres.replace(/^00/, '+') };
+    }
+    return { valide: false, valeur: brut, message: '10 chiffres (06 12 34 56 78) ou format international (+44 …)' };
+}
+
+const VALIDATEURS = {
+    Mail_patient: validerEmail,
+    Telephone_patient: validerTelephone,
+};
+
+// Message sous le champ (erreur de format ou suggestion de correction)
+function afficherValidation(input, resultat) {
+    const zone = input.closest('.champ').querySelector('.champ-message');
+    input.setAttribute('aria-invalid', String(!resultat.valide));
+    input.setCustomValidity(resultat.valide ? '' : resultat.message);
+    zone.classList.toggle('invalide', !resultat.valide);
+    if (!resultat.valide) {
+        zone.textContent = resultat.message;
+    } else if (resultat.suggestion) {
+        const bouton = document.createElement('button');
+        bouton.type = 'button';
+        bouton.className = 'suggestion';
+        bouton.dataset.valeur = resultat.suggestion;
+        bouton.textContent = resultat.suggestion;
+        zone.replaceChildren('Vouliez-vous dire ', bouton, ' ?');
+    } else {
+        zone.textContent = '';
+    }
 }
 
 // Pastilles d'alerte de la carte, recalculées à chaque frappe
@@ -437,13 +528,13 @@ function majAlertes(element) {
     } else {
         if (!email) {
             alertes.push({ niveau: 'avertissement', texte: 'Email manquant' });
-        } else if (!EMAIL_VALIDE.test(email)) {
-            alertes.push({ niveau: 'avertissement', texte: 'Email à vérifier' });
+        } else if (!validerEmail(email).valide) {
+            alertes.push({ niveau: 'avertissement', texte: 'Email invalide' });
         }
         if (!telephone) {
             alertes.push({ niveau: 'avertissement', texte: 'Téléphone manquant' });
-        } else if (!telephoneValide(telephone)) {
-            alertes.push({ niveau: 'avertissement', texte: 'Téléphone à vérifier' });
+        } else if (!validerTelephone(telephone).valide) {
+            alertes.push({ niveau: 'avertissement', texte: 'Téléphone invalide' });
         }
     }
     [1, 2].forEach(n => {
@@ -477,7 +568,7 @@ function verifierOptions() {
         afficherBandeau('alerte', 'Liste des lieux indisponible : seules les salles déjà renseignées sont proposées.');
     } else if (options.statuts && Object.values(ACTIONS_STATUT).some(action => !options.statuts.includes(action.statut))) {
         const manquants = Object.values(ACTIONS_STATUT).filter(action => !options.statuts.includes(action.statut)).map(action => `« ${action.statut} »`);
-        afficherBandeau('alerte', `Statut ${manquants.join(' et ')} absent des choix de la colonne Statut : le changement de statut risque d’échouer.`);
+        afficherBandeau('alerte', `Statut ${manquants.join(' et ')} absent des choix de la colonne Statut_RDV : le changement de statut risque d’échouer.`);
     } else {
         afficherBandeau('', '');
     }
@@ -522,6 +613,21 @@ async function sauvegarder(input) {
     if (input.validity.badInput) {
         marquer(input, 'erreur', 'Date incomplète : non enregistrée');
         return;
+    }
+    // Email et téléphone : une valeur invalide n'est pas enregistrée, une valeur valide est normalisée
+    const validateur = VALIDATEURS[champ];
+    if (validateur) {
+        const resultat = validateur(input.value);
+        const cleSaisie = `${carte.dossier.id}:${champ}`;
+        afficherValidation(input, resultat);
+        if (!resultat.valide) {
+            saisiesRefusees.add(cleSaisie);
+            marquer(input, 'erreur', resultat.message);
+            return;
+        }
+        saisiesRefusees.delete(cleSaisie);
+        input.value = resultat.valeur;
+        majAlertes(input.closest('.carte'));
     }
     const valeurActuelle = carte.dossier[champ];
     const nouvelle = depuisSaisie(champ, input.type === 'checkbox' ? input.checked : input.value, valeurActuelle);
@@ -569,7 +675,7 @@ async function changerStatut(bouton) {
     try {
         // Attend les enregistrements déclenchés par la sortie du dernier champ modifié
         await fileEcritures;
-        await ecrire(carte.dossier.id, { Statut: action.statut });
+        await ecrire(carte.dossier.id, { Statut_RDV: action.statut });
         // Si la vue est bien filtrée sur le statut, Grist retire la demande et la carte disparaît
     } catch (e) {
         console.error(`Échec du passage au statut ${action.statut} :`, e);
@@ -615,6 +721,12 @@ liste.addEventListener('input', (e) => {
     if (element) {
         majAlertes(element);
     }
+    // Pendant la frappe, l'erreur s'efface dès que la saisie devient valide (elle ne s'affiche qu'en sortie de champ)
+    const validateur = VALIDATEURS[e.target.dataset?.champ];
+    if (validateur && e.target.getAttribute('aria-invalid') === 'true' && validateur(e.target.value).valide) {
+        afficherValidation(e.target, { valide: true });
+        marquer(e.target, '');
+    }
 });
 
 // Entrée dans un champ d'une ligne : valide la saisie (sortie du champ)
@@ -627,6 +739,14 @@ liste.addEventListener('keydown', (e) => {
 liste.addEventListener('focusin', (e) => selectionner(e.target.closest('.carte')));
 
 liste.addEventListener('click', (e) => {
+    const suggestion = e.target.closest('.suggestion');
+    if (suggestion) {
+        e.preventDefault();
+        const input = suggestion.closest('.champ').querySelector('[data-champ]');
+        input.value = suggestion.dataset.valeur;
+        sauvegarder(input);
+        return;
+    }
     const bouton = e.target.closest('[data-action]');
     if (bouton) {
         changerStatut(bouton);

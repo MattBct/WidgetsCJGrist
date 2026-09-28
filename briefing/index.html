@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <!-- Widget Grist générant le briefing quotidien des RDV (occupation des salles), imprimable en A4 portrait.
+  Matthieu Bouchet - Sept. 2026
+  -->
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Briefing RDV du jour</title>
+    <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+    <link rel="stylesheet" href="main.css">
+  </head>
+
+  <body>
+    <!-- Barre d'outils : visible à l'écran uniquement, masquée à l'impression -->
+    <nav class="toolbar no-print">
+      <div class="toolbar-groupe">
+        <button type="button" id="jour-precedent" title="Jour précédent">‹</button>
+        <input type="date" id="jour" aria-label="Jour du briefing">
+        <button type="button" id="jour-suivant" title="Jour suivant">›</button>
+        <button type="button" id="aujourdhui">Aujourd’hui</button>
+      </div>
+      <div class="toolbar-groupe">
+        <label class="option"><input type="checkbox" id="motif-complet"> Motif complet</label>
+        <button type="button" id="imprimer" class="principal">Imprimer / PDF</button>
+      </div>
+    </nav>
+
+    <main class="feuille">
+      <header class="bandeau">
+        <img src="logoCJ.png" alt="Clinique juridique" class="bandeau-logo">
+        <h1 class="bandeau-titre">Briefing RDV du jour - <span id="titre-date"></span></h1>
+      </header>
+
+      <section class="synthese" id="synthese"></section>
+
+      <section id="occupation"></section>
+
+      <p class="mention-confidentialite">
+        Document contenant des données personnelles — usage interne à la Clinique juridique, ne pas diffuser et détruire après usage.
+      </p>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>

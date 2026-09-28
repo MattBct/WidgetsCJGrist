@@ -29,6 +29,7 @@
         <button type="button" class="filtre" data-filtre="tous" aria-pressed="true">Toutes <span class="filtre-nombre"></span></button>
         <button type="button" class="filtre" data-filtre="etudiants" aria-pressed="false">Étudiants <span class="filtre-nombre"></span></button>
         <button type="button" class="filtre" data-filtre="non-etudiants" aria-pressed="false">Non étudiants <span class="filtre-nombre"></span></button>
+        <button type="button" class="filtre filtre-conflits" data-filtre="conflits" aria-pressed="false">Conflits de salle <span class="filtre-nombre"></span></button>
       </div>
       <button type="button" class="btn btn-principal nouveau-rdv" id="nouveau-rdv" hidden>+ Nouveau RDV</button>
     </nav>
@@ -47,7 +48,7 @@
     <div class="formulaire-fond" id="formulaire-fond" hidden>
       <section class="formulaire" role="dialog" aria-modal="true" aria-labelledby="formulaire-titre">
         <header class="formulaire-entete">
-          <h2 id="formulaire-titre">Nouveau RDV confirmé</h2>
+          <h2 id="formulaire-titre">Nouveau RDV</h2>
           <button type="button" class="formulaire-fermer" data-fermer aria-label="Fermer">×</button>
         </header>
 
@@ -122,6 +123,7 @@
                   <select data-champ="Lieu_RDV_1" data-requis="Lieu du RDV 1"></select>
                   <span class="champ-message" aria-live="polite"></span>
                 </label>
+                <div class="disponibilite" aria-live="polite"></div>
               </div>
               <div class="creneau rdv-2">
                 <div class="creneau-titre"><span class="badge">RDV 2</span> Second RDV (restitution)</div>
@@ -135,6 +137,7 @@
                   <select data-champ="Lieu_RDV_2"></select>
                   <span class="champ-message" aria-live="polite"></span>
                 </label>
+                <div class="disponibilite" aria-live="polite"></div>
               </div>
             </div>
             <label class="champ champ-interrupteur">
@@ -153,21 +156,23 @@
           </fieldset>
 
           <footer class="formulaire-pied">
-            <button type="button" class="btn btn-secondaire" data-fermer>Annuler</button>
-            <button type="submit" class="btn btn-principal" id="formulaire-valider">Ajouter et confirmer le RDV</button>
+            <button type="button" class="btn btn-texte" data-fermer>Annuler</button>
+            <!-- Premier bouton « submit » = bouton par défaut (Entrée) : créneaux proposés -->
+            <button type="submit" class="btn btn-principal" data-ajout="proposer">Ajouter — créneaux proposés au patient</button>
+            <button type="submit" class="btn btn-secondaire" data-ajout="confirmer">Ajouter et confirmer le RDV</button>
           </footer>
         </form>
 
         <!-- Retour après création : identifiant attribué par Grist et récapitulatif -->
         <div class="formulaire-succes" id="formulaire-succes" hidden>
           <div class="succes-icone" aria-hidden="true">✓</div>
-          <p class="succes-titre" id="succes-titre" tabindex="-1">RDV ajouté et confirmé</p>
+          <p class="succes-titre" id="succes-titre" tabindex="-1"></p>
           <div class="id-rdv id-rdv-grand">
             <span class="id-rdv-libelle">N° RDV</span>
             <span class="id-rdv-valeur" id="succes-identifiant"></span>
             <button type="button" class="copier" title="Copier l'identifiant" aria-label="Copier l'identifiant"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg></button>
           </div>
-          <p class="succes-aide">Identifiant à communiquer au patient.</p>
+          <p class="succes-aide" id="succes-aide"></p>
           <dl class="succes-recap" id="succes-recap"></dl>
           <footer class="formulaire-pied">
             <button type="button" class="btn btn-secondaire" id="succes-nouveau">Ajouter un autre RDV</button>
@@ -243,6 +248,7 @@
               <span class="champ-label">Lieu</span>
               <select data-champ="Lieu_RDV_1"></select>
             </label>
+            <div class="disponibilite" aria-live="polite"></div>
           </div>
           <div class="creneau rdv-2">
             <div class="creneau-titre"><span class="badge">RDV 2</span> Second RDV (restitution)</div>
@@ -255,6 +261,7 @@
               <span class="champ-label">Lieu</span>
               <select data-champ="Lieu_RDV_2"></select>
             </label>
+            <div class="disponibilite" aria-live="polite"></div>
           </div>
         </section>
 
@@ -271,8 +278,9 @@
         </section>
 
         <footer class="carte-pied">
-          <button type="button" class="btn btn-secondaire" data-action="rejeter">Rejeter le RDV</button>
-          <button type="button" class="btn btn-principal" data-action="confirmer">Confirmer le RDV</button>
+          <button type="button" class="btn btn-texte" data-action="rejeter">Rejeter le RDV</button>
+          <button type="button" class="btn btn-secondaire" data-action="confirmer">Confirmer le RDV</button>
+          <button type="button" class="btn btn-principal" data-action="proposer">Créneaux proposés au patient</button>
         </footer>
       </article>
     </template>

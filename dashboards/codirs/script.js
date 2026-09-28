@@ -61,6 +61,14 @@ const COLUMNS_MAPPING = [
         optional: false,
         type: "Int",
         allowMultiple: false
+    },
+    {
+        name: "repartition_diplomes_option",
+        title: "Répartition des cliniciens en option par diplôme",
+        description: "Colonne formule renvoyant la liste JSON [[diplôme, effectif], ...]",
+        optional: true,
+        type: "Text",
+        allowMultiple: false
     }
 ]
 
@@ -104,6 +112,69 @@ function initChartOptionHeures() {
 
 initChartOptionHeures()
 
+let chartDiplomesOption;
+
+function initChartDiplomesOption() {
+    const canvas = document.getElementById('chartDiplomesOption');
+    if (!canvas) {
+        return;
+    }
+
+    chartDiplomesOption = new Chart(canvas, {
+        type: 'bar',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Cliniciens en option',
+                data: [],
+                backgroundColor: '#C03737',
+                hoverBackgroundColor: '#A73030',
+                borderRadius: 4,
+                borderSkipped: 'start',
+                maxBarThickness: 28
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: (context) => ' ' + context.parsed.x + ' ' + plur(context.parsed.x, 'clinicien', 'cliniciens')
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    ticks: { precision: 0 },
+                    grid: { color: '#ececec' },
+                    border: { display: false }
+                },
+                y: {
+                    grid: { display: false }
+                }
+            }
+        }
+    });
+}
+
+initChartDiplomesOption()
+
+// La colonne formule renvoie du JSON : [["Diplôme A", 12], ["Diplôme B", 7], ...]
+function parseRepartition(valeur) {
+    try {
+        const repartition = JSON.parse(valeur);
+        return Array.isArray(repartition) ? repartition : [];
+    } catch (e) {
+        return [];
+    }
+}
+
 grist.onRecords((records) => {
     const mappedRecords = grist.mapColumnNames(records);
 
@@ -124,5 +195,15 @@ grist.onRecords((records) => {
             store.nb_cliniciens_option_heures_non_validees
         ];
         chartOptionHeures.update();
+    }
+
+    const repartition = parseRepartition(data.repartition_diplomes_option);
+    store.repartition_diplomes_option = repartition;
+
+    if (chartDiplomesOption) {
+        chartDiplomesOption.data.labels = repartition.map(([diplome]) => diplome);
+        chartDiplomesOption.data.datasets[0].data = repartition.map(([, effectif]) => effectif);
+        chartDiplomesOption.canvas.parentNode.style.height = (Math.max(1, repartition.length) * 44 + 40) + 'px';
+        chartDiplomesOption.update();
     }
 })

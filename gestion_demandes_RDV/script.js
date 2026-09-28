@@ -1,13 +1,22 @@
 const FUSEAU = 'Europe/Paris';
 
-// Valeurs écrites dans la colonne Statut_RDV par les boutons « Confirmer le RDV » et « Rejeter le RDV ».
+// Valeurs écrites dans la colonne Statut_RDV par les boutons « Confirmer », « Créneaux proposés » et « Rejeter ».
 // Elles doivent faire sortir la demande du filtre de la vue Grist : la carte disparaît alors de la liste.
 const STATUT_CONFIRME = 'Confirmé';
+const STATUT_PROPOSE = 'Créneaux proposés';
 const STATUT_REJETE = 'Rejeté';
+
+// Disponibilité des salles : statuts dont les créneaux occupent une salle, et durée d'un RDV
+// (même durée que le widget calendrier). Un RDV en visioconférence occupe quand même sa salle.
+// « ferme » : salle prise (conflit bloquant) ; « provisoire » : créneau proposé au patient, en attente de réponse.
+const STATUTS_OCCUPANT = { [STATUT_CONFIRME]: 'ferme', [STATUT_PROPOSE]: 'provisoire' };
+const DUREE_RDV_MINUTES = 30;
+const DUREE_RDV_MS = DUREE_RDV_MINUTES * 60 * 1000;
 
 // Boutons de changement de statut (attribut data-action dans le modèle de carte)
 const ACTIONS_STATUT = {
     confirmer: { statut: STATUT_CONFIRME, libelle: 'Confirmer le RDV', enCours: 'Confirmation…', fait: 'RDV confirmé ✓', classe: 'confirmee' },
+    proposer: { statut: STATUT_PROPOSE, libelle: 'Créneaux proposés au patient', enCours: 'Enregistrement…', fait: 'Créneaux proposés ✓', classe: 'proposee' },
     rejeter: { statut: STATUT_REJETE, libelle: 'Rejeter le RDV', enCours: 'Rejet…', fait: 'RDV rejeté', classe: 'rejetee' },
 };
 
@@ -78,6 +87,10 @@ source.demarrer(async (dossiers, rechargerOptions) => {
     }
     options = await chargementOptions;
     afficher(dossiers);
+    // Une modification dans la vue peut libérer ou occuper une salle : on relit l'occupation
+    if (dossiers) {
+        planifierOccupation();
+    }
 });
 
 // ---------- Sources de données ----------
@@ -100,6 +113,20 @@ function creerSourceGrist() {
 
         async enregistrer(rowId, champs) {
             await grist.selectedTable.update({ id: rowId, fields: versColonnes(champs) });
+        },
+
+        // Tous les RDV de la table (y compris ceux que le filtre de la vue masque), pour l'occupation des salles
+        async chargerOccupation() {
+            const table = await grist.docApi.fetchTable(await idTable());
+            const colonne = nom => table[mappings[nom]] ?? [];
+            return table.id.map((id, i) => ({
+                id,
+                identifiant: colonne('id_rdv_clinique')[i],
+                nom: colonne('Nom_patient')[i],
+                prenom: colonne('Prenom_patient')[i],
+                statut: colonne('Statut_RDV')[i],
+                creneaux: [1, 2].map(n => ({ n, date: colonne(`Creneau_RDV_${n}`)[i], lieu: colonne(`Lieu_RDV_${n}`)[i] })),
+            }));
         },
 
         // Crée le RDV puis relit l'identifiant attribué par Grist (formule d'initialisation de id_rdv_clinique).
@@ -202,9 +229,13 @@ function creerSourceDemo() {
     const dossiers = [
         { id: 41, Motif_RDV: "Mon propriétaire refuse de me rendre mon dépôt de garantie (850 €) alors que l'état des lieux de sortie ne mentionne aucune dégradation. J'ai quitté le logement il y a trois mois et il ne répond plus à mes relances par mail ni par courrier.\nJe voudrais savoir quels sont mes recours et s'il faut passer par une mise en demeure avant de saisir le tribunal.", Motifs_standardises: ['Logement', 'Consommation'], id_rdv_clinique: 'K7QXM', Nom_patient: 'MARTIN', Prenom_patient: 'Camille', Mail_patient: 'camille.martin@exemple.fr', Telephone_patient: '06 12 34 56 78', Creneau_RDV_1: date(6, 14), Lieu_RDV_1: 1, Creneau_RDV_2: null, Lieu_RDV_2: 0, Visioconference: false, Commentaires: 'Souhaite un RDV en fin de journée.', Statut_RDV: STATUT_DEMANDE },
         { id: 42, Motif_RDV: "Contestation d'une rupture de période d'essai.", Motifs_standardises: ['Travail'], id_rdv_clinique: '3HPAT', Nom_patient: 'NGUYEN', Prenom_patient: 'Thomas', Mail_patient: '', Telephone_patient: '07 45 21 98 03', Creneau_RDV_1: date(7, 10, 30), Lieu_RDV_1: 3, Creneau_RDV_2: date(21, 10, 30), Lieu_RDV_2: 3, Visioconference: true, Commentaires: '', Etudiant: true, Etablissement_COMUE: 'Université Lumière Lyon 2', Statut_RDV: STATUT_DEMANDE },
-        { id: 43, Motif_RDV: "Litige avec mon bailleur social concernant des charges locatives régularisées sur trois ans d'un coup. Le montant réclamé représente plus de deux mois de loyer et je n'ai reçu aucun justificatif malgré ma demande écrite.", Motifs_standardises: ['Logement'], id_rdv_clinique: 'WD9RC', Nom_patient: 'BERNARD', Prenom_patient: 'Léa', Mail_patient: 'lea.bernard@exemple.org', Telephone_patient: '', Creneau_RDV_1: null, Lieu_RDV_1: 0, Creneau_RDV_2: null, Lieu_RDV_2: 0, Visioconference: false, Commentaires: 'Litige bailleur — pièces transmises par mail.', Statut_RDV: STATUT_DEMANDE },
-        { id: 44, Motif_RDV: "", Motifs_standardises: [], id_rdv_clinique: 'B4NZE', Nom_patient: 'HADDAD', Prenom_patient: 'Yanis', Mail_patient: '', Telephone_patient: '', Creneau_RDV_1: date(8, 9), Lieu_RDV_1: 0, Creneau_RDV_2: null, Lieu_RDV_2: 0, Visioconference: false, Commentaires: 'Demande déposée à l’accueil, coordonnées non laissées.', Etudiant: true, Etablissement_COMUE: '', Statut_RDV: STATUT_DEMANDE },
+        { id: 43, Motif_RDV: "Litige avec mon bailleur social concernant des charges locatives régularisées sur trois ans d'un coup. Le montant réclamé représente plus de deux mois de loyer et je n'ai reçu aucun justificatif malgré ma demande écrite.", Motifs_standardises: ['Logement'], id_rdv_clinique: 'WD9RC', Nom_patient: 'BERNARD', Prenom_patient: 'Léa', Mail_patient: 'lea.bernard@exemple.org', Telephone_patient: '', Creneau_RDV_1: date(8, 9, 15), Lieu_RDV_1: 5, Creneau_RDV_2: null, Lieu_RDV_2: 0, Visioconference: false, Commentaires: 'Litige bailleur — pièces transmises par mail.', Statut_RDV: STATUT_DEMANDE },
+        { id: 44, Motif_RDV: "", Motifs_standardises: [], id_rdv_clinique: 'B4NZE', Nom_patient: 'HADDAD', Prenom_patient: 'Yanis', Mail_patient: '', Telephone_patient: '', Creneau_RDV_1: date(8, 9), Lieu_RDV_1: 5, Creneau_RDV_2: null, Lieu_RDV_2: 0, Visioconference: false, Commentaires: 'Demande déposée à l’accueil, coordonnées non laissées.', Etudiant: true, Etablissement_COMUE: '', Statut_RDV: STATUT_DEMANDE },
         { id: 45, Motif_RDV: "Renouvellement de titre de séjour étudiant : la préfecture m'a délivré un récépissé qui expire avant la date du rendez-vous qu'elle m'a fixé. Je crains de perdre mon droit de travailler en parallèle de mes études.", Motifs_standardises: ['Droit des étrangers', 'Administratif'], id_rdv_clinique: 'Q2UFL', Nom_patient: 'LEROY', Prenom_patient: 'Inès', Mail_patient: 'ines.leroy@exemple', Telephone_patient: '06 98 76 54 32', Creneau_RDV_1: date(9, 11), Lieu_RDV_1: 2, Creneau_RDV_2: date(23, 11), Lieu_RDV_2: 4, Visioconference: false, Commentaires: '', Etudiant: true, Etablissement_COMUE: 'Université Jean Moulin Lyon 3', Statut_RDV: STATUT_DEMANDE },
+        // RDV hors de la vue (déjà traités) : ils occupent des salles
+        { id: 30, id_rdv_clinique: 'M4XKP', Nom_patient: 'DURAND', Prenom_patient: 'Paul', Creneau_RDV_1: date(6, 14, 15), Lieu_RDV_1: 1, Creneau_RDV_2: null, Lieu_RDV_2: 0, Statut_RDV: STATUT_CONFIRME },
+        { id: 31, id_rdv_clinique: 'T8BWS', Nom_patient: 'ROUSSEAU', Prenom_patient: 'Emma', Creneau_RDV_1: date(23, 11), Lieu_RDV_1: 4, Creneau_RDV_2: null, Lieu_RDV_2: 0, Statut_RDV: STATUT_PROPOSE },
+        { id: 32, id_rdv_clinique: 'H6CNV', Nom_patient: 'PETIT', Prenom_patient: 'Lucas', Creneau_RDV_1: date(6, 14), Lieu_RDV_1: 2, Creneau_RDV_2: null, Lieu_RDV_2: 0, Statut_RDV: STATUT_CONFIRME },
     ];
 
     let surDonnees = null;
@@ -229,7 +260,7 @@ function creerSourceDemo() {
         async chargerOptions() {
             return {
                 lieux: { Lieu_RDV_1: { type: 'ref', choix: salles }, Lieu_RDV_2: { type: 'ref', choix: salles } },
-                statuts: [STATUT_DEMANDE, STATUT_CONFIRME, STATUT_REJETE],
+                statuts: [STATUT_DEMANDE, STATUT_PROPOSE, STATUT_CONFIRME, STATUT_REJETE],
                 etablissements: [
                     'Université Claude Bernard Lyon 1', 'Université Lumière Lyon 2', 'Université Jean Moulin Lyon 3',
                     'Université Jean Monnet Saint-Étienne', 'ENS de Lyon', 'INSA Lyon', 'École Centrale de Lyon', 'Sciences Po Lyon',
@@ -246,6 +277,14 @@ function creerSourceDemo() {
                     },
                 },
             };
+        },
+
+        async chargerOccupation() {
+            await new Promise(resolve => setTimeout(resolve, 150));
+            return dossiers.map(d => ({
+                id: d.id, identifiant: d.id_rdv_clinique, nom: d.Nom_patient, prenom: d.Prenom_patient, statut: d.Statut_RDV,
+                creneaux: [1, 2].map(n => ({ n, date: d[`Creneau_RDV_${n}`], lieu: d[`Lieu_RDV_${n}`] })),
+            }));
         },
 
         async creer(champs) {
@@ -409,6 +448,7 @@ function afficher(dossiers) {
         majCarte(carte);
     }
     ordonner(dossiers.map(d => d.id));
+    majDisponibilites();
 
     const n = dossiers.length;
     compteur.textContent = `${n} ${plur(n, 'demande')} à traiter`;
@@ -422,23 +462,29 @@ const FILTRES = {
     tous: { garder: () => true, vide: 'Aucune demande de RDV à traiter.' },
     etudiants: { garder: d => d.Etudiant === true, vide: 'Aucune demande étudiante à traiter.' },
     'non-etudiants': { garder: d => d.Etudiant !== true, vide: 'Aucune demande non étudiante à traiter.' },
+    conflits: { garder: (d, element) => aConflitDeSalle(element), vide: 'Aucun conflit de salle parmi les demandes.' },
 };
 let filtreActif = 'tous';
 
 function appliquerFiltre() {
-    const dossiers = [...cartes.values()].map(carte => carte.dossier);
+    const liste = [...cartes.values()];
     let visibles = 0;
-    for (const carte of cartes.values()) {
-        const garder = FILTRES[filtreActif].garder(carte.dossier);
+    for (const carte of liste) {
+        // La carte en cours d'édition reste affichée, même si elle ne correspond plus au filtre
+        const garder = FILTRES[filtreActif].garder(carte.dossier, carte.element) || carte.element.contains(document.activeElement);
         carte.element.hidden = !garder;
         visibles += garder ? 1 : 0;
     }
     for (const bouton of document.querySelectorAll('.filtre')) {
         const nom = bouton.dataset.filtre;
+        const nombre = liste.filter(carte => FILTRES[nom].garder(carte.dossier, carte.element)).length;
         bouton.setAttribute('aria-pressed', String(nom === filtreActif));
-        bouton.querySelector('.filtre-nombre').textContent = dossiers.filter(FILTRES[nom].garder).length;
+        bouton.querySelector('.filtre-nombre').textContent = nombre;
+        if (nom === 'conflits') {
+            bouton.classList.toggle('actif', nombre > 0);
+        }
     }
-    document.getElementById('filtres').hidden = dossiers.length === 0;
+    document.getElementById('filtres').hidden = liste.length === 0;
     document.getElementById('message-texte').textContent = FILTRES[filtreActif].vide;
     document.getElementById('message').hidden = visibles > 0;
     recalculerHauteurs();
@@ -645,7 +691,11 @@ function remplirSelect(select, champ, valeur) {
         return;
     }
     const valeurActuelle = select.value;
-    select.replaceChildren(new Option(liste.vide, ''), ...choix.map(c => new Option(c.libelle, String(c.valeur))));
+    select.replaceChildren(new Option(liste.vide, ''), ...choix.map(c => {
+        const option = new Option(c.libelle, String(c.valeur));
+        option.dataset.libelle = c.libelle;
+        return option;
+    }));
     select.value = valeurActuelle;
     select.dataset.signature = signature;
 }
@@ -829,6 +879,14 @@ function majAlertes(element) {
         alertes.push({ niveau: 'avertissement', texte: 'Établissement manquant' });
     }
     element.querySelector('.champ-etablissement').classList.toggle('manquant', !etablissement);
+    for (const n of [1, 2]) {
+        const analyse = element._disponibilites?.[n];
+        if (analyse?.etat === 'occupee') {
+            alertes.push({ niveau: 'critique', texte: `Salle occupée (RDV ${n})` });
+        } else if (analyse?.etat === 'concurrence') {
+            alertes.push({ niveau: 'avertissement', texte: `Salle en concurrence (RDV ${n})` });
+        }
+    }
     const rdv1 = valeurChamp(element, 'Creneau_RDV_1');
     const rdv2 = valeurChamp(element, 'Creneau_RDV_2');
     if (rdv1 && rdv2 && rdv2 <= rdv1) {
@@ -963,6 +1021,12 @@ async function changerStatut(bouton) {
     if (!carte || bouton.disabled) {
         return;
     }
+    const planifie = ['confirmer', 'proposer'].includes(bouton.dataset.action);
+    if (planifie && (!valeurChamp(element, 'Creneau_RDV_1') || !valeurChamp(element, 'Lieu_RDV_1'))) {
+        afficherToast(`Renseignez la date et le lieu du RDV 1 avant de ${bouton.dataset.action === 'proposer' ? 'proposer les créneaux' : 'confirmer le RDV'}.`);
+        element.querySelector(`[data-champ="${valeurChamp(element, 'Creneau_RDV_1') ? 'Lieu_RDV_1' : 'Creneau_RDV_1'}"]`).focus();
+        return;
+    }
     boutons.forEach(b => { b.disabled = true; });
     bouton.textContent = action.enCours;
     // Le clic ne fait pas toujours sortir du champ en cours (Safari ne donne pas le focus aux boutons) :
@@ -974,6 +1038,18 @@ async function changerStatut(bouton) {
     try {
         // Attend les enregistrements déclenchés par la sortie du dernier champ modifié
         await fileEcritures;
+        // Salle déjà occupée par un RDV confirmé : second clic explicite demandé (occupation relue juste avant)
+        if (planifie && !bouton.dataset.forcer) {
+            await rafraichirOccupation();
+            const occupees = [1, 2].filter(n => element._disponibilites?.[n]?.etat === 'occupee');
+            if (occupees.length) {
+                demanderForcage(bouton, boutons, `Salle occupée (RDV ${occupees.join(' et ')}) — ${bouton.dataset.action === 'proposer' ? 'proposer' : 'confirmer'} quand même`);
+                afficherToast(`Conflit de salle : ${occupees.map(n => resumeConflit(element._disponibilites[n])).join(' · ')}`);
+                return;
+            }
+        }
+        delete bouton.dataset.forcer;
+        bouton.classList.remove('forcer');
         await ecrire(carte.dossier.id, { Statut_RDV: action.statut });
         // Si la vue est bien filtrée sur le statut, Grist retire la demande et la carte disparaît
     } catch (e) {
@@ -1027,6 +1103,9 @@ liste.addEventListener('input', (e) => {
     }
     if (e.target.tagName === 'TEXTAREA') {
         ajusterHauteur(e.target);
+    }
+    if (/^(Creneau|Lieu)_RDV_/.test(e.target.dataset?.champ ?? '')) {
+        planifierDisponibilites();
     }
     // Pendant la frappe, l'erreur s'efface dès que la saisie devient valide (elle ne s'affiche qu'en sortie de champ)
     const validateur = VALIDATEURS[e.target.dataset?.champ];
@@ -1115,6 +1194,33 @@ const fondFormulaire = document.getElementById('formulaire-fond');
 const formulaire = document.getElementById('formulaire-rdv');
 const succes = document.getElementById('formulaire-succes');
 const champFormulaire = champ => formulaire.querySelector(`[data-champ="${champ}"]`);
+
+// Deux façons d'ajouter un RDV : créneaux proposés au patient (en attente de sa réponse) ou RDV confirmé
+const ACTIONS_AJOUT = {
+    proposer: {
+        statut: STATUT_PROPOSE,
+        libelle: 'Ajouter — créneaux proposés au patient',
+        forcer: 'Proposer malgré le conflit de salle',
+        titre: 'RDV ajouté — créneaux proposés au patient',
+        aide: 'Identifiant à communiquer au patient avec les créneaux proposés.',
+    },
+    confirmer: {
+        statut: STATUT_CONFIRME,
+        libelle: 'Ajouter et confirmer le RDV',
+        forcer: 'Confirmer malgré le conflit de salle',
+        titre: 'RDV ajouté et confirmé',
+        aide: 'Identifiant à communiquer au patient.',
+    },
+};
+const boutonsAjout = () => formulaire.querySelectorAll('[data-ajout]');
+
+function annulerForcageFormulaire() {
+    for (const bouton of boutonsAjout()) {
+        delete bouton.dataset.forcer;
+        bouton.classList.remove('forcer');
+        bouton.textContent = ACTIONS_AJOUT[bouton.dataset.ajout].libelle;
+    }
+}
 // Dans le formulaire, l'ordre des créneaux n'est signalé que sur le RDV 2 (pas d'erreur en double)
 const validerDansFormulaire = (champ, valeur) => VALIDATEURS[champ](valeur, champ === 'Creneau_RDV_1' ? null : formulaire);
 
@@ -1124,6 +1230,7 @@ function ouvrirFormulaire() {
     document.body.classList.add('formulaire-ouvert');
     formulaire.querySelectorAll('textarea').forEach(ajusterHauteur);
     champFormulaire('Nom_patient').focus();
+    rafraichirOccupation();
 }
 
 function fermerFormulaire() {
@@ -1167,9 +1274,9 @@ function reinitialiserFormulaire() {
     zoneMotifs.replaceChildren(...motifs);
     zoneMotifs.classList.toggle('vide', motifs.length === 0);
 
-    const bouton = document.getElementById('formulaire-valider');
-    bouton.disabled = false;
-    bouton.textContent = 'Ajouter et confirmer le RDV';
+    boutonsAjout().forEach(b => { b.disabled = false; });
+    annulerForcageFormulaire();
+    majDisponibilitesFormulaire(creneauxProvisoires());
 }
 
 // Contrôles avant création : champs obligatoires, contact, formats, cohérence des créneaux
@@ -1208,8 +1315,8 @@ function verifierFormulaire() {
     return erreurs;
 }
 
-function lireFormulaire() {
-    const champs = { Statut_RDV: STATUT_CONFIRME };
+function lireFormulaire(statut) {
+    const champs = { Statut_RDV: statut };
     for (const input of formulaire.querySelectorAll('[data-champ]')) {
         const champ = input.dataset.champ;
         const saisie = input.type === 'checkbox' ? input.checked : input.value;
@@ -1227,6 +1334,7 @@ async function soumettreFormulaire(e) {
     e.preventDefault();
     const zoneErreurs = document.getElementById('formulaire-erreurs');
     const erreurs = verifierFormulaire();
+    zoneErreurs.classList.remove('avertissement');
     if (erreurs.length) {
         const liste = document.createElement('ul');
         liste.append(...erreurs.map(erreur => Object.assign(document.createElement('li'), { textContent: erreur.message })));
@@ -1238,27 +1346,47 @@ async function soumettreFormulaire(e) {
     }
     zoneErreurs.hidden = true;
 
-    const bouton = document.getElementById('formulaire-valider');
-    bouton.disabled = true;
+    // Bouton utilisé (Entrée dans un champ : le premier, « créneaux proposés »)
+    const bouton = e.submitter?.dataset.ajout ? e.submitter : boutonsAjout()[0];
+    const action = ACTIONS_AJOUT[bouton.dataset.ajout];
+    boutonsAjout().forEach(b => { b.disabled = true; });
+    bouton.textContent = 'Vérification des salles…';
+    await rafraichirOccupation();
+    const occupees = [1, 2].filter(n => formulaire._disponibilites?.[n]?.etat === 'occupee');
+    if (occupees.length && !bouton.dataset.forcer) {
+        const liste = document.createElement('ul');
+        liste.append(...occupees.map(n => Object.assign(document.createElement('li'), { textContent: `RDV ${n} : ${resumeConflit(formulaire._disponibilites[n])}` })));
+        zoneErreurs.replaceChildren('Conflit de salle : la salle choisie est déjà occupée.', liste,
+            'Choisissez une salle libre, ou cliquez à nouveau pour ajouter le RDV malgré le conflit.');
+        zoneErreurs.classList.add('avertissement');
+        zoneErreurs.hidden = false;
+        zoneErreurs.scrollIntoView({ block: 'nearest' });
+        annulerForcageFormulaire();
+        boutonsAjout().forEach(b => { b.disabled = false; });
+        bouton.dataset.forcer = '1';
+        bouton.textContent = action.forcer;
+        bouton.classList.add('forcer');
+        return;
+    }
     bouton.textContent = 'Ajout en cours…';
-    const champs = lireFormulaire();
+    const champs = lireFormulaire(action.statut);
     try {
         await fileEcritures;
         const { rowId, identifiant } = await source.creer(champs);
-        afficherSucces(rowId, identifiant);
+        afficherSucces(rowId, identifiant, action);
     } catch (erreur) {
         console.error('Échec de la création du RDV :', erreur);
         zoneErreurs.replaceChildren(`Le RDV n'a pas pu être ajouté : ${erreur.message}`);
         zoneErreurs.hidden = false;
-        bouton.disabled = false;
-        bouton.textContent = 'Ajouter et confirmer le RDV';
+        boutonsAjout().forEach(b => { b.disabled = false; });
+        annulerForcageFormulaire();
     }
 }
 
-function afficherSucces(rowId, identifiant) {
+function afficherSucces(rowId, identifiant, action) {
     const libelle = champ => {
         const select = champFormulaire(champ);
-        return select.value ? select.selectedOptions[0].text : '';
+        return select.value ? (select.selectedOptions[0].dataset.libelle ?? select.selectedOptions[0].text) : '';
     };
     const creneau = n => {
         const date = champFormulaire(`Creneau_RDV_${n}`).value;
@@ -1272,6 +1400,8 @@ function afficherSucces(rowId, identifiant) {
         ['Étudiant', valeurChamp(formulaire, 'Etudiant') ? libelle('Etablissement_COMUE') : ''],
     ].filter(([, valeur]) => valeur);
 
+    document.getElementById('succes-titre').textContent = action.titre;
+    document.getElementById('succes-aide').textContent = action.aide;
     document.getElementById('succes-identifiant').textContent = identifiant || `ligne ${rowId}`;
     succes.querySelector('.copier').hidden = !identifiant;
     document.getElementById('succes-recap').replaceChildren(...lignes.flatMap(([terme, valeur]) => [
@@ -1310,6 +1440,10 @@ formulaire.addEventListener('input', (e) => {
     if (input?.tagName === 'TEXTAREA') {
         ajusterHauteur(input);
     }
+    if (/^(Creneau|Lieu)_RDV_/.test(input?.dataset.champ ?? '')) {
+        annulerForcageFormulaire();
+        planifierDisponibilites();
+    }
     if (input?.dataset.champ === 'Etudiant') {
         formulaire.querySelector('.etudiant-details').hidden = !input.checked;
         formulaire.querySelector('.etudiant').classList.toggle('actif', input.checked);
@@ -1323,3 +1457,197 @@ formulaire.addEventListener('input', (e) => {
         afficherValidation(input, { valide: true });
     }
 });
+
+// ---------- Disponibilité des salles ----------
+// Occupation relue dans toute la table (RDV confirmés et créneaux proposés, que le filtre de la vue masque),
+// complétée par les créneaux saisis sur les demandes affichées (concurrence entre demandes).
+
+let occupations = null;            // null tant que l'occupation n'a pas pu être lue
+let chargementOccupation = null;
+
+function heureParis(ms) {
+    const p = partiesParis(new Date(ms));
+    return `${p.heure}h${p.minute}`;
+}
+
+function nomCourt(nom, prenom) {
+    const initiale = String(prenom || '').trim().charAt(0);
+    return `${String(nom || '').toUpperCase()}${initiale ? ` ${initiale}.` : ''}`;
+}
+
+function construireOccupations(lignes) {
+    return lignes
+        .filter(ligne => STATUTS_OCCUPANT[ligne.statut])
+        .flatMap(ligne => ligne.creneaux.map(creneau => {
+            const date = versDate(creneau.date);
+            const salle = lireReference(creneau.lieu)?.id;
+            if (!date || !salle) {
+                return null;
+            }
+            return {
+                rowId: ligne.id, n: creneau.n, salle, origine: STATUTS_OCCUPANT[ligne.statut],
+                identifiant: String(ligne.identifiant || ''), patient: nomCourt(ligne.nom, ligne.prenom),
+                debut: date.getTime(), fin: date.getTime() + DUREE_RDV_MS,
+            };
+        }))
+        .filter(Boolean);
+}
+
+// Créneaux (date + lieu) actuellement saisis sur les demandes affichées
+function creneauxProvisoires() {
+    const liste = [];
+    for (const carte of cartes.values()) {
+        if (STATUTS_OCCUPANT[carte.dossier.Statut_RDV]) {
+            continue;
+        }
+        for (const n of [1, 2]) {
+            const saisie = valeurChamp(carte.element, `Creneau_RDV_${n}`);
+            const salle = valeurChamp(carte.element, `Lieu_RDV_${n}`);
+            if (!saisie || !salle || carte.element.querySelector(`[data-champ="Creneau_RDV_${n}"]`).validity.badInput) {
+                continue;
+            }
+            const debut = depuisSaisieDate(saisie) * 1000;
+            liste.push({
+                rowId: carte.dossier.id, n, salle, origine: 'demande',
+                identifiant: String(carte.dossier.id_rdv_clinique || ''), patient: nomCourt(carte.dossier.Nom_patient, carte.dossier.Prenom_patient),
+                debut, fin: debut + DUREE_RDV_MS,
+            });
+        }
+    }
+    return liste;
+}
+
+const chevauche = (creneau, rowId, salle, debut, fin) =>
+    creneau.rowId !== rowId && creneau.salle === String(salle) && creneau.debut < fin && debut < creneau.fin;
+
+// État d'un créneau : incomplet, inconnu (occupation illisible), libre,
+// concurrence (créneau proposé à un autre patient ou saisi sur une autre demande), occupee (RDV confirmé)
+function analyserCreneau(rowId, saisie, salle, provisoires) {
+    if (!saisie || !salle) {
+        return { etat: 'incomplet' };
+    }
+    if (occupations === null) {
+        return { etat: 'inconnu' };
+    }
+    const debut = depuisSaisieDate(saisie) * 1000;
+    const fin = debut + DUREE_RDV_MS;
+    const fermes = occupations.filter(c => c.origine === 'ferme' && chevauche(c, rowId, salle, debut, fin));
+    const autres = [...occupations, ...provisoires].filter(c => c.origine !== 'ferme' && chevauche(c, rowId, salle, debut, fin));
+    return { etat: fermes.length ? 'occupee' : autres.length ? 'concurrence' : 'libre', fermes, autres };
+}
+
+function decrireCreneau(c) {
+    const qui = `${c.identifiant ? `RDV ${c.identifiant}` : `ligne ${c.rowId}`} (${c.patient}) ${heureParis(c.debut)}–${heureParis(c.fin)}`;
+    return c.origine === 'provisoire' ? `${qui}, créneau proposé au patient` : c.origine === 'demande' ? `${qui}, demande en cours` : qui;
+}
+
+function resumeConflit(analyse) {
+    return analyse.fermes.map(decrireCreneau).join(', ');
+}
+
+function afficherDisponibilite(conteneur, n, analyse) {
+    const zone = conteneur.querySelector(`.creneau.rdv-${n} .disponibilite`);
+    const messages = {
+        inconnu: () => 'Disponibilité de la salle non vérifiée',
+        libre: () => '✓ Salle libre sur ce créneau',
+        occupee: () => `Salle occupée : ${resumeConflit(analyse)}`,
+        concurrence: () => `Salle déjà envisagée : ${analyse.autres.map(decrireCreneau).join(' ; ')}`,
+    };
+    zone.className = `disponibilite ${analyse.etat}`;
+    zone.textContent = messages[analyse.etat]?.() ?? '';
+}
+
+// Marque dans la liste les salles déjà prises (« occupée ») ou proposées (« proposée ») au créneau saisi
+function annoterSalles(select, rowId, saisie) {
+    const debut = saisie && occupations ? depuisSaisieDate(saisie) * 1000 : null;
+    for (const option of select.options) {
+        if (!option.value) {
+            continue;
+        }
+        const libelle = option.dataset.libelle ?? option.textContent;
+        option.dataset.libelle = libelle;
+        const pris = debut === null ? [] : occupations.filter(c => chevauche(c, rowId, option.value, debut, debut + DUREE_RDV_MS));
+        const suffixe = pris.some(c => c.origine === 'ferme') ? ' — occupée' : pris.length ? ' — proposée' : '';
+        option.textContent = libelle + suffixe;
+    }
+}
+
+function analyserConteneur(conteneur, rowId, provisoires) {
+    conteneur._disponibilites = {};
+    for (const n of [1, 2]) {
+        const input = conteneur.querySelector(`[data-champ="Creneau_RDV_${n}"]`);
+        const saisie = input.validity.badInput ? '' : valeurChamp(conteneur, `Creneau_RDV_${n}`);
+        const analyse = analyserCreneau(rowId, saisie, valeurChamp(conteneur, `Lieu_RDV_${n}`), provisoires);
+        conteneur._disponibilites[n] = analyse;
+        afficherDisponibilite(conteneur, n, analyse);
+        annoterSalles(conteneur.querySelector(`[data-champ="Lieu_RDV_${n}"]`), rowId, saisie);
+    }
+}
+
+function majDisponibilitesFormulaire(provisoires) {
+    analyserConteneur(document.getElementById('formulaire-rdv'), null, provisoires);
+}
+
+function majDisponibilites() {
+    const provisoires = creneauxProvisoires();
+    for (const carte of cartes.values()) {
+        analyserConteneur(carte.element, carte.dossier.id, provisoires);
+        majAlertes(carte.element);
+    }
+    if (!document.getElementById('formulaire-fond').hidden) {
+        majDisponibilitesFormulaire(provisoires);
+    }
+}
+
+function aConflitDeSalle(element) {
+    return [1, 2].some(n => ['occupee', 'concurrence'].includes(element?._disponibilites?.[n]?.etat));
+}
+
+let minuterieDisponibilites = null;
+function planifierDisponibilites() {
+    clearTimeout(minuterieDisponibilites);
+    minuterieDisponibilites = setTimeout(() => {
+        majDisponibilites();
+        appliquerFiltre();
+    }, 150);
+}
+
+async function rafraichirOccupation() {
+    if (!chargementOccupation) {
+        chargementOccupation = source.chargerOccupation()
+            .then(lignes => { occupations = construireOccupations(lignes); })
+            .catch(e => console.warn("Impossible de lire l'occupation des salles :", e))
+            .finally(() => { chargementOccupation = null; });
+    }
+    await chargementOccupation;
+    majDisponibilites();
+    appliquerFiltre();
+}
+
+let minuterieOccupation = null;
+function planifierOccupation() {
+    clearTimeout(minuterieOccupation);
+    minuterieOccupation = setTimeout(rafraichirOccupation, 400);
+}
+
+// Les RDV confirmés ailleurs (autre vue, autre utilisateur) ne déclenchent pas de mise à jour du widget
+setInterval(() => {
+    if (cartes.size || !document.getElementById('formulaire-fond').hidden) {
+        rafraichirOccupation();
+    }
+}, 2 * 60 * 1000);
+
+// Bouton armé pour un second clic « malgré le conflit »
+function demanderForcage(bouton, boutons, texte) {
+    boutons.forEach(b => { b.disabled = false; });
+    bouton.dataset.forcer = '1';
+    bouton.classList.add('forcer');
+    bouton.textContent = texte;
+    setTimeout(() => {
+        if (bouton.dataset.forcer && !bouton.disabled) {
+            delete bouton.dataset.forcer;
+            bouton.classList.remove('forcer');
+            bouton.textContent = ACTIONS_STATUT[bouton.dataset.action].libelle;
+        }
+    }, 8000);
+}

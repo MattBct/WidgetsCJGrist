@@ -27,6 +27,7 @@
                     nb_cliniciens_option_inscrits: 0,
                     nb_cliniciens_option_heures_validees: 0,
                     nb_cliniciens_option_heures_non_validees: 0,
+                    repartition_diplomes_option: [],
                     get pct_option_heures_validees() {
                         const total = this.nb_cliniciens_option_heures_validees + this.nb_cliniciens_option_heures_non_validees;
                         return total > 0 ? Math.round((this.nb_cliniciens_option_heures_validees / total) * 100) : 0;
@@ -112,6 +113,14 @@
             <div class="carte carte-graphique">
                 <span class="libelle">Validation des heures (cliniciens en option)</span>
                 <canvas id="chartOptionHeures"></canvas>
+            </div>
+
+            <div class="carte carte-graphique carte-graphique-large">
+                <span class="libelle">Cliniciens en option par diplôme</span>
+                <div class="graphique-barres" x-show="$store.donnees.repartition_diplomes_option.length > 0">
+                    <canvas id="chartDiplomesOption"></canvas>
+                </div>
+                <span class="stat-desc" x-show="$store.donnees.repartition_diplomes_option.length === 0">Aucun clinicien en option</span>
             </div>
         </div>
     </body>

@@ -195,3 +195,12 @@ img {
     width: 87.5%;
     max-width: 28rem;
 }
+
+.carte-graphique-large {
+    max-width: 48rem;
+}
+
+.graphique-barres {
+    position: relative;
+    width: 100%;
+}

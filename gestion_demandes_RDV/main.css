@@ -812,9 +812,32 @@ html, body {
     background: var(--critique-fond);
 }
 
-.carte.confirmee .btn-principal {
+/* Action tertiaire (rejeter, annuler) : libellé seul, sans encadré */
+.btn-texte {
+    padding-left: 10px;
+    padding-right: 10px;
+    color: var(--clinique);
+    background: none;
+    border-color: transparent;
+}
+
+.btn-texte:hover:not(:disabled) {
+    text-decoration: underline;
+}
+
+/* Demande déjà traitée (vue non filtrée sur le statut) : le bouton du statut obtenu reste lisible */
+.carte.confirmee [data-action="confirmer"] {
+    color: #ffffff;
     background: var(--ok);
     border-color: var(--ok);
+    opacity: 1;
+}
+
+.carte.proposee {
+    border-left-color: var(--rdv-2);
+}
+
+.carte.proposee [data-action="proposer"] {
     opacity: 1;
 }
 
@@ -822,9 +845,8 @@ html, body {
     border-left-color: var(--texte-doux);
 }
 
-.carte.rejetee .btn-secondaire {
+.carte.rejetee [data-action="rejeter"] {
     color: var(--texte-doux);
-    border-color: var(--texte-doux);
     opacity: 1;
 }
 
@@ -841,7 +863,69 @@ html, body {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
-/* ---------- Formulaire d'ajout d'un RDV confirmé ---------- */
+/* ---------- Disponibilité des salles ---------- */
+
+.disponibilite {
+    font-size: 11px;
+    line-height: 1.4;
+}
+
+.disponibilite:empty {
+    display: none;
+}
+
+.disponibilite.inconnu {
+    font-style: italic;
+    color: var(--texte-doux);
+}
+
+.disponibilite.libre {
+    font-weight: 600;
+    color: var(--ok);
+}
+
+.disponibilite.occupee,
+.disponibilite.concurrence {
+    padding: 6px 8px;
+    font-weight: 600;
+    border-radius: 6px;
+}
+
+.disponibilite.occupee {
+    color: var(--clinique-fonce);
+    background: var(--critique-fond);
+}
+
+.disponibilite.concurrence {
+    color: var(--alerte);
+    background: var(--alerte-fond);
+}
+
+.filtre-conflits.actif:not([aria-pressed="true"]) {
+    color: var(--alerte);
+    border-color: var(--alerte);
+}
+
+.filtre-conflits.actif:not([aria-pressed="true"]) .filtre-nombre {
+    color: #ffffff;
+    background: var(--alerte);
+}
+
+/* Bouton armé pour un second clic « malgré le conflit » */
+.btn.forcer,
+.btn.forcer:hover:not(:disabled) {
+    color: #ffffff;
+    background: var(--alerte);
+    border-color: var(--alerte);
+}
+
+.formulaire-erreurs.avertissement {
+    color: var(--alerte);
+    background: var(--alerte-fond);
+    border-left-color: var(--alerte);
+}
+
+/* ---------- Formulaire d'ajout d'un RDV ---------- */
 
 body.formulaire-ouvert {
     overflow: hidden;

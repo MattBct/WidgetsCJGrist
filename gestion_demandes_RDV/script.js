@@ -104,11 +104,13 @@ function creerSourceGrist() {
         demarrer(surDonnees) {
             // Accès complet : écriture dans la table et lecture des métadonnées (liste des salles, choix du statut)
             grist.ready({ requiredAccess: 'full', columns: COLONNES, allowSelectBy: true });
+            // expandRefs: false : Grist envoie alors l'identifiant de la ligne référencée (salle) et non son
+            // libellé affiché, indispensable pour retrouver la salle dans la liste et comparer les occupations
             grist.onRecords((records, nouvellesMappings) => {
                 const modifiees = JSON.stringify(nouvellesMappings) !== JSON.stringify(mappings);
                 mappings = nouvellesMappings;
                 surDonnees(grist.mapColumnNames(records), modifiees);
-            });
+            }, { expandRefs: false });
         },
 
         async enregistrer(rowId, champs) {
@@ -240,7 +242,10 @@ function creerSourceDemo() {
 
     let surDonnees = null;
     // Simule le filtre de la vue Grist sur le statut
-    const publier = () => surDonnees(structuredClone(dossiers.filter(d => d.Statut_RDV === STATUT_DEMANDE)), false);
+    // Mêmes formats que Grist : références décodées en objets { tableId, rowId }
+    const reference = rowId => (rowId ? { tableId: 'Lieux_RDV', rowId } : 0);
+    const publier = () => surDonnees(structuredClone(dossiers.filter(d => d.Statut_RDV === STATUT_DEMANDE))
+        .map(d => ({ ...d, Lieu_RDV_1: reference(d.Lieu_RDV_1), Lieu_RDV_2: reference(d.Lieu_RDV_2) })), false);
 
     return {
         demarrer(callback) {
@@ -381,7 +386,7 @@ function versSaisie(champ, valeur) {
             return date ? versSaisieDate(date) : '';
         }
         case 'lieu':
-            return lireReference(valeur)?.id ?? '';
+            return valeurDeListe(champ, valeur);
         case 'bool':
             return valeur === true;
         default:
@@ -679,12 +684,28 @@ const LISTES = {
     Etablissement_COMUE: { vide: '— Établissement à renseigner —', choix: () => options?.etablissements?.map(c => ({ valeur: c, libelle: c })) },
 };
 
+// Valeur Grist -> valeur de l'option correspondante dans la liste. Si Grist transmet le libellé affiché
+// au lieu de l'identifiant (référence « développée »), on retrouve la salle par son libellé.
+function valeurDeListe(champ, valeur) {
+    const reference = lireReference(valeur);
+    if (!reference) {
+        return '';
+    }
+    const choix = LISTES[champ]?.choix() ?? [];
+    if (choix.some(c => String(c.valeur) === reference.id)) {
+        return reference.id;
+    }
+    const parLibelle = choix.find(c => c.libelle === reference.libelle);
+    return parLibelle ? String(parLibelle.valeur) : reference.id;
+}
+
 function remplirSelect(select, champ, valeur) {
     const liste = LISTES[champ];
     const choix = [...(liste.choix() ?? [])];
-    const reference = lireReference(valeur);
-    if (reference && !choix.some(c => String(c.valeur) === reference.id)) {
-        choix.push({ valeur: reference.id, libelle: reference.libelle || `Salle ${reference.id}` });
+    // Valeur absente des choix (salle supprimée, liste illisible) : ajoutée pour ne pas la perdre à l'affichage
+    const id = valeurDeListe(champ, valeur);
+    if (id && !choix.some(c => String(c.valeur) === id)) {
+        choix.push({ valeur: id, libelle: lireReference(valeur)?.libelle || `Salle ${id}` });
     }
     const signature = choix.map(c => `${c.valeur}=${c.libelle}`).join('|');
     if (select.dataset.signature === signature) {

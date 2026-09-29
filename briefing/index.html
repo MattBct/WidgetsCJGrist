@@ -8,6 +8,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Briefing RDV du jour</title>
     <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+    <!-- Génération du PDF (occupation des salles + émargement à remplir, police Montserrat intégrée) -->
+    <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <link rel="stylesheet" href="main.css">
   </head>
 
@@ -23,7 +27,7 @@
       </div>
       <div class="toolbar-groupe">
         <label class="option"><input type="checkbox" id="motif-complet"> Motif complet</label>
-        <button type="button" id="imprimer" class="principal">Imprimer / PDF</button>
+        <button type="button" id="generer-pdf" class="principal" title="PDF unique : occupation des salles + émargement à remplir, pour les personnes sans accès à Grist">Télécharger le PDF</button>
       </div>
       </div>
 
@@ -55,5 +59,6 @@
     </main>
 
     <script src="script.js"></script>
+    <script src="pdf_briefing.js"></script>
   </body>
 </html>

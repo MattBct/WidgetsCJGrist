@@ -181,6 +181,23 @@ function getRdvDuJour(cle) {
     return rdvs.sort((a, b) => a.debut - b.debut || a.creneau.ordre - b.creneau.ordre);
 }
 
+// Salles occupées par les RDV du jour, triées par nom
+function getSallesDuJour(rdvs) {
+    const salles = [];
+    rdvs.forEach(rdv => {
+        if (!salles.find(s => s.cle === rdv.salle.cle)) {
+            salles.push(rdv.salle);
+        }
+    });
+    return salles.sort(comparerSalles);
+}
+
+// Ordre de la feuille d'émargement (HTML et PDF) : par heure, puis par salle
+function trierRdvEmargement(rdvs, salles) {
+    const ordreSalle = salle => salles.findIndex(s => s.cle === salle.cle);
+    return [...rdvs].sort((a, b) => a.debut - b.debut || ordreSalle(a.salle) - ordreSalle(b.salle));
+}
+
 // ---------- Rendu ----------
 
 function echapper(texte) {
@@ -198,13 +215,8 @@ function afficherBriefing() {
     document.title = `Briefing RDV du jour - ${libelleJour(jourSelectionne)}`;
 
     const rdvs = getRdvDuJour(jourSelectionne);
-    const salles = [];
-    rdvs.forEach(rdv => {
-        if (!salles.find(s => s.cle === rdv.salle.cle)) {
-            salles.push(rdv.salle);
-        }
-    });
-    salles.sort(comparerSalles);
+    const salles = getSallesDuJour(rdvs);
+    document.getElementById('generer-pdf').disabled = rdvs.length === 0;
     const horaires = [...new Set(rdvs.map(rdv => rdv.horaire))];
 
     document.getElementById('synthese').innerHTML = renderSynthese(rdvs, salles, horaires);
@@ -301,8 +313,7 @@ function renderMotifsStandardises(rdv) {
 // ---------- Feuille d'émargement (à remplir à la main) ----------
 
 function renderEmargement(rdvs, salles) {
-    const ordreSalle = salle => salles.findIndex(s => s.cle === salle.cle);
-    const rdvsTries = [...rdvs].sort((a, b) => a.debut - b.debut || ordreSalle(a.salle) - ordreSalle(b.salle));
+    const rdvsTries = trierRdvEmargement(rdvs, salles);
 
     return `
         <h2 class="titre-section">Émargement des RDV - ${echapper(libelleJour(jourSelectionne))}</h2>
@@ -450,7 +461,21 @@ bandeDates.addEventListener('wheel', e => {
 }, { passive: false });
 document.getElementById('dates-gauche').addEventListener('click', () => bandeDates.scrollBy({ left: -bandeDates.clientWidth * 0.8, behavior: 'smooth' }));
 document.getElementById('dates-droite').addEventListener('click', () => bandeDates.scrollBy({ left: bandeDates.clientWidth * 0.8, behavior: 'smooth' }));
-document.getElementById('imprimer').addEventListener('click', () => window.print());
+document.getElementById('generer-pdf').addEventListener('click', async e => {
+    const bouton = e.currentTarget;
+    const libelle = bouton.textContent;
+    bouton.disabled = true;
+    bouton.textContent = 'Génération…';
+    try {
+        await genererPdfBriefing();
+    } catch (erreur) {
+        console.error('Erreur de génération du PDF :', erreur);
+        alert('Le PDF n\'a pas pu être généré.');
+    } finally {
+        bouton.textContent = libelle;
+        bouton.disabled = false;
+    }
+});
 document.getElementById('motif-complet').addEventListener('change', e => document.body.classList.toggle('motif-complet', e.target.checked));
 
 // Clic sur une carte : sélection de la ligne correspondante dans Grist

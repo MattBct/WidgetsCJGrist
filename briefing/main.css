@@ -65,6 +65,11 @@ html, body {
     cursor: pointer;
 }
 
+.toolbar-ligne button:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
 .toolbar button.principal {
     background: var(--clinique);
     border-color: var(--clinique);

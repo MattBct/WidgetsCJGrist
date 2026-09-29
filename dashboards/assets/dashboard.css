@@ -1,4 +1,18 @@
-/* Styles communs aux tableaux de bord (CSS classique, compatible navigateurs anciens) */
+/* Styles communs aux tableaux de bord, alignés sur l'identité des autres widgets
+   (gestion des demandes de RDV, briefing) : bandeau rouge, logo blanc, façade en filigrane. */
+
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&family=Zilla+Slab:wght@600;700&display=swap');
+
+:root {
+    --clinique: #C03737;
+    --clinique-fonce: #8E2626;
+    --rdv-1: #F6DFDF;
+    --rdv-2: #DB8080;
+    --texte: #1d1d1d;
+    --texte-doux: #5f5f5f;
+    --bordure: #d9d9d9;
+    --fond-doux: #f5f5f5;
+}
 
 *, *::before, *::after {
     box-sizing: border-box;
@@ -6,18 +20,11 @@
 
 html, body {
     margin: 0;
-    padding: 0;
-    background: #ffffff;
-    color: #1f2937;
-}
-
-body {
-    font-family: "Montserrat", sans-serif;
-    line-height: 1.5;
-}
-
-h1, h2 {
-    margin: 0;
+    background: var(--fond-doux);
+    color: var(--texte);
+    font-family: 'Montserrat', sans-serif;
+    font-size: 13px;
+    line-height: 1.45;
 }
 
 img {
@@ -25,182 +32,283 @@ img {
     max-width: 100%;
 }
 
-/* Mise en page générale */
+/* ---------- En-tête aux couleurs de la Clinique ---------- */
+
+.entete {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-height: 84px;
+    padding: 12px 15px;
+    overflow: hidden;
+    color: #ffffff;
+    background: var(--clinique);
+}
+
+.entete-logo {
+    position: relative;
+    z-index: 1;
+    flex: none;
+    height: 60px;
+    width: auto;
+}
+
+.entete-titre {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    padding-left: 16px;
+    /* Filet vertical, comme le séparateur du logo */
+    border-left: 1px solid rgba(255, 255, 255, 0.7);
+}
+
+.entete-titre h1 {
+    margin: 0;
+    font-family: 'Zilla Slab', Georgia, serif;
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.entete-public {
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    background: var(--clinique-fonce);
+}
+
+/* Façade de la faculté en filigrane, estompée vers la gauche */
+.entete-illustration {
+    position: absolute;
+    right: -10px;
+    bottom: -38px;
+    height: 150px;
+    width: auto;
+    opacity: 0.3;
+    pointer-events: none;
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 45%);
+    mask-image: linear-gradient(to right, transparent, #000 45%);
+}
+
+@media (max-width: 560px) {
+    .entete {
+        gap: 12px;
+    }
+
+    .entete-logo {
+        height: 46px;
+    }
+
+    .entete-titre {
+        padding-left: 12px;
+    }
+
+    .entete-titre h1 {
+        font-size: 19px;
+    }
+
+    .entete-illustration {
+        display: none;
+    }
+}
+
+/* ---------- Sections ---------- */
 
 .page {
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    width: 100%;
-    gap: 1rem;
+    gap: 22px;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 18px 15px 28px;
 }
 
-.logo {
-    width: 11.25rem;
-    height: auto;
-}
-
-.entete {
+.section {
     display: flex;
     flex-direction: column;
+    gap: 12px;
+}
+
+.section-titre {
+    display: flex;
     align-items: center;
-    gap: 0.375rem;
-    margin-top: 0.75rem;
-    text-align: center;
-}
-
-.titre {
-    font-size: 1.875rem;
-    line-height: 2.25rem;
-    font-weight: 800;
-}
-
-.sous-titre {
-    font-size: 1.25rem;
-    line-height: 1.75rem;
+    gap: 12px;
+    margin: 0;
+    font-family: 'Zilla Slab', Georgia, serif;
+    font-size: 19px;
     font-weight: 700;
-    color: #c03737;
+    color: var(--clinique-fonce);
 }
 
-.rouge {
-    color: #c03737;
+/* Filet horizontal prolongeant le titre */
+.section-titre::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--bordure);
 }
 
-/* Grille de cartes */
+/* ---------- Indicateurs ---------- */
 
-.grille-cartes {
+.grille {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 3.75rem;
-    margin: 2rem;
-    width: 87.5%;
-}
-
-@media (max-width: 900px) {
-    .grille-cartes {
-        grid-template-columns: minmax(0, 1fr);
-        gap: 2rem;
-    }
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
 }
 
 .carte {
     display: flex;
     flex-direction: column;
-    gap: 2rem;
-    padding: 1.5rem;
+    gap: 10px;
+    padding: 14px 16px;
     background: #ffffff;
-    border-radius: 0.5rem;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--bordure);
+    border-left: 4px solid var(--clinique);
+    border-radius: 8px;
 }
 
-.carte-principal {
+/* Indicateur à gauche, illustration undraw (recolorée aux couleurs de la Clinique) à droite */
+.carte-haut {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.carte-illustration {
+    flex: none;
+    width: 96px;
+    height: 72px;
+    object-fit: contain;
+    object-position: right top;
+}
+
+@media (max-width: 380px) {
+    .carte-illustration {
+        width: 72px;
+        height: 54px;
+    }
+}
+
+.indicateur {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 1rem;
+    gap: 4px;
 }
 
-.illustration {
-    width: 10rem;
-    height: 10rem;
-}
-
-.chiffre-bloc {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-}
-
-.chiffre-rouge {
-    font-size: 3.75rem;
-    line-height: 1;
-    color: #c03737;
+.indicateur-valeur {
+    font-family: 'Zilla Slab', Georgia, serif;
+    font-size: 44px;
     font-weight: 700;
+    line-height: 1;
+    color: var(--clinique);
 }
 
-.libelle {
-    font-size: 1.125rem;
-    line-height: 1.75rem;
+.indicateur-libelle {
+    font-size: 14px;
     font-weight: 600;
 }
 
+/* Variante compacte (rangée de statistiques) */
+.carte-compacte .indicateur-valeur {
+    font-size: 34px;
+}
+
+.carte-compacte .indicateur-libelle {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--texte-doux);
+}
+
+.pourcentage {
+    align-self: flex-start;
+    padding: 1px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--clinique-fonce);
+    background: var(--rdv-1);
+}
+
+/* Décomposition sous l'indicateur (étudiants / grand public, passages…) */
 .details {
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
-    gap: 0.0625rem;
-    font-size: 0.875rem;
-    line-height: 1.25rem;
+    gap: 4px;
+    margin: 0;
+    padding: 10px 0 0;
+    border-top: 1px dashed var(--bordure);
+    list-style: none;
+    font-size: 12px;
+    color: var(--texte-doux);
 }
 
-/* Statistiques (tableau codirs) */
-
-.rangee-stats {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 1.5rem;
-    margin: 2rem;
-    width: 87.5%;
-}
-
-.stat {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.25rem;
-    width: 16rem;
-    padding: 1rem;
-    background: #ffffff;
-    border-radius: 0.5rem;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-    text-align: center;
-}
-
-.stat-titre {
-    font-size: 0.875rem;
-    line-height: 1.25rem;
-    color: rgba(31, 41, 55, 0.6);
-}
-
-.stat-valeur {
-    font-size: 2.25rem;
-    line-height: 2.5rem;
+.details strong {
+    display: inline-block;
+    min-width: 2ch;
     font-weight: 800;
-    color: #c03737;
+    color: var(--clinique);
 }
 
-.stat-desc {
-    font-size: 0.75rem;
-    line-height: 1rem;
-    color: rgba(31, 41, 55, 0.6);
+/* ---------- Graphiques ---------- */
+
+.grille-graphiques {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+    gap: 12px;
+    align-items: start;
 }
 
-.stat-desc .pct {
-    font-size: 1.125rem;
-    line-height: 1.75rem;
+@media (max-width: 760px) {
+    .grille-graphiques {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.carte-titre {
+    margin: 0;
+    font-family: 'Zilla Slab', Georgia, serif;
+    font-size: 16px;
     font-weight: 700;
-    color: #c03737;
+    color: var(--clinique-fonce);
 }
 
-/* Graphique */
-
-.carte-graphique {
-    align-items: center;
-    gap: 1rem;
-    margin: 2rem;
-    width: 87.5%;
-    max-width: 28rem;
-}
-
-.carte-graphique-large {
-    max-width: 48rem;
+.graphique-anneau {
+    position: relative;
+    width: 100%;
+    max-width: 260px;
+    margin: 0 auto;
 }
 
 .graphique-barres {
     position: relative;
     width: 100%;
+}
+
+.vide {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 0;
+    text-align: center;
+}
+
+.vide-illustration {
+    width: min(200px, 70%);
+    height: auto;
+    opacity: 0.45;
+}
+
+.vide p {
+    margin: 0;
+    font-family: 'Zilla Slab', Georgia, serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--clinique-fonce);
 }

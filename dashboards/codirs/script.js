@@ -81,6 +81,10 @@ function gristReady() {
 
 gristReady()
 
+// Typographie et couleurs des graphiques alignées sur l'identité des widgets
+Chart.defaults.font.family = "'Montserrat', sans-serif";
+Chart.defaults.color = '#5f5f5f';
+
 let chartOptionHeures;
 
 function initChartOptionHeures() {
@@ -95,15 +99,30 @@ function initChartOptionHeures() {
             labels: ['Heures validées', 'Heures non validées'],
             datasets: [{
                 data: [0, 0],
-                backgroundColor: ['#A73030', '#772222'],
-                borderWidth: 0
+                backgroundColor: ['#C03737', '#DB8080'],
+                borderColor: '#ffffff',
+                borderWidth: 2,
+                hoverOffset: 4
             }]
         },
         options: {
             responsive: true,
+            cutout: '62%',
             plugins: {
                 legend: {
-                    position: 'bottom'
+                    position: 'bottom',
+                    labels: {
+                        usePointStyle: true,
+                        pointStyle: 'circle',
+                        boxWidth: 8,
+                        boxHeight: 8,
+                        padding: 14
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: (context) => ' ' + context.parsed + ' ' + plur(context.parsed, 'clinicien', 'cliniciens')
+                    }
                 }
             }
         }

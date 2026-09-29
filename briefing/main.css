@@ -463,10 +463,35 @@ html, body {
     color: #333333;
 }
 
-.carte-motif {
+.carte-motifs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
     margin-top: 2px;
-    padding-top: 3px;
+    padding-top: 4px;
     border-top: 1px dashed rgba(0, 0, 0, 0.2);
+}
+
+/* Motif standardisé : pastille bordée, lisible sur les deux couleurs de carte */
+.motif-std {
+    display: inline-block;
+    padding: 1px 7px;
+    border: 1px solid var(--clinique-fonce);
+    border-radius: 999px;
+    color: var(--clinique-fonce);
+    font-size: 0.85em;
+    font-weight: 700;
+    line-height: 1.3;
+}
+
+.motif-vide {
+    color: var(--texte-doux);
+    font-size: 0.85em;
+    font-style: italic;
+}
+
+/* Motif détaillé (feuille d'émargement) */
+.carte-motif {
     font-style: italic;
     /* Motif résumé sur 3 lignes, sauf option "Motif complet" */
     display: -webkit-box;
@@ -546,9 +571,9 @@ body.motif-complet .carte-motif {
     page-break-inside: avoid;
 }
 
-.col-em-horaire { width: 14%; }
+.col-em-horaire { width: 12%; }
 .col-em-rdv { width: 18%; }
-.col-em-cliniciens { width: 33%; }
+.col-em-cliniciens { width: 30%; }
 .col-em-patient { width: 11%; }
 
 .em-horaire {
@@ -665,12 +690,32 @@ body.motif-complet .carte-motif {
     white-space: nowrap;
 }
 
-.em-commentaire {
-    margin-bottom: 2px;
+.em-motifs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    margin-top: 3px;
+}
+
+/* Blocs de lecture (motif détaillé, commentaire) au-dessus des lignes d'écriture */
+.em-bloc {
+    margin-bottom: 3px;
     padding: 3px 5px;
     border-left: 3px solid var(--bordure);
     background: var(--fond-doux);
     font-size: 0.9em;
+}
+
+.em-bloc-titre {
+    display: block;
+    color: var(--texte-doux);
+    font-size: 0.8em;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.em-commentaire {
     font-style: italic;
     white-space: pre-line;
 }

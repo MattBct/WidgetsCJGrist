@@ -3,9 +3,7 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+        <title>Tableau de bord — Codirecteurs</title>
         <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
         <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
         <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
@@ -43,85 +41,109 @@
         <link href="../assets/dashboard.css" rel="stylesheet" type="text/css" />
     </head>
     <body x-data>
-        <div class="page">
-            <img class="logo" src="../../fiche_clinicien/logoCJ.png" alt="Logo Clinique juridique" width="180"/>
-            <div class="entete">
-                <h1 class="titre">Tableau de bord Clinique juridique</h1>
-                <h2 class="sous-titre">Codirecteurs</h2>
+        <header class="entete">
+            <img class="entete-logo" src="../assets/logoCJ_blanc.png" alt="Clinique Juridique — Faculté de droit, Université Jean Moulin Lyon III">
+            <div class="entete-titre">
+                <h1>Tableau de bord</h1>
+                <span class="entete-public">Codirecteurs</span>
             </div>
-            <div class="grille-cartes">
+            <img class="entete-illustration" src="../assets/facade_blanc.png" alt="" aria-hidden="true">
+        </header>
+
+        <main class="page">
+            <section class="section">
+                <h2 class="section-titre">Activité</h2>
+                <div class="grille">
                     <div class="carte">
-                        <div class="carte-principal">
-                            <img src="../assets/undraw_meeting_dunc.svg" class="illustration" alt="" width="160" height="160"/>
-                            <div class="chiffre-bloc"><span class="chiffre-rouge" x-text="$store.donnees.nb_rdv_traites_annee"></span> <span class="libelle">RDV traités depuis le début de l'année</span></div>
+                        <div class="carte-haut">
+                            <div class="indicateur">
+                                <span class="indicateur-valeur" x-text="$store.donnees.nb_rdv_traites_annee"></span>
+                                <span class="indicateur-libelle">RDV traités depuis le début de l'année</span>
+                            </div>
+                            <img class="carte-illustration" src="../assets/undraw_meeting_dunc.svg" alt="" aria-hidden="true">
                         </div>
                     </div>
 
                     <div class="carte">
-                        <div class="carte-principal">
-                            <img src="../assets/undraw_group-project_kow1.svg" class="illustration" alt="" width="160" height="160"/>
-                            <div class="chiffre-bloc"><span class="chiffre-rouge" x-text="$store.donnees.nb_projets"></span> <span class="libelle" x-text="plur($store.donnees.nb_projets, 'projet terminé', 'projets terminés')"></span></div>
+                        <div class="carte-haut">
+                            <div class="indicateur">
+                                <span class="indicateur-valeur" x-text="$store.donnees.nb_projets"></span>
+                                <span class="indicateur-libelle" x-text="plur($store.donnees.nb_projets, 'projet terminé', 'projets terminés')"></span>
+                            </div>
+                            <img class="carte-illustration" src="../assets/undraw_group-project_kow1.svg" alt="" aria-hidden="true">
                         </div>
                     </div>
 
                     <div class="carte">
-                        <div class="carte-principal">
-                            <img src="../assets/undraw_morning-news_h9nz.svg" class="illustration" alt="" width="160" height="160"/>
-                            <div class="chiffre-bloc"><span class="chiffre-rouge" x-text="$store.donnees.nb_permanences"></span> <span class="libelle" x-text="plur($store.donnees.nb_permanences, 'permanence tenue', 'permanences tenues')"></span></div>
+                        <div class="carte-haut">
+                            <div class="indicateur">
+                                <span class="indicateur-valeur" x-text="$store.donnees.nb_permanences"></span>
+                                <span class="indicateur-libelle" x-text="plur($store.donnees.nb_permanences, 'permanence tenue', 'permanences tenues')"></span>
+                            </div>
+                            <img class="carte-illustration" src="../assets/undraw_morning-news_h9nz.svg" alt="" aria-hidden="true">
                         </div>
-                        <div class="details">
-                            <div><span class="rouge" x-text="$store.donnees.nb_passages_total"></span> <span x-text="plur($store.donnees.nb_passages_total, 'passage au total', 'passages au total')"></span></div>
-                            <div><span class="rouge" x-text="$store.donnees.nb_passages_moyen"></span> <span x-text="plur($store.donnees.nb_passages_moyen, 'passage en moyenne', 'passages en moyenne')"></span></div>
-                        </div>
+                        <ul class="details">
+                            <li><strong x-text="$store.donnees.nb_passages_total"></strong> <span x-text="plur($store.donnees.nb_passages_total, 'passage au total', 'passages au total')"></span></li>
+                            <li><strong x-text="$store.donnees.nb_passages_moyen"></strong> <span x-text="plur($store.donnees.nb_passages_moyen, 'passage en moyenne', 'passages en moyenne')"></span></li>
+                        </ul>
                     </div>
-            </div>
-
-            <div class="entete">
-                <h2 class="sous-titre">Cliniciens</h2>
-            </div>
-
-            <div class="rangee-stats">
-                    <div class="stat">
-                        <div class="stat-titre" x-text="plur($store.donnees.nb_cliniciens_inscrits, 'Clinicien inscrit', 'Cliniciens inscrits')"></div>
-                        <div class="stat-valeur" x-text="$store.donnees.nb_cliniciens_inscrits"></div>
-                    </div>
-
-                    <div class="stat">
-                        <div class="stat-titre" x-text="plur($store.donnees.nb_cliniciens_option_inscrits, 'Clinicien en option inscrit', 'Cliniciens en option inscrits')"></div>
-                        <div class="stat-valeur" x-text="$store.donnees.nb_cliniciens_option_inscrits"></div>
-                    </div>
-
-                    <div class="stat">
-                        <div class="stat-titre" x-text="plur($store.donnees.nb_cliniciens_option_heures_validees, 'Clinicien en option ayant validé ses heures', 'Cliniciens en option ayant validé leurs heures')"></div>
-                        <div class="stat-valeur" x-text="$store.donnees.nb_cliniciens_option_heures_validees"></div>
-                        <div class="stat-desc">
-                            <span class="pct" x-text="$store.donnees.pct_option_heures_validees + '%'"></span>
-                            des cliniciens en option
-                        </div>
-                    </div>
-
-                    <div class="stat">
-                        <div class="stat-titre" x-text="plur($store.donnees.nb_cliniciens_option_heures_non_validees, 'Clinicien en option n\'ayant pas validé ses heures', 'Cliniciens en option n\'ayant pas validé leurs heures')"></div>
-                        <div class="stat-valeur" x-text="$store.donnees.nb_cliniciens_option_heures_non_validees"></div>
-                        <div class="stat-desc">
-                            <span class="pct" x-text="$store.donnees.pct_option_heures_non_validees + '%'"></span>
-                            des cliniciens en option
-                        </div>
-                    </div>
-            </div>
-
-            <div class="carte carte-graphique">
-                <span class="libelle">Validation des heures (cliniciens en option)</span>
-                <canvas id="chartOptionHeures"></canvas>
-            </div>
-
-            <div class="carte carte-graphique carte-graphique-large">
-                <span class="libelle">Cliniciens en option par diplôme</span>
-                <div class="graphique-barres" x-show="$store.donnees.repartition_diplomes_option.length > 0">
-                    <canvas id="chartDiplomesOption"></canvas>
                 </div>
-                <span class="stat-desc" x-show="$store.donnees.repartition_diplomes_option.length === 0">Aucun clinicien en option</span>
-            </div>
-        </div>
+            </section>
+
+            <section class="section">
+                <h2 class="section-titre">Cliniciens</h2>
+                <div class="grille">
+                    <div class="carte carte-compacte">
+                        <div class="indicateur">
+                            <span class="indicateur-valeur" x-text="$store.donnees.nb_cliniciens_inscrits"></span>
+                            <span class="indicateur-libelle" x-text="plur($store.donnees.nb_cliniciens_inscrits, 'Clinicien inscrit', 'Cliniciens inscrits')"></span>
+                        </div>
+                    </div>
+
+                    <div class="carte carte-compacte">
+                        <div class="indicateur">
+                            <span class="indicateur-valeur" x-text="$store.donnees.nb_cliniciens_option_inscrits"></span>
+                            <span class="indicateur-libelle" x-text="plur($store.donnees.nb_cliniciens_option_inscrits, 'Clinicien en option inscrit', 'Cliniciens en option inscrits')"></span>
+                        </div>
+                    </div>
+
+                    <div class="carte carte-compacte">
+                        <div class="indicateur">
+                            <span class="indicateur-valeur" x-text="$store.donnees.nb_cliniciens_option_heures_validees"></span>
+                            <span class="indicateur-libelle" x-text="plur($store.donnees.nb_cliniciens_option_heures_validees, 'Clinicien en option ayant validé ses heures', 'Cliniciens en option ayant validé leurs heures')"></span>
+                        </div>
+                        <span class="pourcentage"><span x-text="$store.donnees.pct_option_heures_validees + ' %'"></span> des cliniciens en option</span>
+                    </div>
+
+                    <div class="carte carte-compacte">
+                        <div class="indicateur">
+                            <span class="indicateur-valeur" x-text="$store.donnees.nb_cliniciens_option_heures_non_validees"></span>
+                            <span class="indicateur-libelle" x-text="plur($store.donnees.nb_cliniciens_option_heures_non_validees, 'Clinicien en option n\'ayant pas validé ses heures', 'Cliniciens en option n\'ayant pas validé leurs heures')"></span>
+                        </div>
+                        <span class="pourcentage"><span x-text="$store.donnees.pct_option_heures_non_validees + ' %'"></span> des cliniciens en option</span>
+                    </div>
+                </div>
+
+                <div class="grille-graphiques">
+                    <div class="carte">
+                        <h3 class="carte-titre">Validation des heures</h3>
+                        <div class="graphique-anneau">
+                            <canvas id="chartOptionHeures"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="carte">
+                        <h3 class="carte-titre">Cliniciens en option par diplôme</h3>
+                        <div class="graphique-barres" x-show="$store.donnees.repartition_diplomes_option.length > 0">
+                            <canvas id="chartDiplomesOption"></canvas>
+                        </div>
+                        <div class="vide" x-show="$store.donnees.repartition_diplomes_option.length === 0">
+                            <img class="vide-illustration" src="../assets/facade_rouge.png" alt="" aria-hidden="true">
+                            <p>Aucun clinicien en option</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
     </body>
 </html>

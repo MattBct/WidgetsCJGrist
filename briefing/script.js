@@ -6,7 +6,8 @@ const COLONNES = [
     { name: "Prenom_patient", title: "Prénom du patient", type: "Text", optional: false },
     { name: "Telephone_patient", title: "Téléphone du patient", type: "Text", optional: true },
     { name: "Mail_patient", title: "Mail du patient", type: "Text", optional: true },
-    { name: "Motif_RDV", title: "Motif du RDV", type: "Text", optional: false },
+    { name: "Motif_RDV", title: "Motif détaillé", type: "Text", optional: false, description: "Motif rédigé par le patient (affiché sur la feuille d'émargement)" },
+    { name: "Motifs_standardises", title: "Motifs standardisés", type: "ChoiceList,Text", optional: true, description: "Motifs standardisés (colonne Choix multiples), affichés en pastilles" },
     { name: "Creneau_RDV_1", title: "Créneau RDV 1", type: "DateTime", optional: false, description: "Créneau horaire du premier rendez-vous" },
     { name: "Lieu_RDV_1", title: "Lieu RDV 1", type: "Ref,Text,Choice", optional: false, description: "Salle du premier rendez-vous (colonne Référence, ou colonne formule texte ex. $Lieu_RDV_1.Nom pour afficher le nom de la salle)" },
     { name: "Creneau_RDV_2", title: "Créneau RDV 2", type: "DateTime", optional: false, description: "Créneau horaire du deuxième rendez-vous" },
@@ -133,6 +134,17 @@ function getCliniciens(valeur) {
     }).filter(clinicien => clinicien && clinicien.nom);
 }
 
+// Liste de choix (ChoiceList décodée, liste encodée ['L', ...] ou texte séparé par virgules)
+function lireListe(valeur) {
+    if (Array.isArray(valeur)) {
+        return (valeur[0] === 'L' ? valeur.slice(1) : valeur).map(v => String(v).trim()).filter(Boolean);
+    }
+    if (typeof valeur === 'string') {
+        return valeur.split(/[,;\n]/).map(v => v.trim()).filter(Boolean);
+    }
+    return [];
+}
+
 function comparerSalles(a, b) {
     return a.ordre - b.ordre || a.libelle.localeCompare(b.libelle, 'fr', { numeric: true });
 }
@@ -159,6 +171,7 @@ function getRdvDuJour(cle) {
                 telephone: dossier.Telephone_patient || '',
                 mail: dossier.Mail_patient || '',
                 motif: String(dossier.Motif_RDV || '').trim(),
+                motifsStandardises: lireListe(dossier.Motifs_standardises),
                 visio: dossier.Visioconference === true,
                 cliniciens: getCliniciens(dossier.Cliniciens_briefing),
                 commentaires: String(dossier.Commentaires || '').trim(),
@@ -274,9 +287,15 @@ function renderCarte(rdv) {
             </div>
             <span class="carte-patient">${echapper(rdv.nom)} ${echapper(rdv.prenom)}</span>
             ${contact}
-            <span class="carte-motif${rdv.motif ? '' : ' vide'}">${rdv.motif ? echapper(rdv.motif) : 'Motif non renseigné'}</span>
+            <div class="carte-motifs">${renderMotifsStandardises(rdv)}</div>
         </div>
     `;
+}
+
+function renderMotifsStandardises(rdv) {
+    return rdv.motifsStandardises.length > 0
+        ? rdv.motifsStandardises.map(motif => `<span class="motif-std">${echapper(motif)}</span>`).join('')
+        : '<span class="motif-vide">Motif non qualifié</span>';
 }
 
 // ---------- Feuille d'émargement (à remplir à la main) ----------
@@ -297,7 +316,7 @@ function renderEmargement(rdvs, salles) {
                     <th>RDV</th>
                     <th>Cliniciens présents</th>
                     <th>Patient</th>
-                    <th>Commentaires / notes</th>
+                    <th>Motif, commentaires / notes</th>
                 </tr>
             </thead>
             <tbody>${rdvsTries.map(renderLigneEmargement).join('')}</tbody>
@@ -329,6 +348,7 @@ function renderLigneEmargement(rdv) {
                     ${rdv.visio ? `<span class="badge badge-visio">${ICONE_VISIO}Visio</span>` : ''}
                 </span>
                 <span class="carte-patient">${echapper(rdv.nom)} ${echapper(rdv.prenom)}</span>
+                <div class="em-motifs">${renderMotifsStandardises(rdv)}</div>
             </td>
             <td class="em-cliniciens">${cliniciens}</td>
             <td class="em-patient">
@@ -337,10 +357,13 @@ function renderLigneEmargement(rdv) {
                 <div class="em-heure-arrivee">à <span class="ligne-ecriture courte"></span></div>
             </td>
             <td class="em-notes">
-                ${rdv.commentaires ? `<div class="em-commentaire">${echapper(rdv.commentaires)}</div>` : ''}
+                <div class="em-bloc">
+                    <span class="em-bloc-titre">Motif détaillé</span>
+                    <span class="carte-motif${rdv.motif ? '' : ' vide'}">${rdv.motif ? echapper(rdv.motif) : 'Non renseigné'}</span>
+                </div>
+                ${rdv.commentaires ? `<div class="em-bloc"><span class="em-bloc-titre">Commentaire</span><span class="em-commentaire">${echapper(rdv.commentaires)}</span></div>` : ''}
                 <span class="ligne-ecriture"></span>
                 <span class="ligne-ecriture"></span>
-                ${rdv.commentaires ? '' : '<span class="ligne-ecriture"></span>'}
             </td>
         </tr>
     `;

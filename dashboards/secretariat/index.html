@@ -3,9 +3,7 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+        <title>Tableau de bord — Secrétariat</title>
         <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
         <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
         <script defer src="script.js"></script>
@@ -31,42 +29,58 @@
         <link href="../assets/dashboard.css" rel="stylesheet" type="text/css" />
     </head>
     <body x-data>
-        <div class="page">
-            <img class="logo" src="../../fiche_clinicien/logoCJ.png" alt="Logo Clinique juridique" width="180"/>
-            <div class="entete">
-                <h1 class="titre">Tableau de bord Clinique juridique</h1>
-                <h2 class="sous-titre">Secrétariat</h2>
+        <header class="entete">
+            <img class="entete-logo" src="../assets/logoCJ_blanc.png" alt="Clinique Juridique — Faculté de droit, Université Jean Moulin Lyon III">
+            <div class="entete-titre">
+                <h1>Tableau de bord</h1>
+                <span class="entete-public">Secrétariat</span>
             </div>
-            <div class="grille-cartes">
+            <img class="entete-illustration" src="../assets/facade_blanc.png" alt="" aria-hidden="true">
+        </header>
+
+        <main class="page">
+            <section class="section">
+                <h2 class="section-titre">Rendez-vous</h2>
+                <div class="grille">
                     <div class="carte">
-                        <div class="carte-principal">
-                            <img src="../assets/undraw_accept-request_489a.svg" class="illustration" alt="" width="160" height="160"/>
-                            <div class="chiffre-bloc"><span class="chiffre-rouge" x-text="$store.donnees.nb_demandes_rdv_non_traites"></span> <span class="libelle" x-text="plur($store.donnees.nb_demandes_rdv_non_traites, 'demande de RDV non traitée', 'demandes de RDV non traitées')"></span></div>
+                        <div class="carte-haut">
+                            <div class="indicateur">
+                                <span class="indicateur-valeur" x-text="$store.donnees.nb_demandes_rdv_non_traites"></span>
+                                <span class="indicateur-libelle" x-text="plur($store.donnees.nb_demandes_rdv_non_traites, 'demande de RDV non traitée', 'demandes de RDV non traitées')"></span>
+                            </div>
+                            <img class="carte-illustration" src="../assets/undraw_accept-request_489a.svg" alt="" aria-hidden="true">
                         </div>
-                        <div class="details">
-                            <div><span class="rouge" x-text="$store.donnees.nb_demandes_rdv_non_traites_etu"></span> <span x-text="plur($store.donnees.nb_demandes_rdv_non_traites_etu, 'RDV étudiant', 'RDV étudiants')"></span></div>
-                            <div><span class="rouge" x-text="$store.donnees.nb_demandes_rdv_non_traites_gp"></span> <span>RDV grand public</span></div>
+                        <ul class="details">
+                            <li><strong x-text="$store.donnees.nb_demandes_rdv_non_traites_etu"></strong> <span x-text="plur($store.donnees.nb_demandes_rdv_non_traites_etu, 'RDV étudiant', 'RDV étudiants')"></span></li>
+                            <li><strong x-text="$store.donnees.nb_demandes_rdv_non_traites_gp"></strong> RDV grand public</li>
+                        </ul>
+                    </div>
+
+                    <div class="carte">
+                        <div class="carte-haut">
+                            <div class="indicateur">
+                                <span class="indicateur-valeur" x-text="$store.donnees.nb_rdv_prog_semaine"></span>
+                                <span class="indicateur-libelle" x-text="plur($store.donnees.nb_rdv_prog_semaine, 'RDV programmé cette semaine', 'RDV programmés cette semaine')"></span>
+                            </div>
+                            <img class="carte-illustration" src="../assets/undraw_online-calendar_iz1q.svg" alt="" aria-hidden="true">
                         </div>
                     </div>
 
                     <div class="carte">
-                        <div class="carte-principal">
-                            <img src="../assets/undraw_online-calendar_iz1q.svg" class="illustration" alt="" width="160" height="160"/>
-                            <div class="chiffre-bloc"><span class="chiffre-rouge" x-text="$store.donnees.nb_rdv_prog_semaine"></span> <span class="libelle" x-text="plur($store.donnees.nb_rdv_prog_semaine, 'RDV programmé cette semaine', 'RDV programmés cette semaine')"></span></div>
+                        <div class="carte-haut">
+                            <div class="indicateur">
+                                <span class="indicateur-valeur" x-text="$store.donnees.nb_rdv_non_confirme_patients"></span>
+                                <span class="indicateur-libelle">RDV en attente de confirmation patient</span>
+                            </div>
+                            <img class="carte-illustration" src="../assets/undraw_progress-bar_o44f.svg" alt="" aria-hidden="true">
                         </div>
+                        <ul class="details">
+                            <li><strong x-text="$store.donnees.nb_rdv_non_confirme_patients_etu"></strong> <span x-text="plur($store.donnees.nb_rdv_non_confirme_patients_etu, 'RDV étudiant', 'RDV étudiants')"></span></li>
+                            <li><strong x-text="$store.donnees.nb_rdv_non_confirme_patients_gp"></strong> RDV grand public</li>
+                        </ul>
                     </div>
-
-                    <div class="carte">
-                        <div class="carte-principal">
-                            <img src="../assets/undraw_progress-bar_o44f.svg" class="illustration" alt="" width="160" height="160"/>
-                            <div class="chiffre-bloc"><span class="chiffre-rouge" x-text="$store.donnees.nb_rdv_non_confirme_patients"></span> <span class="libelle">RDV en attente de confirmation patient</span></div>
-                        </div>
-                        <div class="details">
-                            <div><span class="rouge" x-text="$store.donnees.nb_rdv_non_confirme_patients_etu"></span> <span x-text="plur($store.donnees.nb_rdv_non_confirme_patients_etu, 'RDV étudiant', 'RDV étudiants')"></span></div>
-                            <div><span class="rouge" x-text="$store.donnees.nb_rdv_non_confirme_patients_gp"></span> <span>RDV grand public</span></div>
-                        </div>
-                    </div>
-            </div>
-        </div>
+                </div>
+            </section>
+        </main>
     </body>
 </html>

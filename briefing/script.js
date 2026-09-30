@@ -35,8 +35,9 @@ let dossiers = [];
 let jourSelectionne = cleJour(new Date());
 let rowIdSelectionne = null;
 
+// Accès complet : nécessaire pour lire la table Cliniciens (listes déroulantes du PDF d'émargement)
 grist.ready({
-    requiredAccess: 'read table',
+    requiredAccess: 'full',
     columns: COLONNES,
     allowSelectBy: true,
 });

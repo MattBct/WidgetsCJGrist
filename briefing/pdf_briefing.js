@@ -19,6 +19,8 @@ const PDF_LIGNE_CLINICIEN = 15;
 const PDF_HAUTEUR_ENTETE_TABLEAU = 18;
 const PDF_HAUTEUR_NOTES_MIN = 30;
 const PDF_LARGEUR_COL_HEURE = 40;
+// Table lue en direct pour proposer les cliniciens dans les listes déroulantes de l'émargement
+const TABLE_CLINICIENS = 'Cliniciens';
 const PDF_MOTIF_LIGNES_MAX = 4;
 
 const PDF_COULEURS = {
@@ -356,7 +358,14 @@ function pdfDessinerLigne(ctx, rdv, prep, yHaut, index) {
             pdfEcrire(page, pdfLigneTronquee(clinicien.nom, polices.regular, 8, largeurTexte - largeurTel - 4), xTexte, haut + 2.5, polices.regular, 8);
             pdfEcrire(page, telephone, cliniciens.x + cliniciens.largeur - pad - largeurTel, haut + 3.5, polices.regular, 6.5, PDF_COULEURS.doux);
         } else {
-            const champNom = form.createTextField(`${nomChamp}_clinicien_${j + 1}_nom`);
+            // Liste déroulante des cliniciens, avec saisie libre ; champ texte si la table Cliniciens est inaccessible
+            const champNom = ctx.optionsCliniciens
+                ? form.createDropdown(`${nomChamp}_clinicien_${j + 1}_nom`)
+                : form.createTextField(`${nomChamp}_clinicien_${j + 1}_nom`);
+            if (ctx.optionsCliniciens) {
+                champNom.addOptions(ctx.optionsCliniciens);
+                champNom.enableEditing();
+            }
             champNom.addToPage(page, { x: xTexte, y: pdfY(haut + 12), width: largeurTexte, height: 11, font: polices.regular, backgroundColor: fondChamp, borderWidth: 0 });
             champNom.setFontSize(8);
             pdfLignePointillee(page, xTexte, xTexte + largeurTexte, haut + 12.5);
@@ -600,7 +609,9 @@ function pdfDessinerEmargement(ctx, rdvs, yHaut) {
     pdfEcrire(ctx.page, pdfLigneTronquee(`Émargement des RDV - ${libelleJour(jourSelectionne)}`, polices.extraBold, 10.5, PDF_LARGEUR_UTILE - 20), x + 12, y + 5, polices.extraBold, 10.5, PDF_COULEURS.cliniqueFonce);
     y += 26;
 
-    const consigne = 'À compléter : cochez les présences et écrivez directement dans les zones teintées (Acrobat Reader, Aperçu, navigateur…), puis enregistrez le fichier.';
+    const consigne = ctx.optionsCliniciens
+        ? 'À compléter : cochez les présences, choisissez les cliniciens dans les listes (ou tapez un nom absent de la liste) et écrivez dans les zones teintées (Acrobat Reader, Aperçu, navigateur…), puis enregistrez le fichier.'
+        : 'À compléter : cochez les présences et écrivez directement dans les zones teintées (Acrobat Reader, Aperçu, navigateur…), puis enregistrez le fichier.';
     pdfLignes(consigne, polices.italique, 7, PDF_LARGEUR_UTILE).forEach(ligne => {
         pdfEcrire(ctx.page, ligne, x, y, polices.italique, 7, PDF_COULEURS.doux);
         y += 9;
@@ -718,6 +729,24 @@ function pdfDessinerPiedsDePage(doc, polices) {
 
 // ---------- Génération ----------
 
+// Choix des listes déroulantes : "Label — Niveau" pour chaque clinicien, triés par nom puis prénom.
+// Lu en direct dans la table Cliniciens à chaque génération ; null si la table est inaccessible.
+async function chargerOptionsCliniciens(police) {
+    try {
+        const table = await grist.docApi.fetchTable(TABLE_CLINICIENS);
+        const texte = (colonne, i) => (typeof table[colonne]?.[i] === 'string' ? table[colonne][i].trim() : '');
+        const options = table.id
+            .map((_, i) => ({ label: texte('Label', i), niveau: texte('Niveau', i), nom: texte('Nom', i), prenom: texte('Prenom', i) }))
+            .filter(clinicien => clinicien.label)
+            .sort((a, b) => a.nom.localeCompare(b.nom, 'fr', { sensitivity: 'base' }) || a.prenom.localeCompare(b.prenom, 'fr', { sensitivity: 'base' }))
+            .map(clinicien => pdfTexte(police, clinicien.niveau ? `${clinicien.label} — ${clinicien.niveau}` : clinicien.label));
+        return options.length > 0 ? [...new Set(options)] : null;
+    } catch (e) {
+        console.warn(`Table ${TABLE_CLINICIENS} inaccessible, champs texte libres dans l'émargement :`, e);
+        return null;
+    }
+}
+
 async function chargerImagePdf(doc, fichier) {
     try {
         return await doc.embedPng(await fetch(fichier).then(r => r.arrayBuffer()));
@@ -742,13 +771,18 @@ async function genererPdfBriefing() {
     doc.setLanguage('fr-FR');
 
     const polices = await chargerPolicesPdf(doc);
-    const [logo, facade] = await Promise.all([chargerImagePdf(doc, 'logoCJ_blanc.png'), chargerImagePdf(doc, 'facade_blanc.png')]);
+    const [logo, facade, optionsCliniciens] = await Promise.all([
+        chargerImagePdf(doc, 'logoCJ_blanc.png'),
+        chargerImagePdf(doc, 'facade_blanc.png'),
+        chargerOptionsCliniciens(polices.regular),
+    ]);
 
     const ctx = {
         doc,
         polices,
         form: doc.getForm(),
         colonnes: pdfColonnes(),
+        optionsCliniciens,
         page: doc.addPage([PDF_PAGE.largeur, PDF_PAGE.hauteur]),
         basDePage: PDF_PAGE.hauteur - PDF_PAGE.margeBas - 10,
     };

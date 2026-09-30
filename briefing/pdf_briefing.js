@@ -19,8 +19,6 @@ const PDF_LIGNE_CLINICIEN = 15;
 const PDF_HAUTEUR_ENTETE_TABLEAU = 18;
 const PDF_HAUTEUR_NOTES_MIN = 30;
 const PDF_LARGEUR_COL_HEURE = 40;
-// Table lue en direct pour proposer les cliniciens dans les listes déroulantes de l'émargement
-const TABLE_CLINICIENS = 'Cliniciens';
 const PDF_MOTIF_LIGNES_MAX = 4;
 
 const PDF_COULEURS = {
@@ -257,6 +255,18 @@ function pdfColonnes() {
     });
 }
 
+// Clinicien inscrit : nom jamais tronqué. Téléphone à droite si le nom tient sur une ligne à côté,
+// sinon nom sur toute la largeur (sur plusieurs lignes si besoin) et téléphone en dessous.
+function pdfPreparerClinicien(clinicien, polices, largeur) {
+    const telephone = clinicien.telephone ? pdfTexte(polices.regular, `Tél. ${clinicien.telephone}`) : '';
+    const largeurTel = telephone ? polices.regular.widthOfTextAtSize(telephone, 6.5) : 0;
+    const nom = pdfTexte(polices.regular, clinicien.nom);
+    const telADroite = Boolean(telephone) && polices.regular.widthOfTextAtSize(nom, 8) <= largeur - largeurTel - 4;
+    const lignes = telADroite ? [nom] : pdfLignes(clinicien.nom, polices.regular, 8, largeur);
+    const hauteur = PDF_LIGNE_CLINICIEN + (lignes.length - 1) * 10 + (telephone && !telADroite ? 9 : 0);
+    return { telephone, largeurTel, lignes, telADroite, hauteur };
+}
+
 // Prépare le contenu d'une ligne (textes découpés, pastilles) et calcule sa hauteur
 function pdfPreparerLigne(rdv, polices, colonnes, motifComplet) {
     const interieur = i => colonnes[i].largeur - 2 * PDF_PADDING;
@@ -274,8 +284,11 @@ function pdfPreparerLigne(rdv, polices, colonnes, motifComplet) {
         polices.bold, 6.5, interieur(1));
     const hauteurRdv = 13 + 3 + badges.hauteur + 3 + patient.length * 10 + 3 + (motifs.hauteur || 9);
 
-    const nbLignesCliniciens = Math.max(NB_LIGNES_CLINICIENS_MIN, rdv.cliniciens.length);
-    const hauteurCliniciens = (rdv.cliniciens.length === 0 ? 10 : 0) + nbLignesCliniciens * PDF_LIGNE_CLINICIEN;
+    const cliniciens = rdv.cliniciens.map(clinicien => pdfPreparerClinicien(clinicien, polices, interieur(2) - 13));
+    const nbLignesVierges = Math.max(0, NB_LIGNES_CLINICIENS_MIN - rdv.cliniciens.length);
+    const hauteurCliniciens = (rdv.cliniciens.length === 0 ? 10 : 0)
+        + cliniciens.reduce((total, clinicien) => total + clinicien.hauteur, 0)
+        + nbLignesVierges * PDF_LIGNE_CLINICIEN;
 
     const hauteurPatient = 2 * PDF_LIGNE_CLINICIEN + 16;
 
@@ -288,7 +301,7 @@ function pdfPreparerLigne(rdv, polices, colonnes, motifComplet) {
     const hauteurNotes = hauteurBlocs + 9 + PDF_HAUTEUR_NOTES_MIN;
 
     const hauteur = 2 * PDF_PADDING + Math.max(hauteurHoraire, hauteurRdv, hauteurCliniciens, hauteurPatient, hauteurNotes);
-    return { salle, badges, patient, motifs, blocs, hauteurBlocs, hauteur };
+    return { salle, badges, patient, motifs, cliniciens, nbLignesVierges, blocs, hauteurBlocs, hauteur };
 }
 
 function pdfDessinerLigne(ctx, rdv, prep, yHaut, index) {
@@ -344,31 +357,28 @@ function pdfDessinerLigne(ctx, rdv, prep, yHaut, index) {
         pdfEcrire(page, 'Non renseignés', x, y, polices.italique, 7, PDF_COULEURS.doux);
         y += 10;
     }
-    const nbLignes = Math.max(NB_LIGNES_CLINICIENS_MIN, rdv.cliniciens.length);
+    const nbLignes = prep.cliniciens.length + prep.nbLignesVierges;
+    let haut = y;
     for (let j = 0; j < nbLignes; j++) {
-        const clinicien = rdv.cliniciens[j];
-        const haut = y + j * PDF_LIGNE_CLINICIEN;
+        const clinicien = prep.cliniciens[j];
         const caseCochee = form.createCheckBox(`${nomChamp}_clinicien_${j + 1}_present`);
         caseCochee.addToPage(page, { x, y: pdfY(haut + 11), width: 9, height: 9, borderColor: bordureChamp, borderWidth: 0.8, backgroundColor: blanc });
         const xTexte = x + 13;
         const largeurTexte = cliniciens.x + cliniciens.largeur - pad - xTexte;
         if (clinicien) {
-            const telephone = clinicien.telephone ? pdfTexte(polices.regular, `Tél. ${clinicien.telephone}`) : '';
-            const largeurTel = telephone ? polices.regular.widthOfTextAtSize(telephone, 6.5) : 0;
-            pdfEcrire(page, pdfLigneTronquee(clinicien.nom, polices.regular, 8, largeurTexte - largeurTel - 4), xTexte, haut + 2.5, polices.regular, 8);
-            pdfEcrire(page, telephone, cliniciens.x + cliniciens.largeur - pad - largeurTel, haut + 3.5, polices.regular, 6.5, PDF_COULEURS.doux);
-        } else {
-            // Liste déroulante des cliniciens, avec saisie libre ; champ texte si la table Cliniciens est inaccessible
-            const champNom = ctx.optionsCliniciens
-                ? form.createDropdown(`${nomChamp}_clinicien_${j + 1}_nom`)
-                : form.createTextField(`${nomChamp}_clinicien_${j + 1}_nom`);
-            if (ctx.optionsCliniciens) {
-                champNom.addOptions(ctx.optionsCliniciens);
-                champNom.enableEditing();
+            clinicien.lignes.forEach((ligne, k) => pdfEcrire(page, ligne, xTexte, haut + 2.5 + k * 10, polices.regular, 8));
+            if (clinicien.telADroite) {
+                pdfEcrire(page, clinicien.telephone, cliniciens.x + cliniciens.largeur - pad - clinicien.largeurTel, haut + 3.5, polices.regular, 6.5, PDF_COULEURS.doux);
+            } else if (clinicien.telephone) {
+                pdfEcrire(page, clinicien.telephone, xTexte, haut + 2.5 + clinicien.lignes.length * 10, polices.regular, 6.5, PDF_COULEURS.doux);
             }
+            haut += clinicien.hauteur;
+        } else {
+            const champNom = form.createTextField(`${nomChamp}_clinicien_${j + 1}_nom`);
             champNom.addToPage(page, { x: xTexte, y: pdfY(haut + 12), width: largeurTexte, height: 11, font: polices.regular, backgroundColor: fondChamp, borderWidth: 0 });
             champNom.setFontSize(8);
             pdfLignePointillee(page, xTexte, xTexte + largeurTexte, haut + 12.5);
+            haut += PDF_LIGNE_CLINICIEN;
         }
     }
 
@@ -609,9 +619,7 @@ function pdfDessinerEmargement(ctx, rdvs, yHaut) {
     pdfEcrire(ctx.page, pdfLigneTronquee(`Émargement des RDV - ${libelleJour(jourSelectionne)}`, polices.extraBold, 10.5, PDF_LARGEUR_UTILE - 20), x + 12, y + 5, polices.extraBold, 10.5, PDF_COULEURS.cliniqueFonce);
     y += 26;
 
-    const consigne = ctx.optionsCliniciens
-        ? 'À compléter : cochez les présences, choisissez les cliniciens dans les listes (ou tapez un nom absent de la liste) et écrivez dans les zones teintées (Acrobat Reader, Aperçu, navigateur…), puis enregistrez le fichier.'
-        : 'À compléter : cochez les présences et écrivez directement dans les zones teintées (Acrobat Reader, Aperçu, navigateur…), puis enregistrez le fichier.';
+    const consigne = 'À compléter : cochez les présences et écrivez directement dans les zones teintées (Acrobat Reader, Aperçu, navigateur…), puis enregistrez le fichier.';
     pdfLignes(consigne, polices.italique, 7, PDF_LARGEUR_UTILE).forEach(ligne => {
         pdfEcrire(ctx.page, ligne, x, y, polices.italique, 7, PDF_COULEURS.doux);
         y += 9;
@@ -729,24 +737,6 @@ function pdfDessinerPiedsDePage(doc, polices) {
 
 // ---------- Génération ----------
 
-// Choix des listes déroulantes : "Label — Niveau" pour chaque clinicien, triés par nom puis prénom.
-// Lu en direct dans la table Cliniciens à chaque génération ; null si la table est inaccessible.
-async function chargerOptionsCliniciens(police) {
-    try {
-        const table = await grist.docApi.fetchTable(TABLE_CLINICIENS);
-        const texte = (colonne, i) => (typeof table[colonne]?.[i] === 'string' ? table[colonne][i].trim() : '');
-        const options = table.id
-            .map((_, i) => ({ label: texte('Label', i), niveau: texte('Niveau', i), nom: texte('Nom', i), prenom: texte('Prenom', i) }))
-            .filter(clinicien => clinicien.label)
-            .sort((a, b) => a.nom.localeCompare(b.nom, 'fr', { sensitivity: 'base' }) || a.prenom.localeCompare(b.prenom, 'fr', { sensitivity: 'base' }))
-            .map(clinicien => pdfTexte(police, clinicien.niveau ? `${clinicien.label} — ${clinicien.niveau}` : clinicien.label));
-        return options.length > 0 ? [...new Set(options)] : null;
-    } catch (e) {
-        console.warn(`Table ${TABLE_CLINICIENS} inaccessible, champs texte libres dans l'émargement :`, e);
-        return null;
-    }
-}
-
 async function chargerImagePdf(doc, fichier) {
     try {
         return await doc.embedPng(await fetch(fichier).then(r => r.arrayBuffer()));
@@ -771,18 +761,13 @@ async function genererPdfBriefing() {
     doc.setLanguage('fr-FR');
 
     const polices = await chargerPolicesPdf(doc);
-    const [logo, facade, optionsCliniciens] = await Promise.all([
-        chargerImagePdf(doc, 'logoCJ_blanc.png'),
-        chargerImagePdf(doc, 'facade_blanc.png'),
-        chargerOptionsCliniciens(polices.regular),
-    ]);
+    const [logo, facade] = await Promise.all([chargerImagePdf(doc, 'logoCJ_blanc.png'), chargerImagePdf(doc, 'facade_blanc.png')]);
 
     const ctx = {
         doc,
         polices,
         form: doc.getForm(),
         colonnes: pdfColonnes(),
-        optionsCliniciens,
         page: doc.addPage([PDF_PAGE.largeur, PDF_PAGE.hauteur]),
         basDePage: PDF_PAGE.hauteur - PDF_PAGE.margeBas - 10,
     };

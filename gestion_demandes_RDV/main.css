@@ -274,10 +274,26 @@ html, body {
     gap: 6px 12px;
 }
 
+.identite-ligne {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 10px;
+    margin-bottom: 6px;
+}
+
+.cree-le {
+    font-size: 11px;
+    color: var(--texte-doux);
+}
+
+.cree-le[hidden] {
+    display: none;
+}
+
 .id-rdv {
     display: inline-flex;
     align-items: stretch;
-    margin-bottom: 6px;
     overflow: hidden;
     border: 1px solid var(--clinique);
     border-radius: 6px;

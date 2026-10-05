@@ -14,8 +14,18 @@
                 return Math.abs(n) <= 1 ? singulier : (pluriel ?? singulier + 's');
             }
 
+            // Heures décimales → « 23 h 30 » (minutes omises quand elles sont nulles)
+            function heures(n) {
+                const minutesTotales = Math.round(Number(n) * 60);
+                const h = Math.floor(minutesTotales / 60);
+                const m = minutesTotales % 60;
+                return m === 0 ? h + ' h' : h + ' h ' + String(m).padStart(2, '0');
+            }
+
             document.addEventListener('alpine:init', () => {
                 Alpine.store('donnees', {
+                    nb_rdv_prevus_semaine: 0,
+                    nb_demandes_rdv_en_attente: 0,
                     nb_rdv_traites_annee: 0,
                     nb_projets: 0,
                     nb_permanences: 0,
@@ -25,6 +35,10 @@
                     nb_cliniciens_option_inscrits: 0,
                     nb_cliniciens_option_heures_validees: 0,
                     nb_cliniciens_option_heures_non_validees: 0,
+                    heures_option_moyenne: 0,
+                    heures_option_mediane: 0,
+                    heures_option_min: 0,
+                    heures_option_max: 0,
                     repartition_diplomes_option: [],
                     get pct_option_heures_validees() {
                         const total = this.nb_cliniciens_option_heures_validees + this.nb_cliniciens_option_heures_non_validees;
@@ -51,6 +65,31 @@
         </header>
 
         <main class="page">
+            <section class="section">
+                <h2 class="section-titre">Rendez-vous</h2>
+                <div class="grille">
+                    <div class="carte">
+                        <div class="carte-haut">
+                            <div class="indicateur">
+                                <span class="indicateur-valeur" x-text="$store.donnees.nb_rdv_prevus_semaine"></span>
+                                <span class="indicateur-libelle" x-text="plur($store.donnees.nb_rdv_prevus_semaine, 'RDV prévu cette semaine', 'RDV prévus cette semaine')"></span>
+                            </div>
+                            <img class="carte-illustration" src="../assets/undraw_online-calendar_iz1q.svg" alt="" aria-hidden="true">
+                        </div>
+                    </div>
+
+                    <div class="carte">
+                        <div class="carte-haut">
+                            <div class="indicateur">
+                                <span class="indicateur-valeur" x-text="$store.donnees.nb_demandes_rdv_en_attente"></span>
+                                <span class="indicateur-libelle" x-text="plur($store.donnees.nb_demandes_rdv_en_attente, 'demande de RDV en attente', 'demandes de RDV en attente')"></span>
+                            </div>
+                            <img class="carte-illustration" src="../assets/undraw_accept-request_489a.svg" alt="" aria-hidden="true">
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <section class="section">
                 <h2 class="section-titre">Activité</h2>
                 <div class="grille">
@@ -121,6 +160,28 @@
                             <span class="indicateur-libelle" x-text="plur($store.donnees.nb_cliniciens_option_heures_non_validees, 'Clinicien en option n\'ayant pas validé ses heures', 'Cliniciens en option n\'ayant pas validé leurs heures')"></span>
                         </div>
                         <span class="pourcentage"><span x-text="$store.donnees.pct_option_heures_non_validees + ' %'"></span> des cliniciens en option</span>
+                    </div>
+                </div>
+
+                <div class="carte">
+                    <h3 class="carte-titre">Heures effectuées par les cliniciens en option</h3>
+                    <div class="statistiques">
+                        <div class="statistique">
+                            <span class="statistique-valeur" x-text="heures($store.donnees.heures_option_moyenne)"></span>
+                            <span class="statistique-libelle">en moyenne</span>
+                        </div>
+                        <div class="statistique">
+                            <span class="statistique-valeur" x-text="heures($store.donnees.heures_option_mediane)"></span>
+                            <span class="statistique-libelle">médiane</span>
+                        </div>
+                        <div class="statistique">
+                            <span class="statistique-valeur" x-text="heures($store.donnees.heures_option_min)"></span>
+                            <span class="statistique-libelle">au minimum</span>
+                        </div>
+                        <div class="statistique">
+                            <span class="statistique-valeur" x-text="heures($store.donnees.heures_option_max)"></span>
+                            <span class="statistique-libelle">au maximum</span>
+                        </div>
                     </div>
                 </div>
 

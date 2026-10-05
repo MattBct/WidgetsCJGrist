@@ -255,6 +255,35 @@ img {
     color: var(--clinique);
 }
 
+/* Rangée de statistiques dans une même carte (heures des cliniciens en option) */
+.statistiques {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 12px;
+}
+
+.statistique {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding-left: 10px;
+    border-left: 1px solid var(--bordure);
+}
+
+.statistique-valeur {
+    font-family: 'Zilla Slab', Georgia, serif;
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.1;
+    color: var(--clinique);
+}
+
+.statistique-libelle {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--texte-doux);
+}
+
 /* ---------- Graphiques ---------- */
 
 .grille-graphiques {

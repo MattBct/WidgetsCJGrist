@@ -1,5 +1,19 @@
 const COLUMNS_MAPPING = [
     {
+        name: "nb_rdv_prevus_semaine",
+        title: "Nombre de RDV prévus cette semaine",
+        optional: false,
+        type: "Int",
+        allowMultiple: false
+    },
+    {
+        name: "nb_demandes_rdv_en_attente",
+        title: "Nombre de demandes de RDV en attente",
+        optional: false,
+        type: "Int",
+        allowMultiple: false
+    },
+    {
         name: "nb_rdv_traites_annee",
         title: "Nombre de RDV traités depuis le début de l'année",
         optional: false,
@@ -60,6 +74,34 @@ const COLUMNS_MAPPING = [
         title: "Nombre de cliniciens en option n'ayant pas validé leurs heures",
         optional: false,
         type: "Int",
+        allowMultiple: false
+    },
+    {
+        name: "heures_option_moyenne",
+        title: "Moyenne d'heures des cliniciens en option",
+        optional: false,
+        type: "Numeric,Int",
+        allowMultiple: false
+    },
+    {
+        name: "heures_option_mediane",
+        title: "Médiane d'heures des cliniciens en option",
+        optional: false,
+        type: "Numeric,Int",
+        allowMultiple: false
+    },
+    {
+        name: "heures_option_min",
+        title: "Heures du clinicien en option qui en a fait le moins",
+        optional: false,
+        type: "Numeric,Int",
+        allowMultiple: false
+    },
+    {
+        name: "heures_option_max",
+        title: "Heures du clinicien en option qui en a fait le plus",
+        optional: false,
+        type: "Numeric,Int",
         allowMultiple: false
     },
     {

@@ -183,6 +183,38 @@ initChartOptionHeures()
 
 let chartDiplomesOption;
 
+// Écrit le total des séries visibles au bout de chaque barre
+const totalBoutDeBarre = {
+    id: 'totalBoutDeBarre',
+    afterDatasetsDraw(chart) {
+        const visibles = chart.data.datasets
+            .map((dataset, i) => ({ dataset, meta: chart.getDatasetMeta(i) }))
+            .filter(({ meta }) => meta.visible);
+        if (visibles.length === 0) {
+            return;
+        }
+
+        const { ctx } = chart;
+        ctx.save();
+        ctx.font = "700 12px 'Montserrat', sans-serif";
+        ctx.fillStyle = '#8E2626';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+
+        chart.data.labels.forEach((_, index) => {
+            const total = visibles.reduce((somme, { dataset }) => somme + (Number(dataset.data[index]) || 0), 0);
+            const barres = visibles.map(({ meta }) => meta.data[index]).filter(Boolean);
+            if (total === 0 || barres.length === 0) {
+                return;
+            }
+            const fin = Math.max(...barres.map((barre) => barre.x));
+            ctx.fillText(total, fin + 6, barres[0].y);
+        });
+
+        ctx.restore();
+    }
+};
+
 function initChartDiplomesOption() {
     const canvas = document.getElementById('chartDiplomesOption');
     if (!canvas) {
@@ -191,6 +223,7 @@ function initChartDiplomesOption() {
 
     chartDiplomesOption = new Chart(canvas, {
         type: 'bar',
+        plugins: [totalBoutDeBarre],
         data: {
             labels: [],
             datasets: [
@@ -218,6 +251,9 @@ function initChartDiplomesOption() {
             indexAxis: 'y',
             responsive: true,
             maintainAspectRatio: false,
+            layout: {
+                padding: { right: 28 }
+            },
             plugins: {
                 legend: {
                     position: 'bottom',
@@ -230,8 +266,16 @@ function initChartDiplomesOption() {
                     }
                 },
                 tooltip: {
+                    mode: 'index',
                     callbacks: {
-                        label: (context) => ' ' + context.dataset.label + ' : ' + context.parsed.x + ' ' + plur(context.parsed.x, 'clinicien', 'cliniciens')
+                        label: (context) => ' ' + context.dataset.label + ' : ' + context.parsed.x + ' ' + plur(context.parsed.x, 'clinicien', 'cliniciens'),
+                        footer: (items) => {
+                            if (items.length < 2) {
+                                return '';
+                            }
+                            const total = items.reduce((somme, item) => somme + item.parsed.x, 0);
+                            return 'Total : ' + total + ' ' + plur(total, 'clinicien', 'cliniciens');
+                        }
                     }
                 }
             },

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <!-- Widget Grist générant l'attestation de participation d'un clinicien, imprimable en A4 portrait (PDF via l'impression).
+  Plusieurs modèles configurables (texte, conditions sur le nombre de participations), enregistrés dans les options du widget.
+  Le texte personnalisé est enregistré dans la colonne associée « Texte personnalisé » (facultative).
+  Ouvrir index.html?demo (ou hors de Grist) pour un aperçu avec des données fictives.
+  Matthieu Bouchet - Oct. 2026
+  -->
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Attestations de participation</title>
+    <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+    <link rel="stylesheet" href="main.css">
+  </head>
+
+  <body>
+    <header class="entete no-print">
+      <img class="entete-logo" src="logoCJ_blanc.png" alt="Clinique Juridique — Faculté de droit, Université Jean Moulin Lyon III">
+      <div class="entete-titre">
+        <h1>Attestation de participation</h1>
+        <span class="compteur" id="clinicien-courant" hidden></span>
+      </div>
+      <img class="entete-illustration" src="facade_blanc.png" alt="" aria-hidden="true">
+    </header>
+
+    <nav class="barre-outils no-print">
+      <label class="choix" id="choix-demo" hidden>
+        <span class="choix-label">Clinicien (démo)</span>
+        <select id="demo-clinicien"></select>
+      </label>
+      <label class="choix">
+        <span class="choix-label">Modèle</span>
+        <select id="choix-modele"></select>
+      </label>
+      <label class="option" id="option-signatures" hidden title="Décocher pour imprimer une attestation à signer à la main">
+        <input type="checkbox" id="avec-signatures" checked> Signatures scannées
+      </label>
+      <div class="barre-actions">
+        <button type="button" class="btn btn-secondaire" id="ouvrir-config" aria-expanded="false">Configurer les modèles</button>
+        <button type="button" class="btn btn-secondaire" id="imprimer-tout" hidden title="Une attestation par page pour chaque clinicien de la vue ayant un modèle applicable">Imprimer tout</button>
+        <button type="button" class="btn btn-principal" id="imprimer" title="Dans la fenêtre d'impression, choisir « Enregistrer au format PDF »">Imprimer / PDF</button>
+      </div>
+    </nav>
+
+    <div class="espace">
+    <!-- Configuration des modèles (bouton ci-dessus, ou « Ouvrir la configuration » dans le panneau Grist) -->
+    <section class="config no-print" id="config" hidden>
+      <div class="config-colonnes">
+        <div class="config-bloc">
+          <h2>Modèles</h2>
+          <p class="aide">Le <strong>premier modèle applicable</strong> de la liste est utilisé automatiquement. Réordonnez avec les flèches.</p>
+          <ol class="liste-modeles" id="liste-modeles"></ol>
+          <div class="config-boutons">
+            <button type="button" class="btn btn-secondaire btn-petit" id="ajouter-modele">+ Nouveau modèle</button>
+            <button type="button" class="btn btn-texte btn-petit" id="restaurer-modeles">Restaurer les modèles par défaut</button>
+          </div>
+        </div>
+
+        <div class="config-bloc" id="edition-modele">
+          <h2>Modèle sélectionné</h2>
+          <label class="champ">
+            <span class="champ-label">Nom du modèle</span>
+            <input type="text" id="m-nom">
+          </label>
+          <fieldset class="champ condition">
+            <legend class="champ-label">S’applique si</legend>
+            <div class="condition-ligne">
+              <select id="m-critere"></select>
+              <span>entre</span>
+              <input type="number" id="m-min" min="0" step="1" placeholder="0" aria-label="Minimum">
+              <span>et</span>
+              <input type="number" id="m-max" min="0" step="1" placeholder="∞" aria-label="Maximum (vide : sans limite)">
+            </div>
+            <span class="aide" id="m-resume"></span>
+          </fieldset>
+          <label class="champ">
+            <span class="champ-label">Titre</span>
+            <input type="text" id="m-titre">
+          </label>
+          <label class="champ">
+            <span class="champ-label">Texte de l’attestation</span>
+            <textarea id="m-corps" rows="14" spellcheck="true"></textarea>
+          </label>
+          <div class="variables">
+            <span class="aide">Insérer une variable (cliquer) :</span>
+            <div class="variables-liste" id="variables"></div>
+          </div>
+          <details class="aide-syntaxe">
+            <summary>Mise en forme et variables</summary>
+            <ul>
+              <li>Une ligne vide sépare deux paragraphes ; des lignes commençant par <code>- </code> forment une liste.</li>
+              <li><code>**gras**</code> et <code>*italique*</code>.</li>
+              <li><code>{{activites}}</code> seul dans un paragraphe : liste à puces des activités (RDV, projets, permanences), sans les activités à zéro.</li>
+              <li><code>{{texte_personnalise}}</code> seul dans un paragraphe : emplacement du texte personnalisé (ajouté à la fin s’il est absent du modèle).</li>
+            </ul>
+          </details>
+        </div>
+      </div>
+
+      <div class="config-bloc">
+        <h2>Paramètres communs à tous les modèles</h2>
+        <div class="communs-ligne">
+          <label class="champ">
+            <span class="champ-label">Année universitaire</span>
+            <input type="text" id="p-annee">
+          </label>
+          <label class="champ">
+            <span class="champ-label">Lieu (« Fait à … »)</span>
+            <input type="text" id="p-lieu">
+          </label>
+        </div>
+        <div class="champ">
+          <span class="champ-label">Signataires</span>
+          <div class="signataires-edition" id="p-signataires"></div>
+          <p class="aide" id="aide-signatures"></p>
+          <div class="config-boutons">
+            <button type="button" class="btn btn-secondaire btn-petit" id="ajouter-signataire">+ Signataire</button>
+            <button type="button" class="btn btn-texte btn-petit" id="actualiser-signatures">Actualiser les signatures</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="config-pied">
+        <span class="etat-config" id="etat-config"></span>
+        <button type="button" class="btn btn-texte" id="fermer-config">Fermer</button>
+        <button type="button" class="btn btn-principal" id="enregistrer-config" disabled>Enregistrer les modèles</button>
+      </div>
+    </section>
+
+    <section class="panneau-texte no-print" id="panneau-texte" hidden>
+      <div class="champ" id="champ-texte">
+        <label class="champ-label" for="texte-perso"><span>Texte personnalisé pour <strong id="texte-pour"></strong></span></label>
+        <textarea id="texte-perso" rows="2" placeholder="Ex. : Il convient de souligner sa participation à l’organisation de la journée d’accès au droit…"></textarea>
+        <span class="aide" id="aide-texte"></span>
+      </div>
+    </section>
+
+    <div class="bandeau alerte no-print" id="message" hidden></div>
+
+    <!-- Aperçu à l'écran = rendu imprimé -->
+    <main id="apercu" class="apercu"></main>
+    </div>
+
+    <!-- Toutes les attestations de la vue, construites uniquement le temps de l'impression -->
+    <div id="lot" class="lot"></div>
+
+    <script src="script.js"></script>
+  </body>
+</html>

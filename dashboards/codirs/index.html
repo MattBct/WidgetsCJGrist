@@ -39,7 +39,16 @@
                     heures_option_mediane: 0,
                     heures_option_min: 0,
                     heures_option_max: 0,
-                    repartition_diplomes_option: [],
+                    repartition_diplomes: [],
+                    mode_diplomes: 'tous',
+                    get repartition_diplomes_affichee() {
+                        if (this.mode_diplomes === 'tous') {
+                            return this.repartition_diplomes;
+                        }
+                        return this.repartition_diplomes
+                            .filter(([, option]) => option > 0)
+                            .sort((a, b) => b[1] - a[1]);
+                    },
                     get pct_option_heures_validees() {
                         const total = this.nb_cliniciens_option_heures_validees + this.nb_cliniciens_option_heures_non_validees;
                         return total > 0 ? Math.round((this.nb_cliniciens_option_heures_validees / total) * 100) : 0;
@@ -194,13 +203,19 @@
                     </div>
 
                     <div class="carte">
-                        <h3 class="carte-titre">Cliniciens en option par diplôme</h3>
-                        <div class="graphique-barres" x-show="$store.donnees.repartition_diplomes_option.length > 0">
+                        <div class="carte-entete">
+                            <h3 class="carte-titre">Cliniciens par diplôme</h3>
+                            <div class="bascule" role="group" aria-label="Cliniciens affichés">
+                                <button type="button" :aria-pressed="$store.donnees.mode_diplomes === 'tous'" @click="$store.donnees.mode_diplomes = 'tous'; majGraphiqueDiplomes()">Tous</button>
+                                <button type="button" :aria-pressed="$store.donnees.mode_diplomes === 'option'" @click="$store.donnees.mode_diplomes = 'option'; majGraphiqueDiplomes()">En option</button>
+                            </div>
+                        </div>
+                        <div class="graphique-barres" x-show="$store.donnees.repartition_diplomes_affichee.length > 0">
                             <canvas id="chartDiplomesOption"></canvas>
                         </div>
-                        <div class="vide" x-show="$store.donnees.repartition_diplomes_option.length === 0">
+                        <div class="vide" x-show="$store.donnees.repartition_diplomes_affichee.length === 0">
                             <img class="vide-illustration" src="../assets/facade_rouge.png" alt="" aria-hidden="true">
-                            <p>Aucun clinicien en option</p>
+                            <p x-text="$store.donnees.mode_diplomes === 'option' ? 'Aucun clinicien en option' : 'Aucun clinicien'"></p>
                         </div>
                     </div>
                 </div>

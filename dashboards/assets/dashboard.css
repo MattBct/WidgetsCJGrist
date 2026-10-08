@@ -307,6 +307,45 @@ img {
     color: var(--clinique-fonce);
 }
 
+/* Titre de carte accompagné d'une bascule de mode (répartition par diplôme) */
+.carte-entete {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.bascule {
+    display: inline-flex;
+    padding: 2px;
+    background: var(--fond-doux);
+    border: 1px solid var(--bordure);
+    border-radius: 999px;
+}
+
+.bascule button {
+    padding: 4px 12px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--texte-doux);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.bascule button[aria-pressed="true"] {
+    background: var(--clinique);
+    color: #ffffff;
+}
+
+.bascule button:focus-visible {
+    outline: 2px solid var(--clinique-fonce);
+    outline-offset: 1px;
+}
+
 .graphique-anneau {
     position: relative;
     width: 100%;

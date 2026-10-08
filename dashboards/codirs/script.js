@@ -111,6 +111,14 @@ const COLUMNS_MAPPING = [
         optional: true,
         type: "Text",
         allowMultiple: false
+    },
+    {
+        name: "repartition_diplomes_hors_option",
+        title: "Répartition des cliniciens hors option par diplôme",
+        description: "Colonne formule renvoyant la liste JSON [[diplôme, effectif], ...]",
+        optional: true,
+        type: "Text",
+        allowMultiple: false
     }
 ]
 
@@ -185,15 +193,26 @@ function initChartDiplomesOption() {
         type: 'bar',
         data: {
             labels: [],
-            datasets: [{
-                label: 'Cliniciens en option',
-                data: [],
-                backgroundColor: '#C03737',
-                hoverBackgroundColor: '#A73030',
-                borderRadius: 4,
-                borderSkipped: 'start',
-                maxBarThickness: 28
-            }]
+            datasets: [
+                {
+                    label: 'En option',
+                    data: [],
+                    backgroundColor: '#C03737',
+                    hoverBackgroundColor: '#A73030',
+                    borderColor: '#ffffff',
+                    borderWidth: { right: 2 },
+                    maxBarThickness: 28
+                },
+                {
+                    label: 'Hors option',
+                    data: [],
+                    backgroundColor: '#DB8080',
+                    hoverBackgroundColor: '#CF6A6A',
+                    borderColor: '#ffffff',
+                    borderWidth: { right: 2 },
+                    maxBarThickness: 28
+                }
+            ]
         },
         options: {
             indexAxis: 'y',
@@ -201,22 +220,31 @@ function initChartDiplomesOption() {
             maintainAspectRatio: false,
             plugins: {
                 legend: {
-                    display: false
+                    position: 'bottom',
+                    labels: {
+                        usePointStyle: true,
+                        pointStyle: 'circle',
+                        boxWidth: 8,
+                        boxHeight: 8,
+                        padding: 14
+                    }
                 },
                 tooltip: {
                     callbacks: {
-                        label: (context) => ' ' + context.parsed.x + ' ' + plur(context.parsed.x, 'clinicien', 'cliniciens')
+                        label: (context) => ' ' + context.dataset.label + ' : ' + context.parsed.x + ' ' + plur(context.parsed.x, 'clinicien', 'cliniciens')
                     }
                 }
             },
             scales: {
                 x: {
+                    stacked: true,
                     beginAtZero: true,
                     ticks: { precision: 0 },
                     grid: { color: '#ececec' },
                     border: { display: false }
                 },
                 y: {
+                    stacked: true,
                     grid: { display: false }
                 }
             }
@@ -234,6 +262,40 @@ function parseRepartition(valeur) {
     } catch (e) {
         return [];
     }
+}
+
+// Fusionne les répartitions option / hors option par diplôme : [[diplôme, en option, hors option], ...]
+// triées par effectif total décroissant
+function fusionnerRepartitions(option, horsOption) {
+    const parDiplome = new Map();
+    for (const [diplome, effectif] of option) {
+        parDiplome.set(diplome, [diplome, Number(effectif) || 0, 0]);
+    }
+    for (const [diplome, effectif] of horsOption) {
+        const ligne = parDiplome.get(diplome) ?? [diplome, 0, 0];
+        ligne[2] += Number(effectif) || 0;
+        parDiplome.set(diplome, ligne);
+    }
+    return [...parDiplome.values()].sort((a, b) => (b[1] + b[2]) - (a[1] + a[2]));
+}
+
+// Mode « tous » : barres empilées option / hors option ; mode « option » : cliniciens en option uniquement
+function majGraphiqueDiplomes() {
+    if (!chartDiplomesOption) {
+        return;
+    }
+
+    const store = Alpine.store('donnees');
+    const optionSeule = store.mode_diplomes === 'option';
+    const lignes = store.repartition_diplomes_affichee;
+
+    chartDiplomesOption.data.labels = lignes.map(([diplome]) => diplome);
+    chartDiplomesOption.data.datasets[0].data = lignes.map(([, option]) => option);
+    chartDiplomesOption.data.datasets[1].data = lignes.map(([, , horsOption]) => horsOption);
+    chartDiplomesOption.data.datasets[1].hidden = optionSeule;
+    chartDiplomesOption.options.plugins.legend.display = !optionSeule;
+    chartDiplomesOption.canvas.parentNode.style.height = (Math.max(1, lignes.length) * 44 + (optionSeule ? 40 : 70)) + 'px';
+    chartDiplomesOption.update();
 }
 
 grist.onRecords((records) => {
@@ -258,13 +320,11 @@ grist.onRecords((records) => {
         chartOptionHeures.update();
     }
 
-    const repartition = parseRepartition(data.repartition_diplomes_option);
-    store.repartition_diplomes_option = repartition;
+    const repartition = fusionnerRepartitions(
+        parseRepartition(data.repartition_diplomes_option),
+        parseRepartition(data.repartition_diplomes_hors_option)
+    );
+    store.repartition_diplomes = repartition;
 
-    if (chartDiplomesOption) {
-        chartDiplomesOption.data.labels = repartition.map(([diplome]) => diplome);
-        chartDiplomesOption.data.datasets[0].data = repartition.map(([, effectif]) => effectif);
-        chartDiplomesOption.canvas.parentNode.style.height = (Math.max(1, repartition.length) * 44 + 40) + 'px';
-        chartDiplomesOption.update();
-    }
+    majGraphiqueDiplomes();
 })

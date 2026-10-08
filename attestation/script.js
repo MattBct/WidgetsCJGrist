@@ -80,15 +80,10 @@ const PARAMETRES_DEFAUT = {
     annee_universitaire: '', // vide : calculée (nouvelle année au 1er septembre)
     lieu: 'Lyon',
     signataires: [
-        { nom: 'Mathieu ROUY', qualite: 'Maître de conférences en droit public et co-directeur de la Clinique juridique', signature: null },
-        { nom: 'Marylou FRANÇOISE', qualite: 'Maîtresse de conférences en droit privé et co-directrice de la Clinique juridique', signature: null },
+        { nom: 'Mathieu ROUY', qualite: 'Maître de conférences en droit public et co-directeur de la Clinique juridique' },
+        { nom: 'Marylou FRANÇOISE', qualite: 'Maîtresse de conférences en droit privé et co-directrice de la Clinique juridique' },
     ],
 };
-
-// Signatures scannées : jamais publiées avec le widget. Elles sont lues dans cette table du document
-// (une colonne Pièces jointes, une colonne Texte pour le nom), avec un jeton d'accès temporaire.
-// Les options du widget ne gardent que l'id de la ligne choisie pour chaque signataire.
-const TABLE_SIGNATURES = 'Signatures';
 
 // Hors de Grist (fichier ouvert directement, ou ?demo), le widget tourne sur des données fictives
 const MODE_DEMO = typeof grist === 'undefined' || window.self === window.top || new URLSearchParams(location.search).has('demo');
@@ -105,9 +100,6 @@ let colonnesAssociees = true;
 const textesLocaux = new Map();      // rowId -> texte personnalisé saisi (non associé, ou en cours d'enregistrement)
 let saisieTexte = null;              // { rowId, minuteur } : enregistrement du texte en attente
 let dernierChampModele = null;       // champ (titre ou texte) recevant les variables insérées
-let signatures = { etat: 'chargement', liste: [] }; // lignes de la table Signatures : [{ id, libelle, attId }]
-const imagesSignatures = new Map();  // attId -> { url, expire } ou promesse de chargement
-let avecSignatures = true;           // case « Signatures scannées » de la barre d'outils
 
 const $ = id => document.getElementById(id);
 
@@ -136,8 +128,6 @@ source.demarrer({
         ouvrirConfiguration();
     },
 });
-
-chargerSignatures();
 
 // ---------- Sources de données ----------
 
@@ -168,58 +158,7 @@ function creerSourceGrist() {
         async enregistrerOptions(options) {
             await grist.setOptions(options);
         },
-
-        // Lignes de la table Signatures ayant une image ; null si la table ou sa colonne Pièces jointes n'existe pas.
-        // Échoue si les règles d'accès interdisent la lecture de la table à l'utilisateur.
-        async listerSignatures() {
-            const [tables, colonnes] = await Promise.all([
-                grist.docApi.fetchTable('_grist_Tables'),
-                grist.docApi.fetchTable('_grist_Tables_column'),
-            ]);
-            const iTable = tables.tableId.indexOf(TABLE_SIGNATURES);
-            if (iTable < 0) {
-                return null;
-            }
-            const indices = colonnes.id.map((_, i) => i).filter(i => colonnes.parentId[i] === tables.id[iTable] && !colonnes.colId[i].startsWith('gristHelper_'));
-            const iImage = indices.find(i => colonnes.type[i] === 'Attachments');
-            if (iImage == null) {
-                return null;
-            }
-            const iNom = indices.find(i => colonnes.colId[i] === 'Nom') ?? indices.find(i => colonnes.type[i] === 'Text');
-            const table = await grist.docApi.fetchTable(TABLE_SIGNATURES);
-            const images = table[colonnes.colId[iImage]];
-            const noms = iNom != null ? table[colonnes.colId[iNom]] : [];
-            return table.id
-                .map((id, k) => ({ id, libelle: texte(noms[k]) || `Signature n° ${id}`, attId: premierePieceJointe(images[k]) }))
-                .filter(s => s.attId != null);
-        },
-
-        // Image téléchargée avec un jeton en lecture seule et gardée en mémoire (URL locale « blob: »)
-        async imageSignature(attId) {
-            const { token, baseUrl, ttlMsecs } = await grist.docApi.getAccessToken({ readOnly: true });
-            const url = `${baseUrl}/attachments/${attId}/download?auth=${encodeURIComponent(token)}`;
-            let reponse;
-            try {
-                reponse = await fetch(url);
-            } catch (e) {
-                // Lecture refusée par le navigateur (CORS) : l'image est affichée par son URL, valable le temps du jeton
-                return { url, expire: Date.now() + (ttlMsecs || 60000) * 0.8 };
-            }
-            if (!reponse.ok) {
-                throw new Error(`Pièce jointe ${attId} : HTTP ${reponse.status}`);
-            }
-            return { url: URL.createObjectURL(await reponse.blob()), expire: Infinity };
-        },
     };
-}
-
-// Cellule Pièces jointes : ['L', id1, id2…] (ou [id1, id2…]) -> id1
-function premierePieceJointe(valeur) {
-    if (!Array.isArray(valeur)) {
-        return null;
-    }
-    const ids = valeur[0] === 'L' ? valeur.slice(1) : valeur;
-    return ids.length ? ids[0] : null;
 }
 
 function creerSourceDemo() {
@@ -267,24 +206,6 @@ function creerSourceDemo() {
                 // Stockage indisponible : la configuration reste en mémoire
             }
         },
-
-        // Signatures fictives (tracés générés), aucune vraie signature dans le dépôt
-        async listerSignatures() {
-            await attendre(200);
-            return [
-                { id: 1, libelle: 'Signature fictive A (démo)', attId: 'demo-a' },
-                { id: 2, libelle: 'Signature fictive B (démo)', attId: 'demo-b' },
-            ];
-        },
-
-        async imageSignature(attId) {
-            await attendre(150);
-            const trace = attId === 'demo-a'
-                ? 'M10 60 C 30 10, 45 10, 50 45 S 70 80, 85 35 S 120 20, 130 50 S 160 70, 190 30'
-                : 'M10 50 C 25 20, 40 70, 60 40 S 90 15, 100 55 S 140 65, 150 30 L 190 45';
-            const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 80"><path d="${trace}" fill="none" stroke="#1f2a6b" stroke-width="3" stroke-linecap="round"/></svg>`;
-            return { url: 'data:image/svg+xml,' + encodeURIComponent(svg), expire: Infinity };
-        },
     };
 }
 
@@ -327,7 +248,7 @@ function normaliserConfig(options) {
             annee_universitaire: typeof parametres.annee_universitaire === 'string' ? parametres.annee_universitaire : PARAMETRES_DEFAUT.annee_universitaire,
             lieu: typeof parametres.lieu === 'string' ? parametres.lieu : PARAMETRES_DEFAUT.lieu,
             signataires: Array.isArray(parametres.signataires)
-                ? parametres.signataires.map(s => ({ nom: String(s?.nom ?? ''), qualite: String(s?.qualite ?? ''), signature: entierOuNull(s?.signature) }))
+                ? parametres.signataires.map(s => ({ nom: String(s?.nom ?? ''), qualite: String(s?.qualite ?? '') }))
                 : cloner(PARAMETRES_DEFAUT.signataires),
         },
     };
@@ -561,7 +482,7 @@ function feuilleHtml(d, modele, cfg) {
                 <div class="signataire">
                     <span class="signataire-nom">${echapper(s.nom)}</span>
                     <span class="signataire-qualite">${echapper(s.qualite)}</span>
-                    <div class="signataire-espace">${imageSignatureHtml(s)}</div>
+                    <div class="signataire-espace"></div>
                 </div>`).join('')}
             </footer>` : ''}
         </article>`;
@@ -579,7 +500,6 @@ function message(texteMessage, type = 'alerte') {
 function afficher() {
     majChoixModele();
     majBoutonLot();
-    majOptionSignatures();
 
     const apercu = $('apercu');
     const enTete = $('clinicien-courant');
@@ -660,22 +580,13 @@ function majBoutonLot() {
         + (ignores ? ` — ${ignores} ${plur(ignores, 'clinicien ignoré', 'cliniciens ignorés')} (aucun modèle applicable)` : '');
 }
 
-// Images (logo, filigrane, signatures) et polices chargées avant l'ouverture de la fenêtre d'impression
+// Images (logo, filigrane) et polices chargées avant l'ouverture de la fenêtre d'impression
 async function imagesChargees(conteneur) {
     await Promise.all([...conteneur.querySelectorAll('img')].map(img => img.decode().catch(() => {})));
     await document.fonts.ready;
 }
 
-async function imprimer() {
-    await signaturesPretes();
-    afficher();
-    await imagesChargees($('apercu'));
-    document.body.classList.remove('impression-lot');
-    window.print();
-}
-
 async function imprimerTout() {
-    await signaturesPretes();
     const cfg = configActive();
     const lot = $('lot');
     lot.innerHTML = cliniciensImprimables().map(({ d, modele }) => feuilleHtml(d, modele, cfg)).join('');
@@ -688,102 +599,6 @@ window.addEventListener('afterprint', () => {
     document.body.classList.remove('impression-lot');
     $('lot').innerHTML = '';
 });
-
-// ---------- Signatures scannées ----------
-
-async function chargerSignatures() {
-    signatures = { etat: 'chargement', liste: [] };
-    majSignaturesConfiguration();
-    try {
-        const liste = await source.listerSignatures();
-        signatures = liste ? { etat: 'ok', liste } : { etat: 'absente', liste: [] };
-    } catch (e) {
-        console.warn('Lecture de la table des signatures impossible :', e);
-        signatures = { etat: 'erreur', liste: [] };
-    }
-    imagesSignatures.clear();
-    majSignaturesConfiguration();
-    afficher();
-}
-
-function ligneSignature(signataire) {
-    return signataire.signature == null ? null : signatures.liste.find(s => s.id === signataire.signature) ?? null;
-}
-
-// Charge l'image si besoin (puis réaffiche) ; renvoie la promesse en cours, ou null si rien n'est à attendre
-function chargerImageSignature(signataire) {
-    const ligne = ligneSignature(signataire);
-    if (!ligne) {
-        return null;
-    }
-    const image = imagesSignatures.get(ligne.attId);
-    if (image instanceof Promise) {
-        return image;
-    }
-    if (image && image.expire > Date.now()) {
-        return null;
-    }
-    const chargement = source.imageSignature(ligne.attId)
-        .catch(e => {
-            console.warn('Signature illisible :', e);
-            return { url: null, expire: Infinity };
-        })
-        .then(resultat => {
-            imagesSignatures.set(ligne.attId, resultat);
-            afficher();
-        });
-    imagesSignatures.set(ligne.attId, chargement);
-    return chargement;
-}
-
-function imageSignatureHtml(signataire) {
-    if (!avecSignatures) {
-        return '';
-    }
-    chargerImageSignature(signataire);
-    const ligne = ligneSignature(signataire);
-    const image = ligne && imagesSignatures.get(ligne.attId);
-    return image?.url ? `<img class="signataire-image" src="${echapper(image.url)}" alt="Signature de ${echapper(signataire.nom)}">` : '';
-}
-
-async function signaturesPretes() {
-    if (avecSignatures) {
-        await Promise.all(configActive().parametres.signataires.map(chargerImageSignature));
-    }
-}
-
-// Case « Signatures scannées » : proposée dès qu'un signataire a une signature
-function majOptionSignatures() {
-    $('option-signatures').hidden = !configActive().parametres.signataires.some(s => s.signature != null);
-}
-
-// Listes déroulantes et aide du panneau de configuration
-function majSignaturesConfiguration() {
-    if (brouillon) {
-        for (const select of $('p-signataires').querySelectorAll('select[data-champ="signature"]')) {
-            select.innerHTML = optionsSignature(brouillon.parametres.signataires[Number(select.closest('.signataire-edition').dataset.index)]);
-        }
-    }
-
-    const nb = signatures.liste.length;
-    $('aide-signatures').innerHTML = {
-        chargement: `Lecture de la table « ${TABLE_SIGNATURES} »…`,
-        ok: `${nb} ${plur(nb, 'signature disponible', 'signatures disponibles')} dans la table « ${TABLE_SIGNATURES} ». Les images restent dans le document Grist : elles ne sont lues qu’avec un accès au document.`,
-        absente: `Pour apposer des signatures scannées, créez une table « ${TABLE_SIGNATURES} » avec une colonne <code>Nom</code> (Texte) et une colonne Pièces jointes contenant l’image (PNG à fond transparent de préférence). Restreignez son accès avec les règles d’accès si besoin.`,
-        erreur: `Table « ${TABLE_SIGNATURES} » illisible (règles d’accès ?) : les attestations sont imprimées sans signature scannée, avec l’espace pour signer à la main.`,
-    }[signatures.etat];
-}
-
-function optionsSignature(signataire) {
-    const choisie = signataire?.signature ?? null;
-    const options = [`<option value="">${signatures.etat === 'chargement' ? 'Chargement…' : 'Sans signature scannée'}</option>`]
-        .concat(signatures.liste.map(s => `<option value="${s.id}"${s.id === choisie ? ' selected' : ''}>${echapper(s.libelle)}</option>`));
-    // Signature enregistrée mais introuvable (ligne supprimée, accès refusé) : conservée telle quelle
-    if (choisie != null && !signatures.liste.some(s => s.id === choisie)) {
-        options.push(`<option value="${choisie}" selected>Signature introuvable (n° ${choisie})</option>`);
-    }
-    return options.join('');
-}
 
 // ---------- Texte personnalisé ----------
 
@@ -876,8 +691,6 @@ function ouvrirConfiguration() {
     idModeleEdite = applique?.id ?? brouillon.modeles[0]?.id ?? null;
     $('config').hidden = false;
     document.body.classList.add('config-ouverte');
-    // Relecture de la table Signatures : une signature a pu être ajoutée depuis le chargement
-    chargerSignatures();
     $('ouvrir-config').setAttribute('aria-expanded', 'true');
     rendreConfiguration();
     afficher();
@@ -970,11 +783,9 @@ function remplirParametres() {
     $('p-signataires').innerHTML = p.signataires.map((s, i) => `
         <div class="signataire-edition" data-index="${i}">
             <input type="text" data-champ="nom" value="${echapper(s.nom)}" placeholder="Prénom NOM" aria-label="Nom du signataire ${i + 1}">
-            <select data-champ="signature" aria-label="Signature scannée du signataire ${i + 1}">${optionsSignature(s)}</select>
-            <button type="button" class="btn-icone" data-action="retirer" title="Retirer ce signataire">✕</button>
             <input type="text" class="signataire-qualite" data-champ="qualite" value="${echapper(s.qualite)}" placeholder="Qualité" aria-label="Qualité du signataire ${i + 1}">
+            <button type="button" class="btn-icone" data-action="retirer" title="Retirer ce signataire">✕</button>
         </div>`).join('') || '<p class="aide">Aucun signataire : aucun bloc de signature sur l’attestation.</p>';
-    majSignaturesConfiguration();
 }
 
 function selectionnerModele(id) {
@@ -1036,12 +847,10 @@ function brancherInterface() {
     const barre = document.querySelector('.barre-outils');
     new ResizeObserver(() => document.body.style.setProperty('--hauteur-barre', barre.offsetHeight + 'px')).observe(barre);
 
-    $('imprimer').addEventListener('click', imprimer);
-    $('avec-signatures').addEventListener('change', e => {
-        avecSignatures = e.target.checked;
-        afficher();
+    $('imprimer').addEventListener('click', () => {
+        document.body.classList.remove('impression-lot');
+        window.print();
     });
-    $('actualiser-signatures').addEventListener('click', chargerSignatures);
     $('imprimer-tout').addEventListener('click', imprimerTout);
 
     $('choix-modele').addEventListener('change', e => {
@@ -1151,9 +960,7 @@ function brancherInterface() {
     $('p-signataires').addEventListener('input', e => {
         const ligne = e.target.closest('.signataire-edition');
         if (ligne && e.target.dataset.champ) {
-            const champ = e.target.dataset.champ;
-            brouillon.parametres.signataires[Number(ligne.dataset.index)][champ] = champ === 'signature' ? entierOuNull(e.target.value) : e.target.value;
-            majSignaturesConfiguration();
+            brouillon.parametres.signataires[Number(ligne.dataset.index)][e.target.dataset.champ] = e.target.value;
             brouillonModifie();
         }
     });
@@ -1166,7 +973,7 @@ function brancherInterface() {
         }
     });
     $('ajouter-signataire').addEventListener('click', () => {
-        brouillon.parametres.signataires.push({ nom: '', qualite: '', signature: null });
+        brouillon.parametres.signataires.push({ nom: '', qualite: '' });
         remplirParametres();
         brouillonModifie();
         $('p-signataires').querySelector('.signataire-edition:last-child input')?.focus();

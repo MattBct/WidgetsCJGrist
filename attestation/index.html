@@ -33,9 +33,6 @@
         <span class="choix-label">Modèle</span>
         <select id="choix-modele"></select>
       </label>
-      <label class="option" id="option-signatures" hidden title="Décocher pour imprimer une attestation à signer à la main">
-        <input type="checkbox" id="avec-signatures" checked> Signatures scannées
-      </label>
       <div class="barre-actions">
         <button type="button" class="btn btn-secondaire" id="ouvrir-config" aria-expanded="false">Configurer les modèles</button>
         <button type="button" class="btn btn-secondaire" id="imprimer-tout" hidden title="Une attestation par page pour chaque clinicien de la vue ayant un modèle applicable">Imprimer tout</button>
@@ -113,10 +110,8 @@
         <div class="champ">
           <span class="champ-label">Signataires</span>
           <div class="signataires-edition" id="p-signataires"></div>
-          <p class="aide" id="aide-signatures"></p>
           <div class="config-boutons">
             <button type="button" class="btn btn-secondaire btn-petit" id="ajouter-signataire">+ Signataire</button>
-            <button type="button" class="btn btn-texte btn-petit" id="actualiser-signatures">Actualiser les signatures</button>
           </div>
         </div>
       </div>

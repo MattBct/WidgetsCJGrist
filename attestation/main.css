@@ -240,15 +240,6 @@ html, body {
     cursor: default;
 }
 
-.option {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-}
-
 /* ---------- Champs ---------- */
 
 .champ {
@@ -565,19 +556,23 @@ html, body {
 
 .signataire-edition {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+    grid-template-columns: minmax(140px, 1fr) minmax(0, 2.5fr) auto;
     gap: 6px;
     align-items: center;
-    padding-bottom: 6px;
-    border-bottom: 1px dashed var(--bordure);
 }
 
-.signataire-edition .signataire-qualite {
-    grid-column: 1 / -1;
+@media (max-width: 560px) {
+    .signataire-edition {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .signataire-edition .signataire-qualite {
+        grid-column: 1 / -1;
+        grid-row: 2;
+    }
 }
 
-.signataire-edition input,
-.signataire-edition select {
+.signataire-edition input {
     width: 100%;
 }
 
@@ -799,21 +794,9 @@ html, body {
     color: var(--texte-doux);
 }
 
-/* Espace laissé pour la signature manuscrite, ou signature scannée */
+/* Espace laissé pour la signature manuscrite */
 .signataire-espace {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    align-self: stretch;
     height: 24mm;
-}
-
-.signataire-image {
-    max-width: 100%;
-    max-height: 22mm;
-    object-fit: contain;
-    /* Fond blanc d'un scan JPEG fondu dans la feuille */
-    mix-blend-mode: multiply;
 }
 
 /* Variable sans valeur ou inconnue : signalée à l'écran, masquée à l'impression */

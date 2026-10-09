@@ -380,3 +380,167 @@ img {
     font-weight: 600;
     color: var(--clinique-fonce);
 }
+
+/* ---------- Satisfaction ---------- */
+
+/* « /10 » accolé à une note */
+.indicateur-unite {
+    margin-left: 2px;
+    font-size: 0.45em;
+    font-weight: 600;
+    color: var(--texte-doux);
+}
+
+/* Jauge horizontale d'une note sur 10 */
+.jauge {
+    height: 8px;
+    overflow: hidden;
+    background: var(--rdv-1);
+    border-radius: 999px;
+}
+
+.jauge > span {
+    display: block;
+    height: 100%;
+    background: var(--clinique);
+    border-radius: inherit;
+    transition: width 0.4s ease;
+}
+
+.jauge-fine {
+    height: 5px;
+}
+
+.statistique .jauge {
+    margin-top: 4px;
+}
+
+/* Graphiques sans anneau : hauteur fixe pour ne pas s'étirer */
+.graphique-fixe {
+    height: 260px;
+}
+
+.retours-compte {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--texte-doux);
+}
+
+.retours {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+    gap: 12px;
+    align-items: start;
+}
+
+.retour-entete {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.retour-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    min-width: 0;
+}
+
+.retour-date {
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.retour-connaissance {
+    padding: 1px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--clinique-fonce);
+    background: var(--rdv-1);
+}
+
+.retour-moyenne {
+    flex: none;
+    font-family: 'Zilla Slab', Georgia, serif;
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--clinique);
+}
+
+.retour-moyenne small {
+    margin-left: 1px;
+    font-size: 13px;
+    color: var(--texte-doux);
+}
+
+.retour-notes {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 0;
+    padding: 10px 0 0;
+    border-top: 1px dashed var(--bordure);
+    list-style: none;
+    font-size: 12px;
+}
+
+.retour-notes li {
+    display: grid;
+    grid-template-columns: 6.5em minmax(0, 1fr) 2.5ch;
+    align-items: center;
+    gap: 8px;
+}
+
+.retour-sujet {
+    color: var(--texte-doux);
+}
+
+.retour-notes strong {
+    text-align: right;
+    font-weight: 800;
+    color: var(--clinique);
+}
+
+.retour-commentaire {
+    margin: 0;
+    padding: 8px 10px;
+    border-left: 3px solid var(--rdv-2);
+    border-radius: 0 6px 6px 0;
+    background: var(--fond-doux);
+    font-size: 12.5px;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+}
+
+.retour-sans-commentaire {
+    margin: 0;
+    font-size: 12px;
+    font-style: italic;
+    color: var(--texte-doux);
+}
+
+.bouton-plus {
+    align-self: center;
+    padding: 6px 16px;
+    border: 1px solid var(--clinique);
+    border-radius: 999px;
+    background: #ffffff;
+    color: var(--clinique);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.bouton-plus:hover {
+    background: var(--rdv-1);
+}
+
+.bouton-plus:focus-visible {
+    outline: 2px solid var(--clinique-fonce);
+    outline-offset: 1px;
+}

@@ -29,6 +29,9 @@ const CRENEAUX_RDV = [
 // Icône caméra (SVG inline : rendu identique à l'écran et à l'impression, contrairement aux emojis)
 const ICONE_VISIO = '<svg class="icone-visio" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="M16 10.5 22 7v10l-6-3.5z"/></svg>';
 
+// Délai attendu entre le premier et le second RDV d'un même dossier
+const DELAI_ATTENDU_JOURS = 14;
+
 const SANS_SALLE = { cle: "__sans_salle", libelle: "Sans salle", ordre: 1 };
 
 let dossiers = [];
@@ -71,6 +74,30 @@ function decalerJour(cle, nbJours) {
     const date = new Date(cle + 'T12:00:00Z');
     date.setUTCDate(date.getUTCDate() + nbJours);
     return date.toISOString().slice(0, 10);
+}
+
+// "mar. 13/10 à 14h00"
+function libelleCreneauCourt(date) {
+    const jour = date.toLocaleDateString('fr-FR', { timeZone: FUSEAU, weekday: 'short', day: '2-digit', month: '2-digit' });
+    return `${jour} à ${heure(date)}`;
+}
+
+// Nombre de jours calendaires (à Paris) entre deux dates
+function joursEntre(debut, fin) {
+    return Math.round((new Date(cleJour(fin) + 'T12:00:00Z') - new Date(cleJour(debut) + 'T12:00:00Z')) / 86400000);
+}
+
+// Autre RDV du dossier (le second pour un premier RDV, et inversement) et alerte si le délai entre les deux
+// n'est pas de deux semaines. Pas d'alerte quand l'autre RDV n'est pas encore programmé.
+function getSuiviRdv(dossier, creneau) {
+    const autre = CRENEAUX_RDV.find(c => c.ordre !== creneau.ordre);
+    const debutAutre = versDate(dossier[autre.date]);
+    const texte = debutAutre ? `${autre.badge} : ${libelleCreneauCourt(debutAutre)}` : `${autre.badge} : non programmé`;
+
+    const rdv1 = versDate(dossier[CRENEAUX_RDV[0].date]);
+    const rdv2 = versDate(dossier[CRENEAUX_RDV[1].date]);
+    const alerte = rdv1 && rdv2 && joursEntre(rdv1, rdv2) !== DELAI_ATTENDU_JOURS ? 'RDV 2 décalé' : '';
+    return { texte, alerte, programme: Boolean(debutAutre) };
 }
 
 // "Lundi 28 septembre 2026"
@@ -175,6 +202,7 @@ function getRdvDuJour(cle) {
                 visio: dossier.Visioconference === true,
                 cliniciens: getCliniciens(dossier.Cliniciens_briefing),
                 commentaires: String(dossier.Commentaires || '').trim(),
+                suivi: getSuiviRdv(dossier, creneau),
             });
         });
     });
@@ -299,9 +327,17 @@ function renderCarte(rdv) {
             </div>
             <span class="carte-patient">${echapper(rdv.nom)} ${echapper(rdv.prenom)}</span>
             ${contact}
+            ${renderSuiviRdv(rdv)}
             <div class="carte-motifs">${renderMotifsStandardises(rdv)}</div>
         </div>
     `;
+}
+
+function renderSuiviRdv(rdv) {
+    const alerte = rdv.suivi.alerte
+        ? `<span class="alerte-delai" title="Délai attendu : ${DELAI_ATTENDU_JOURS} jours">⚠ ${echapper(rdv.suivi.alerte)}</span>`
+        : '';
+    return `<span class="suivi-rdv${rdv.suivi.programme ? '' : ' non-programme'}">${echapper(rdv.suivi.texte)}</span>${alerte}`;
 }
 
 function renderMotifsStandardises(rdv) {
@@ -359,6 +395,7 @@ function renderLigneEmargement(rdv) {
                     ${rdv.visio ? `<span class="badge badge-visio">${ICONE_VISIO}Visio</span>` : ''}
                 </span>
                 <span class="carte-patient">${echapper(rdv.nom)} ${echapper(rdv.prenom)}</span>
+                ${renderSuiviRdv(rdv)}
                 <div class="em-motifs">${renderMotifsStandardises(rdv)}</div>
             </td>
             <td class="em-cliniciens">${cliniciens}</td>

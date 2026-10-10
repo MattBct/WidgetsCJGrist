@@ -244,6 +244,33 @@ function pdfDessinerPastilles(page, disposition, x, yHaut, police, taille) {
     });
 }
 
+// ---------- Suivi entre RDV (date de l'autre RDV, alerte de délai) ----------
+
+function pdfPreparerSuivi(rdv, polices, largeur, taille) {
+    const police = rdv.suivi.programme ? polices.regular : polices.italique;
+    const lignes = pdfLignes(rdv.suivi.texte, police, taille, largeur);
+    // Alerte courte dans une pastille jaune ajustée au texte
+    const alerte = rdv.suivi.alerte ? pdfLigneTronquee(rdv.suivi.alerte, polices.bold, taille - 0.5, largeur - 8) : '';
+    const largeurAlerte = alerte ? polices.bold.widthOfTextAtSize(alerte, taille - 0.5) + 8 : 0;
+    const hauteurAlerte = alerte ? taille + 3 : 0;
+    return { police, taille, lignes, alerte, largeurAlerte, hauteurAlerte, hauteur: lignes.length * (taille + 2) + (alerte ? hauteurAlerte + 2 : 0) };
+}
+
+// Dessine le suivi (date en gris discret, alerte en pastille jaune) à partir de yHaut ; retourne la position sous le bloc
+function pdfDessinerSuivi(page, polices, suivi, x, yHaut, couleur = PDF_COULEURS.doux) {
+    let y = yHaut;
+    suivi.lignes.forEach(ligne => {
+        pdfEcrire(page, ligne, x, y, suivi.police, suivi.taille, couleur);
+        y += suivi.taille + 2;
+    });
+    if (suivi.alerte) {
+        pdfRectangleArrondi(page, x, y, suivi.largeurAlerte, suivi.hauteurAlerte, 2, { fond: PDF_COULEURS.alerteFond });
+        pdfEcrire(page, suivi.alerte, x + 4, y + 1.6, polices.bold, suivi.taille - 0.5, PDF_COULEURS.alerteTexte);
+        y += suivi.hauteurAlerte + 2;
+    }
+    return y;
+}
+
 // ---------- Mise en page d'une ligne d'émargement ----------
 
 function pdfColonnes() {
@@ -282,7 +309,8 @@ function pdfPreparerLigne(rdv, polices, colonnes, motifComplet) {
     const motifs = pdfDisposerPastilles(
         rdv.motifsStandardises.map(motif => ({ texte: motif, bordure: PDF_COULEURS.cliniqueFonce, couleur: PDF_COULEURS.cliniqueFonce })),
         polices.bold, 6.5, interieur(1));
-    const hauteurRdv = 13 + 3 + badges.hauteur + 3 + patient.length * 10 + 3 + (motifs.hauteur || 9);
+    const suivi = pdfPreparerSuivi(rdv, polices, interieur(1) - 2, 6);
+    const hauteurRdv = 13 + 3 + badges.hauteur + 3 + patient.length * 10 + 1 + suivi.hauteur + 3 + (motifs.hauteur || 9);
 
     const cliniciens = rdv.cliniciens.map(clinicien => pdfPreparerClinicien(clinicien, polices, interieur(2) - 13));
     const nbLignesVierges = Math.max(0, NB_LIGNES_CLINICIENS_MIN - rdv.cliniciens.length);
@@ -301,7 +329,7 @@ function pdfPreparerLigne(rdv, polices, colonnes, motifComplet) {
     const hauteurNotes = hauteurBlocs + 9 + PDF_HAUTEUR_NOTES_MIN;
 
     const hauteur = 2 * PDF_PADDING + Math.max(hauteurHoraire, hauteurRdv, hauteurCliniciens, hauteurPatient, hauteurNotes);
-    return { salle, badges, patient, motifs, cliniciens, nbLignesVierges, blocs, hauteurBlocs, hauteur };
+    return { salle, badges, patient, suivi, motifs, cliniciens, nbLignesVierges, blocs, hauteurBlocs, hauteur };
 }
 
 function pdfDessinerLigne(ctx, rdv, prep, yHaut, index) {
@@ -342,6 +370,7 @@ function pdfDessinerLigne(ctx, rdv, prep, yHaut, index) {
         pdfEcrire(page, ligne, x, y, polices.bold, 8);
         y += 10;
     });
+    y = pdfDessinerSuivi(page, polices, prep.suivi, x, y + 1);
     y += 3;
     if (prep.motifs.positions.length > 0) {
         pdfDessinerPastilles(page, prep.motifs, x, y, polices.bold, 6.5);
@@ -476,11 +505,12 @@ function pdfPreparerCarte(rdv, polices, largeur) {
         ...(rdv.telephone ? pdfLignes(`Tél. ${rdv.telephone}`, polices.regular, 7, interieur).map(texte => ({ texte, taille: 7 })) : []),
         ...(rdv.mail ? pdfLignesMail(rdv.mail, polices.regular, interieur) : []),
     ];
+    const suivi = pdfPreparerSuivi(rdv, polices, interieur, 6);
     const motifs = pdfDisposerPastilles(
         rdv.motifsStandardises.map(motif => ({ texte: motif, bordure: PDF_COULEURS.cliniqueFonce, couleur: PDF_COULEURS.cliniqueFonce })),
         polices.bold, 6, interieur);
-    const hauteur = 4 + (rdv.visio ? 12 : 0) + 12 + patient.length * 9.5 + contact.length * 9 + 4 + (motifs.hauteur || 9) + 4;
-    return { rdv, badge, largeurBadge, identifiant, patient, contact, motifs, hauteur };
+    const hauteur = 4 + (rdv.visio ? 12 : 0) + 12 + patient.length * 9.5 + contact.length * 9 + 1 + suivi.hauteur + 4 + (motifs.hauteur || 9) + 4;
+    return { rdv, badge, largeurBadge, identifiant, patient, contact, suivi, motifs, hauteur };
 }
 
 function pdfDessinerCarte(page, polices, carte, x, yHaut, largeur) {
@@ -510,6 +540,8 @@ function pdfDessinerCarte(page, polices, carte, x, yHaut, largeur) {
         pdfEcrire(page, ligne.texte, xTexte, y, polices.regular, ligne.taille, '#333333');
         y += 9;
     });
+    // Gris plus foncé sur le rose soutenu des seconds RDV, pour rester lisible
+    y = pdfDessinerSuivi(page, polices, carte.suivi, xTexte, y + 1, second ? '#3A3A3A' : PDF_COULEURS.doux);
     y += 1.5;
     page.drawLine({ start: { x: xTexte, y: pdfY(y) }, end: { x: x + largeur - 4, y: pdfY(y) }, thickness: 0.5, color: pdfCouleur('#B9A0A0'), dashArray: [2, 1.5] });
     y += 2.5;

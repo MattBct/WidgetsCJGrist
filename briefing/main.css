@@ -468,6 +468,34 @@ html, body {
     color: #333333;
 }
 
+/* Date de l'autre RDV du dossier, et alerte si le délai entre les RDV n'est pas de deux semaines */
+.suivi-rdv {
+    display: block;
+    margin-top: 1px;
+    font-size: 0.8em;
+    color: var(--texte-doux);
+}
+
+.carte.rdv-2 .suivi-rdv {
+    color: #3a3a3a;
+}
+
+.suivi-rdv.non-programme {
+    font-style: italic;
+}
+
+.alerte-delai {
+    display: inline-block;
+    align-self: flex-start;
+    margin-top: 2px;
+    padding: 0 5px;
+    border-radius: 4px;
+    background: #fff3cd;
+    color: #7a5b00;
+    font-size: 0.75em;
+    font-weight: 700;
+}
+
 .carte-motifs {
     display: flex;
     flex-wrap: wrap;

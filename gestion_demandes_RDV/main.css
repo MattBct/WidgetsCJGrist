@@ -1204,7 +1204,7 @@ body.formulaire-ouvert {
     }
 }
 
-/* ---------- Alerte : créneau hors des plages de permanence ---------- */
+/* ---------- Alerte : créneau hors des plages de RDV ---------- */
 
 .alerte-fond {
     position: fixed;

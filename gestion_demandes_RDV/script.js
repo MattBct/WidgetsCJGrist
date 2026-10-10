@@ -855,7 +855,7 @@ function afficherAlertePlages(creneaux) {
         return Object.assign(document.createElement('li'), { textContent: `RDV ${n} : ${jour} ${formaterSaisieDate(saisie)}` });
     }));
     document.getElementById('alerte-plages-texte').replaceChildren(
-        Object.assign(document.createElement('p'), { textContent: creneaux.length > 1 ? 'Ces créneaux sont en dehors des plages habituelles de RDV :' : 'Ce créneau est en dehors des plages habituelles de RDV :' }),
+        Object.assign(document.createElement('p'), { textContent: creneaux.length > 1 ? 'Ces créneaux sont hors des plages de RDV :' : 'Ce créneau est hors des plages de RDV :' }),
         liste,
         Object.assign(document.createElement('p'), { className: 'alerte-plages', textContent: `Plages prévues : ${decrirePlages()} (RDV de ${DUREE_RDV_MINUTES} min).` }),
     );
@@ -916,7 +916,7 @@ function validerCreneau(n) {
             remarques.push('date passée');
         }
         if (horsPlages(texte)) {
-            remarques.push('hors des plages de permanence');
+            remarques.push('hors des plages de RDV');
         }
         if (n === 2 && element && !autre) {
             remarques.push('RDV 1 non renseigné');
@@ -1480,7 +1480,7 @@ async function soumettreFormulaire(e) {
     }
     zoneErreurs.hidden = true;
 
-    // Créneaux hors des plages de permanence : alerte, que l'on peut ignorer (une fois par saisie)
+    // Créneaux hors des plages de RDV : alerte, que l'on peut ignorer (une fois par saisie)
     const horsPlage = [1, 2]
         .map(n => ({ n, saisie: valeurChamp(formulaire, `Creneau_RDV_${n}`) }))
         .filter(creneau => horsPlages(creneau.saisie));

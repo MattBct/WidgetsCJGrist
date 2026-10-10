@@ -1203,3 +1203,79 @@ body.formulaire-ouvert {
         font-size: 28px;
     }
 }
+
+/* ---------- Alerte : créneau hors des plages de permanence ---------- */
+
+.alerte-fond {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: rgba(29, 29, 29, 0.55);
+}
+
+.alerte-fond[hidden] {
+    display: none;
+}
+
+.alerte-boite {
+    display: grid;
+    justify-items: center;
+    gap: 10px;
+    width: min(460px, 100%);
+    padding: 22px 20px 16px;
+    text-align: center;
+    background: #ffffff;
+    border-top: 5px solid var(--alerte);
+    border-radius: 10px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+}
+
+.alerte-icone {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    font-size: 24px;
+    font-weight: 800;
+    color: #ffffff;
+    background: var(--alerte);
+    border-radius: 50%;
+}
+
+.alerte-boite h2 {
+    margin: 0;
+    font-family: 'Zilla Slab', Georgia, serif;
+    font-size: 19px;
+    font-weight: 700;
+}
+
+.alerte-texte p {
+    margin: 0;
+}
+
+.alerte-texte ul {
+    margin: 8px 0;
+    padding: 0;
+    list-style: none;
+    font-weight: 700;
+    color: var(--alerte);
+}
+
+.alerte-texte .alerte-plages {
+    font-size: 12px;
+    color: var(--texte-doux);
+}
+
+.alerte-pied {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    justify-self: stretch;
+    padding-top: 12px;
+    border-top: 1px solid var(--bordure);
+}

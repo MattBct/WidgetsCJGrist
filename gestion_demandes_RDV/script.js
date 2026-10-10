@@ -13,6 +13,13 @@ const STATUTS_OCCUPANT = { [STATUT_CONFIRME]: 'ferme', [STATUT_PROPOSE]: 'provis
 const DUREE_RDV_MINUTES = 30;
 const DUREE_RDV_MS = DUREE_RDV_MINUTES * 60 * 1000;
 
+// Plages habituelles des RDV (heure de Paris) ; jour : 0 = dimanche, 1 = lundi, …, 6 = samedi.
+// Un créneau dont le RDV (DUREE_RDV_MINUTES) ne tient pas entièrement dans une plage déclenche une alerte, que l'on peut ignorer.
+const PLAGES_RDV = [
+    { jour: 2, debut: '18:00', fin: '20:00' },   // mardi
+    { jour: 3, debut: '17:30', fin: '19:30' },   // mercredi
+];
+
 // Boutons de changement de statut (attribut data-action dans le modèle de carte)
 const ACTIONS_STATUT = {
     confirmer: { statut: STATUT_CONFIRME, libelle: 'Confirmer le RDV', enCours: 'Confirmation…', fait: 'RDV confirmé ✓', classe: 'confirmee' },
@@ -803,6 +810,85 @@ function formaterSaisieDate(texte) {
     return `${j}/${mo}/${a} à ${h}h${mi}`;
 }
 
+// ---------- Plages de permanence ----------
+
+const NOMS_JOURS = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+const enMinutes = hhmm => {
+    const [h, m] = hhmm.split(':').map(Number);
+    return h * 60 + m;
+};
+const enHeure = hhmm => hhmm.replace(':', 'h');
+
+// Saisie "AAAA-MM-JJTHH:MM" (heure de Paris) en dehors de toutes les plages ?
+function horsPlages(saisie) {
+    if (!saisie) {
+        return false;
+    }
+    const jour = new Date(`${saisie.slice(0, 10)}T12:00:00Z`).getUTCDay();
+    const debut = enMinutes(saisie.slice(11, 16));
+    const fin = debut + DUREE_RDV_MINUTES;
+    return !PLAGES_RDV.some(p => p.jour === jour && debut >= enMinutes(p.debut) && fin <= enMinutes(p.fin));
+}
+
+function decrirePlages() {
+    return PLAGES_RDV.map(p => `${NOMS_JOURS[p.jour]} ${enHeure(p.debut)}–${enHeure(p.fin)}`).join(' · ');
+}
+
+let fileAlertesPlages = Promise.resolve();
+
+// Affiche l'alerte (les alertes successives s'enchaînent). Résout true si l'utilisateur conserve le créneau
+// (ou ignore l'alerte), false s'il choisit de le modifier.
+function alerterHorsPlages(creneaux) {
+    const reponse = fileAlertesPlages.then(() => afficherAlertePlages(creneaux));
+    fileAlertesPlages = reponse.catch(() => {});
+    return reponse;
+}
+
+function afficherAlertePlages(creneaux) {
+    if (!creneaux.length) {
+        return Promise.resolve(true);
+    }
+    const fond = document.getElementById('alerte-plages');
+    const liste = document.createElement('ul');
+    liste.append(...creneaux.map(({ n, saisie }) => {
+        const jour = NOMS_JOURS[new Date(`${saisie.slice(0, 10)}T12:00:00Z`).getUTCDay()];
+        return Object.assign(document.createElement('li'), { textContent: `RDV ${n} : ${jour} ${formaterSaisieDate(saisie)}` });
+    }));
+    document.getElementById('alerte-plages-texte').replaceChildren(
+        Object.assign(document.createElement('p'), { textContent: creneaux.length > 1 ? 'Ces créneaux sont en dehors des plages habituelles de RDV :' : 'Ce créneau est en dehors des plages habituelles de RDV :' }),
+        liste,
+        Object.assign(document.createElement('p'), { className: 'alerte-plages', textContent: `Plages prévues : ${decrirePlages()} (RDV de ${DUREE_RDV_MINUTES} min).` }),
+    );
+    const focusPrecedent = document.activeElement;
+    fond.hidden = false;
+    fond.querySelector('[data-reponse="conserver"]').focus();
+
+    return new Promise(resolve => {
+        const repondre = conserver => {
+            fond.hidden = true;
+            fond.onclick = null;
+            fond.onkeydown = null;
+            focusPrecedent?.focus?.();
+            resolve(conserver);
+        };
+        fond.onclick = (e) => {
+            const bouton = e.target.closest('[data-reponse]');
+            if (bouton) {
+                repondre(bouton.dataset.reponse === 'conserver');
+            } else if (e.target === fond) {
+                repondre(true);
+            }
+        };
+        // Échap ignore l'alerte (sans fermer le formulaire en dessous)
+        fond.onkeydown = (e) => {
+            if (e.key === 'Escape') {
+                e.stopPropagation();
+                repondre(true);
+            }
+        };
+    });
+}
+
 // Créneaux : le RDV 2 (restitution) doit être strictement postérieur au RDV 1 (bloquant) ;
 // date passée, week-end ou RDV 2 sans RDV 1 sont signalés sans bloquer
 function validerCreneau(n) {
@@ -829,9 +915,8 @@ function validerCreneau(n) {
         if (depuisSaisieDate(texte) * 1000 < Date.now()) {
             remarques.push('date passée');
         }
-        const jour = new Date(`${texte.slice(0, 10)}T12:00:00Z`).getUTCDay();
-        if (jour === 0 || jour === 6) {
-            remarques.push(jour === 6 ? 'un samedi' : 'un dimanche');
+        if (horsPlages(texte)) {
+            remarques.push('hors des plages de permanence');
         }
         if (n === 2 && element && !autre) {
             remarques.push('RDV 1 non renseigné');
@@ -1045,6 +1130,13 @@ async function sauvegarder(input) {
         await ecrire(carte.dossier.id, { [champ]: nouvelle });
         carte.dossier = { ...carte.dossier, [champ]: nouvelle };
         marquer(input, 'enregistre');
+        if (TYPES_CHAMPS[champ] === 'date' && horsPlages(input.value)) {
+            alerterHorsPlages([{ n: Number(champ.slice(-1)), saisie: input.value }]).then(conserver => {
+                if (!conserver) {
+                    input.focus();
+                }
+            });
+        }
     } catch (e) {
         console.error(`Échec de l'enregistrement de ${champ} :`, e);
         marquer(input, 'erreur', e.message);
@@ -1317,6 +1409,7 @@ function reinitialiserFormulaire() {
 
     boutonsAjout().forEach(b => { b.disabled = false; });
     annulerForcageFormulaire();
+    delete formulaire.dataset.plagesAcceptees;
     majDisponibilitesFormulaire(creneauxProvisoires());
 }
 
@@ -1386,6 +1479,18 @@ async function soumettreFormulaire(e) {
         return;
     }
     zoneErreurs.hidden = true;
+
+    // Créneaux hors des plages de permanence : alerte, que l'on peut ignorer (une fois par saisie)
+    const horsPlage = [1, 2]
+        .map(n => ({ n, saisie: valeurChamp(formulaire, `Creneau_RDV_${n}`) }))
+        .filter(creneau => horsPlages(creneau.saisie));
+    if (horsPlage.length && !formulaire.dataset.plagesAcceptees) {
+        if (!(await alerterHorsPlages(horsPlage))) {
+            champFormulaire(`Creneau_RDV_${horsPlage[0].n}`).focus();
+            return;
+        }
+        formulaire.dataset.plagesAcceptees = '1';
+    }
 
     // Bouton utilisé (Entrée dans un champ : le premier, « créneaux proposés »)
     const bouton = e.submitter?.dataset.ajout ? e.submitter : boutonsAjout()[0];
@@ -1484,6 +1589,9 @@ formulaire.addEventListener('input', (e) => {
     if (/^(Creneau|Lieu)_RDV_/.test(input?.dataset.champ ?? '')) {
         annulerForcageFormulaire();
         planifierDisponibilites();
+    }
+    if (/^Creneau_RDV_/.test(input?.dataset.champ ?? '')) {
+        delete formulaire.dataset.plagesAcceptees;
     }
     if (input?.dataset.champ === 'Etudiant') {
         formulaire.querySelector('.etudiant-details').hidden = !input.checked;

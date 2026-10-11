@@ -513,7 +513,6 @@ document.getElementById('generer-pdf').addEventListener('click', async e => {
         bouton.disabled = false;
     }
 });
-document.getElementById('motif-complet').addEventListener('change', e => document.body.classList.toggle('motif-complet', e.target.checked));
 
 // Clic sur une carte : sélection de la ligne correspondante dans Grist
 document.getElementById('occupation').addEventListener('click', e => {

@@ -19,7 +19,6 @@ const PDF_LIGNE_CLINICIEN = 15;
 const PDF_HAUTEUR_ENTETE_TABLEAU = 18;
 const PDF_HAUTEUR_NOTES_MIN = 30;
 const PDF_LARGEUR_COL_HEURE = 40;
-const PDF_MOTIF_LIGNES_MAX = 4;
 
 const PDF_COULEURS = {
     clinique: '#C03737',
@@ -295,7 +294,7 @@ function pdfPreparerClinicien(clinicien, polices, largeur) {
 }
 
 // Prépare le contenu d'une ligne (textes découpés, pastilles) et calcule sa hauteur
-function pdfPreparerLigne(rdv, polices, colonnes, motifComplet) {
+function pdfPreparerLigne(rdv, polices, colonnes) {
     const interieur = i => colonnes[i].largeur - 2 * PDF_PADDING;
 
     const salle = pdfLignes(rdv.salle.libelle, polices.regular, 7, interieur(0));
@@ -320,10 +319,9 @@ function pdfPreparerLigne(rdv, polices, colonnes, motifComplet) {
 
     const hauteurPatient = 2 * PDF_LIGNE_CLINICIEN + 16;
 
-    const maxLignesMotif = motifComplet ? 30 : PDF_MOTIF_LIGNES_MAX;
     const blocs = [
-        { titre: 'Motif détaillé', lignes: rdv.motif ? pdfLignes(rdv.motif, polices.italique, 7.5, interieur(4) - 6, maxLignesMotif) : ['Non renseigné'] },
-        ...(rdv.commentaires ? [{ titre: 'Commentaire', lignes: pdfLignes(rdv.commentaires, polices.italique, 7.5, interieur(4) - 6, maxLignesMotif) }] : []),
+        { titre: 'Motif détaillé', lignes: rdv.motif ? pdfLignes(rdv.motif, polices.italique, 7.5, interieur(4) - 6) : ['Non renseigné'] },
+        ...(rdv.commentaires ? [{ titre: 'Commentaire', lignes: pdfLignes(rdv.commentaires, polices.italique, 7.5, interieur(4) - 6) }] : []),
     ].map(bloc => ({ ...bloc, hauteur: 3 + 8 + bloc.lignes.length * 9.5 + 3 }));
     const hauteurBlocs = blocs.reduce((total, bloc) => total + bloc.hauteur + 3, 0);
     const hauteurNotes = hauteurBlocs + 9 + PDF_HAUTEUR_NOTES_MIN;
@@ -658,10 +656,9 @@ function pdfDessinerEmargement(ctx, rdvs, yHaut) {
     });
     y += 4;
 
-    const motifComplet = document.body.classList.contains('motif-complet');
     y = pdfDessinerEnteteEmargement(ctx, y);
     rdvs.forEach((rdv, index) => {
-        const prep = pdfPreparerLigne(rdv, polices, ctx.colonnes, motifComplet);
+        const prep = pdfPreparerLigne(rdv, polices, ctx.colonnes);
         if (y + prep.hauteur > ctx.basDePage) {
             ctx.page = ctx.doc.addPage([PDF_PAGE.largeur, PDF_PAGE.hauteur]);
             y = pdfDessinerEnteteEmargement(ctx, PDF_PAGE.marge);

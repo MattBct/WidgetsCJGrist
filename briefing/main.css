@@ -77,13 +77,6 @@ html, body {
     font-weight: 600;
 }
 
-.toolbar .option {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    cursor: pointer;
-}
-
 /* Bande défilante des jours avec RDV */
 .bande-dates {
     display: flex;
@@ -525,18 +518,9 @@ html, body {
 
 /* Motif détaillé (feuille d'émargement) */
 .carte-motif {
-    font-style: italic;
-    /* Motif résumé sur 3 lignes, sauf option "Motif complet" */
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-
-body.motif-complet .carte-motif {
     display: block;
-    -webkit-line-clamp: unset;
-    overflow: visible;
+    font-style: italic;
+    /* Motif toujours affiché en entier, retours à la ligne conservés */
     white-space: pre-line;
 }
 

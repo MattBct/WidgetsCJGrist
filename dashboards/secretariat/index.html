@@ -6,6 +6,7 @@
         <title>Tableau de bord — Secrétariat</title>
         <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
         <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+        <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
         <script defer src="script.js"></script>
 
         <script>
@@ -21,7 +22,8 @@
                     nb_rdv_prog_semaine: 0,
                     nb_rdv_non_confirme_patients: 0,
                     nb_rdv_non_confirme_patients_gp:0,
-                    nb_rdv_non_confirme_patients_etu:0
+                    nb_rdv_non_confirme_patients_etu:0,
+                    evolution_demandes_rdv: []
                 })
             })
         </script>
@@ -78,6 +80,17 @@
                             <li><strong x-text="$store.donnees.nb_rdv_non_confirme_patients_etu"></strong> <span x-text="plur($store.donnees.nb_rdv_non_confirme_patients_etu, 'RDV étudiant', 'RDV étudiants')"></span></li>
                             <li><strong x-text="$store.donnees.nb_rdv_non_confirme_patients_gp"></strong> RDV grand public</li>
                         </ul>
+                    </div>
+                </div>
+
+                <div class="carte">
+                    <h3 class="carte-titre">Évolution des demandes de RDV</h3>
+                    <div class="graphique-fixe" x-show="$store.donnees.evolution_demandes_rdv.length > 0">
+                        <canvas id="chartEvolutionDemandes"></canvas>
+                    </div>
+                    <div class="vide" x-show="$store.donnees.evolution_demandes_rdv.length === 0">
+                        <img class="vide-illustration" src="../assets/facade_rouge.png" alt="" aria-hidden="true">
+                        <p>Aucune demande de RDV</p>
                     </div>
                 </div>
             </section>

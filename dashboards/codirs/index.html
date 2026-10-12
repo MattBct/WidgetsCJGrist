@@ -39,6 +39,7 @@
                     heures_option_mediane: 0,
                     heures_option_min: 0,
                     heures_option_max: 0,
+                    evolution_demandes_rdv: [],
                     repartition_diplomes: [],
                     mode_diplomes: 'tous',
                     get repartition_diplomes_affichee() {
@@ -95,6 +96,17 @@
                             </div>
                             <img class="carte-illustration" src="../assets/undraw_accept-request_489a.svg" alt="" aria-hidden="true">
                         </div>
+                    </div>
+                </div>
+
+                <div class="carte">
+                    <h3 class="carte-titre">Évolution des demandes de RDV</h3>
+                    <div class="graphique-fixe" x-show="$store.donnees.evolution_demandes_rdv.length > 0">
+                        <canvas id="chartEvolutionDemandes"></canvas>
+                    </div>
+                    <div class="vide" x-show="$store.donnees.evolution_demandes_rdv.length === 0">
+                        <img class="vide-illustration" src="../assets/facade_rouge.png" alt="" aria-hidden="true">
+                        <p>Aucune demande de RDV</p>
                     </div>
                 </div>
             </section>

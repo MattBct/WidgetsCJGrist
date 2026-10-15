@@ -175,7 +175,7 @@ const COLUMNS_MAPPING = [
 ]
 
 const TABLE_ID_RDV = "RDV"
-const TABLE_ID_PROJETS = "Projets"
+const TABLE_ID_PROJETS = "Actions_projets"
 const TABLE_ID_REGULATIONS = "Regulations_heures"
 const TABLE_ID_PERMANENCES = "Permanences"
 

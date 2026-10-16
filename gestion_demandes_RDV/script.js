@@ -889,6 +889,40 @@ function afficherAlertePlages(creneaux) {
     });
 }
 
+// Alerte « aucun motif standardisé » avant de proposer ou confirmer. Résout true si l'utilisateur continue
+// sans motif, false s'il choisit d'en ajouter (Échap ou clic hors de la boîte : retour à la saisie).
+function alerterSansMotif() {
+    const fond = document.getElementById('alerte-motifs');
+    const focusPrecedent = document.activeElement;
+    fond.hidden = false;
+    fond.querySelector('[data-reponse="modifier"]').focus();
+
+    return new Promise(resolve => {
+        const repondre = continuer => {
+            fond.hidden = true;
+            fond.onclick = null;
+            fond.onkeydown = null;
+            focusPrecedent?.focus?.();
+            resolve(continuer);
+        };
+        fond.onclick = (e) => {
+            const bouton = e.target.closest('[data-reponse]');
+            if (bouton) {
+                repondre(bouton.dataset.reponse === 'continuer');
+            } else if (e.target === fond) {
+                repondre(false);
+            }
+        };
+        // Échap ferme l'alerte (sans fermer le formulaire en dessous)
+        fond.onkeydown = (e) => {
+            if (e.key === 'Escape') {
+                e.stopPropagation();
+                repondre(false);
+            }
+        };
+    });
+}
+
 // Créneaux : le RDV 2 (restitution) doit être strictement postérieur au RDV 1 (bloquant) ;
 // date passée, week-end ou RDV 2 sans RDV 1 sont signalés sans bloquer
 function validerCreneau(n) {
@@ -1160,6 +1194,13 @@ async function changerStatut(bouton) {
         element.querySelector(`[data-champ="${valeurChamp(element, 'Creneau_RDV_1') ? 'Lieu_RDV_1' : 'Creneau_RDV_1'}"]`).focus();
         return;
     }
+    // Aucun motif standardisé : alerte, que l'on peut ignorer (pas de nouvelle alerte au clic de forçage)
+    if (planifie && !bouton.dataset.forcer && options?.motifs?.choix?.length && !motifsAffiches(element).length) {
+        if (!(await alerterSansMotif())) {
+            element.querySelector('.motif-ajout').focus();
+            return;
+        }
+    }
     boutons.forEach(b => { b.disabled = true; });
     bouton.textContent = action.enCours;
     // Le clic ne fait pas toujours sortir du champ en cours (Safari ne donne pas le focus aux boutons) :
@@ -1410,6 +1451,7 @@ function reinitialiserFormulaire() {
     boutonsAjout().forEach(b => { b.disabled = false; });
     annulerForcageFormulaire();
     delete formulaire.dataset.plagesAcceptees;
+    delete formulaire.dataset.sansMotifAccepte;
     majDisponibilitesFormulaire(creneauxProvisoires());
 }
 
@@ -1490,6 +1532,16 @@ async function soumettreFormulaire(e) {
             return;
         }
         formulaire.dataset.plagesAcceptees = '1';
+    }
+
+    // Aucun motif standardisé coché : alerte, que l'on peut ignorer (une fois par ouverture du formulaire)
+    const casesMotifs = document.querySelectorAll('#formulaire-motifs input');
+    if (casesMotifs.length && ![...casesMotifs].some(c => c.checked) && !formulaire.dataset.sansMotifAccepte) {
+        if (!(await alerterSansMotif())) {
+            casesMotifs[0].focus();
+            return;
+        }
+        formulaire.dataset.sansMotifAccepte = '1';
     }
 
     // Bouton utilisé (Entrée dans un champ : le premier, « créneaux proposés »)

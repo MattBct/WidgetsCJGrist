@@ -57,6 +57,22 @@
       </section>
     </div>
 
+    <!-- Alerte non bloquante : aucun motif standardisé avant « Créneaux proposés » ou « Confirmer » -->
+    <div class="alerte-fond" id="alerte-motifs" hidden>
+      <section class="alerte-boite" role="alertdialog" aria-modal="true" aria-labelledby="alerte-motifs-titre" aria-describedby="alerte-motifs-texte">
+        <div class="alerte-icone" aria-hidden="true">!</div>
+        <h2 id="alerte-motifs-titre">Motif standardisé non renseigné</h2>
+        <div class="alerte-texte" id="alerte-motifs-texte">
+          <p>Aucun motif standardisé n'est sélectionné pour cette demande.</p>
+          <p class="alerte-plages">Il sert au tri des demandes et aux statistiques de la clinique.</p>
+        </div>
+        <footer class="alerte-pied">
+          <button type="button" class="btn btn-texte" data-reponse="continuer">Continuer sans motif</button>
+          <button type="button" class="btn btn-principal" data-reponse="modifier">Ajouter un motif</button>
+        </footer>
+      </section>
+    </div>
+
     <!-- Formulaire d'ajout d'un RDV confirmé (saisie manuelle par le secrétariat) -->
     <div class="formulaire-fond" id="formulaire-fond" hidden>
       <section class="formulaire" role="dialog" aria-modal="true" aria-labelledby="formulaire-titre">

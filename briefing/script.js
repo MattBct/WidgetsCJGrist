@@ -15,7 +15,12 @@ const COLONNES = [
     { name: "Visioconference", title: "Visioconférence", type: "Bool", optional: true, description: "RDV en visioconférence (affiche une vignette Visio, le RDV reste dans sa salle)" },
     { name: "Cliniciens_briefing", title: "Cliniciens (briefing)", type: "Any,RefList,Text", optional: true, description: "Colonne formule donnant le nom et le téléphone de chaque clinicien : [[c.Prenom + \" \" + c.Nom.upper(), c.Telephone] for c in $Cliniciens_affectes]" },
     { name: "Commentaires", title: "Commentaires", type: "Text", optional: true, description: "Commentaires affichés sur la feuille d'émargement" },
+    { name: "Statut_RDV", title: "Statut de la demande", type: "Choice,Text", optional: true, description: "Les RDV « Créneaux proposés » (non confirmés par le patient) sont affichés en gris pointillé" },
 ];
+
+// Statut écrit par le widget gestion_demandes_RDV : créneaux proposés au patient, pas encore confirmés
+const STATUT_PROPOSE = 'Créneaux proposés';
+const LIBELLE_PROPOSE = 'À confirmer';
 
 // Nombre minimal de lignes clinicien par RDV : complété par des lignes vierges à remplir à la main
 const NB_LIGNES_CLINICIENS_MIN = 5;
@@ -200,6 +205,7 @@ function getRdvDuJour(cle) {
                 motif: String(dossier.Motif_RDV || '').trim(),
                 motifsStandardises: lireListe(dossier.Motifs_standardises),
                 visio: dossier.Visioconference === true,
+                propose: String(dossier.Statut_RDV ?? '').trim() === STATUT_PROPOSE,
                 cliniciens: getCliniciens(dossier.Cliniciens_briefing),
                 commentaires: String(dossier.Commentaires || '').trim(),
                 suivi: getSuiviRdv(dossier, creneau),
@@ -264,9 +270,11 @@ function renderSynthese(rdvs, salles, horaires) {
     const nbRdv2 = rdvs.filter(rdv => rdv.creneau.ordre === 2).length;
     const nbSalles = salles.filter(s => s !== SANS_SALLE).length;
     const nbVisio = rdvs.filter(rdv => rdv.visio).length;
+    const nbProposes = rdvs.filter(rdv => rdv.propose).length;
     const plage = horaires.length > 0 ? `${horaires[0]} → ${horaires[horaires.length - 1]}` : '—';
 
-    const legende = CRENEAUX_RDV.map(c => `<span class="legende-item"><span class="pastille ${c.classe}"></span>${echapper(c.label)}</span>`).join('');
+    const legende = CRENEAUX_RDV.map(c => `<span class="legende-item"><span class="pastille ${c.classe}"></span>${echapper(c.label)}</span>`).join('')
+        + (nbProposes > 0 ? `<span class="legende-item"><span class="pastille propose"></span>Créneaux proposés, ${LIBELLE_PROPOSE.toLowerCase()}</span>` : '');
 
     return `
         <div class="chiffres">
@@ -275,6 +283,7 @@ function renderSynthese(rdvs, salles, horaires) {
             <span class="chiffre"><strong>${nbRdv2}</strong> ${plur(nbRdv2, 'second', 'seconds')}</span>
             <span class="chiffre"><strong>${nbSalles}</strong> ${plur(nbSalles, 'salle occupée', 'salles occupées')}</span>
             ${nbVisio > 0 ? `<span class="chiffre chiffre-visio">${ICONE_VISIO}<strong>${nbVisio}</strong> en visio</span>` : ''}
+            ${nbProposes > 0 ? `<span class="chiffre chiffre-propose"><strong>${nbProposes}</strong> ${LIBELLE_PROPOSE.toLowerCase()}</span>` : ''}
             <span class="chiffre"><strong>${plage}</strong></span>
         </div>
         <div class="legende">${legende}</div>
@@ -319,12 +328,13 @@ function renderCarte(rdv) {
     const selection = rdv.rowId === rowIdSelectionne ? ' selectionnee' : '';
 
     return `
-        <div class="carte ${rdv.creneau.classe}${rdv.visio ? ' carte-visio' : ''}${selection}" data-row-id="${rdv.rowId}">
+        <div class="carte ${rdv.creneau.classe}${rdv.visio ? ' carte-visio' : ''}${rdv.propose ? ' carte-propose' : ''}${selection}" data-row-id="${rdv.rowId}">
             ${rdv.visio ? `<div class="bandeau-visio">${ICONE_VISIO}Visioconférence</div>` : ''}
             <div class="carte-entete">
                 <span class="carte-id">${echapper(rdv.identifiant) || '—'}</span>
                 <span class="badge">${rdv.creneau.badge}</span>
             </div>
+            ${rdv.propose ? `<span class="badge badge-propose">${LIBELLE_PROPOSE}</span>` : ''}
             <span class="carte-patient">${echapper(rdv.nom)} ${echapper(rdv.prenom)}</span>
             ${contact}
             ${renderSuiviRdv(rdv)}
@@ -388,11 +398,12 @@ function renderLigneEmargement(rdv) {
                 <strong>${rdv.horaire}</strong>
                 <span>${echapper(rdv.salle.libelle)}</span>
             </td>
-            <td class="em-rdv ${rdv.creneau.classe}">
+            <td class="em-rdv ${rdv.creneau.classe}${rdv.propose ? ' em-propose' : ''}">
                 <span class="carte-id">${echapper(rdv.identifiant) || '—'}</span>
                 <span class="em-badges">
                     <span class="badge">${rdv.creneau.badge}</span>
                     ${rdv.visio ? `<span class="badge badge-visio">${ICONE_VISIO}Visio</span>` : ''}
+                    ${rdv.propose ? `<span class="badge badge-propose">${LIBELLE_PROPOSE}</span>` : ''}
                 </span>
                 <span class="carte-patient">${echapper(rdv.nom)} ${echapper(rdv.prenom)}</span>
                 ${renderSuiviRdv(rdv)}

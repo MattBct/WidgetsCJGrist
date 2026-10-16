@@ -34,7 +34,26 @@ const PDF_COULEURS = {
     alerteFond: '#FFF3CD',
     alerteTexte: '#7A5B00',
     blanc: '#FFFFFF',
+    // RDV « Créneaux proposés » (non confirmés)
+    proposeFond: '#F2F2F2',
+    proposeBordure: '#A6A6A6',
+    proposeLisere: '#C4C4C4',
+    proposeTexte: '#5A5A5A',
+    proposeTexteFort: '#3A3A3A',
 };
+
+const PDF_POINTILLES = [2, 1.5];
+
+// Pastille « À confirmer » (bordure pointillée dessinée par pdfDessinerPastilles)
+function pdfPastillePropose() {
+    return { texte: LIBELLE_PROPOSE.toUpperCase(), fond: PDF_COULEURS.blanc, bordure: PDF_COULEURS.proposeTexte, couleur: PDF_COULEURS.proposeTexteFort, pointilles: true };
+}
+
+// Motifs standardisés en pastilles bordées (rouge, ou gris pour un RDV non confirmé)
+function pdfPastillesMotifs(rdv) {
+    const couleur = rdv.propose ? PDF_COULEURS.proposeTexte : PDF_COULEURS.cliniqueFonce;
+    return rdv.motifsStandardises.map(motif => ({ texte: motif, bordure: couleur, couleur }));
+}
 
 function pdfCouleur(hex) {
     const n = parseInt(hex.slice(1), 16);
@@ -208,6 +227,7 @@ function pdfRectangleArrondi(page, x, yHaut, largeur, hauteur, rayon, options) {
         color: options.fond ? pdfCouleur(options.fond) : undefined,
         borderColor: options.bordure ? pdfCouleur(options.bordure) : undefined,
         borderWidth: options.bordure ? (options.epaisseur ?? 0.8) : 0,
+        borderDashArray: options.pointilles ? PDF_POINTILLES : undefined,
     });
 }
 
@@ -238,7 +258,7 @@ function pdfDisposerPastilles(pastilles, police, taille, largeurMax) {
 
 function pdfDessinerPastilles(page, disposition, x, yHaut, police, taille) {
     disposition.positions.forEach(p => {
-        pdfRectangleArrondi(page, x + p.x, yHaut + p.y, p.largeur, p.hauteur, p.hauteur / 2, { fond: p.fond, bordure: p.bordure });
+        pdfRectangleArrondi(page, x + p.x, yHaut + p.y, p.largeur, p.hauteur, p.hauteur / 2, { fond: p.fond, bordure: p.bordure, pointilles: p.pointilles });
         pdfEcrire(page, p.texte, x + p.x + 5, yHaut + p.y + 2.2, police, taille, p.couleur);
     });
 }
@@ -303,11 +323,10 @@ function pdfPreparerLigne(rdv, polices, colonnes) {
     const badges = pdfDisposerPastilles([
         { texte: rdv.creneau.badge, fond: PDF_COULEURS.blanc, bordure: PDF_COULEURS.bordure, couleur: PDF_COULEURS.cliniqueFonce },
         ...(rdv.visio ? [{ texte: 'Visio', fond: PDF_COULEURS.texte, couleur: PDF_COULEURS.blanc }] : []),
+        ...(rdv.propose ? [pdfPastillePropose()] : []),
     ], polices.bold, 6.5, interieur(1));
     const patient = pdfLignes(`${rdv.nom} ${rdv.prenom}`.trim(), polices.bold, 8, interieur(1));
-    const motifs = pdfDisposerPastilles(
-        rdv.motifsStandardises.map(motif => ({ texte: motif, bordure: PDF_COULEURS.cliniqueFonce, couleur: PDF_COULEURS.cliniqueFonce })),
-        polices.bold, 6.5, interieur(1));
+    const motifs = pdfDisposerPastilles(pdfPastillesMotifs(rdv), polices.bold, 6.5, interieur(1));
     const suivi = pdfPreparerSuivi(rdv, polices, interieur(1) - 2, 6);
     const hauteurRdv = 13 + 3 + badges.hauteur + 3 + patient.length * 10 + 1 + suivi.hauteur + 3 + (motifs.hauteur || 9);
 
@@ -341,7 +360,7 @@ function pdfDessinerLigne(ctx, rdv, prep, yHaut, index) {
 
     // Cellules : fond de la colonne horaire, liseré couleur du RDV, bordures
     page.drawRectangle({ x: colonnes[0].x, y: pdfY(yHaut + hauteur), width: colonnes[0].largeur, height: hauteur, color: pdfCouleur(PDF_COULEURS.fondDoux) });
-    page.drawRectangle({ x: colonnes[1].x, y: pdfY(yHaut + hauteur), width: 4, height: hauteur, color: pdfCouleur(rdv.creneau.ordre === 2 ? PDF_COULEURS.rdv2 : PDF_COULEURS.rdv1) });
+    page.drawRectangle({ x: colonnes[1].x, y: pdfY(yHaut + hauteur), width: 4, height: hauteur, color: pdfCouleur(rdv.propose ? PDF_COULEURS.proposeLisere : rdv.creneau.ordre === 2 ? PDF_COULEURS.rdv2 : PDF_COULEURS.rdv1) });
     colonnes.forEach(c => page.drawRectangle({
         x: c.x, y: pdfY(yHaut + hauteur), width: c.largeur, height: hauteur,
         borderColor: pdfCouleur(PDF_COULEURS.bordure), borderWidth: 0.6,
@@ -495,8 +514,9 @@ function pdfLignesMail(mail, police, largeur) {
 // Carte RDV de la grille : identifiant, badge, patient, coordonnées, motifs standardisés
 function pdfPreparerCarte(rdv, polices, largeur) {
     const interieur = largeur - 3 - 2 * 4;
-    const badge = pdfDisposerPastilles([{ texte: rdv.creneau.badge, fond: PDF_COULEURS.blanc, couleur: PDF_COULEURS.cliniqueFonce }], polices.bold, 6, interieur);
+    const badge = pdfDisposerPastilles([{ texte: rdv.creneau.badge, fond: PDF_COULEURS.blanc, couleur: rdv.propose ? PDF_COULEURS.proposeTexteFort : PDF_COULEURS.cliniqueFonce }], polices.bold, 6, interieur);
     const largeurBadge = badge.positions[0].largeur;
+    const propose = rdv.propose ? pdfDisposerPastilles([pdfPastillePropose()], polices.bold, 5.5, interieur) : null;
     const identifiant = pdfLigneTronquee(rdv.identifiant || '—', polices.extraBold, 9.5, interieur - largeurBadge - 4);
     const patient = pdfLignes(`${rdv.nom} ${rdv.prenom}`.trim(), polices.bold, 7.5, interieur);
     const contact = [
@@ -504,44 +524,55 @@ function pdfPreparerCarte(rdv, polices, largeur) {
         ...(rdv.mail ? pdfLignesMail(rdv.mail, polices.regular, interieur) : []),
     ];
     const suivi = pdfPreparerSuivi(rdv, polices, interieur, 6);
-    const motifs = pdfDisposerPastilles(
-        rdv.motifsStandardises.map(motif => ({ texte: motif, bordure: PDF_COULEURS.cliniqueFonce, couleur: PDF_COULEURS.cliniqueFonce })),
-        polices.bold, 6, interieur);
-    const hauteur = 4 + (rdv.visio ? 12 : 0) + 12 + patient.length * 9.5 + contact.length * 9 + 1 + suivi.hauteur + 4 + (motifs.hauteur || 9) + 4;
-    return { rdv, badge, largeurBadge, identifiant, patient, contact, suivi, motifs, hauteur };
+    const motifs = pdfDisposerPastilles(pdfPastillesMotifs(rdv), polices.bold, 6, interieur);
+    const hauteur = 4 + (rdv.visio ? 12 : 0) + 12 + (propose ? propose.hauteur + 3 : 0) + patient.length * 9.5 + contact.length * 9 + 1 + suivi.hauteur + 4 + (motifs.hauteur || 9) + 4;
+    return { rdv, badge, largeurBadge, propose, identifiant, patient, contact, suivi, motifs, hauteur };
 }
 
 function pdfDessinerCarte(page, polices, carte, x, yHaut, largeur) {
     const { rdv, hauteur } = carte;
     const second = rdv.creneau.ordre === 2;
-    page.drawRectangle({ x, y: pdfY(yHaut + hauteur), width: largeur, height: hauteur, color: pdfCouleur(second ? PDF_COULEURS.rdv2 : PDF_COULEURS.rdv1) });
-    page.drawRectangle({ x, y: pdfY(yHaut + hauteur), width: 3, height: hauteur, color: pdfCouleur(second ? PDF_COULEURS.cliniqueFonce : PDF_COULEURS.clinique) });
+    // Couleurs de la carte : rose (1er RDV), rose soutenu (2nd RDV) ou gris estompé (créneaux proposés, non confirmés)
+    const teinte = rdv.propose
+        ? { fond: PDF_COULEURS.proposeFond, texte: PDF_COULEURS.proposeTexteFort, contact: PDF_COULEURS.proposeTexte, suivi: PDF_COULEURS.proposeTexte, separateur: '#B5B5B5', visio: PDF_COULEURS.proposeTexte }
+        : { fond: second ? PDF_COULEURS.rdv2 : PDF_COULEURS.rdv1, texte: PDF_COULEURS.texte, contact: '#333333', suivi: second ? '#3A3A3A' : PDF_COULEURS.doux, separateur: '#B9A0A0', visio: PDF_COULEURS.texte };
+    page.drawRectangle({ x, y: pdfY(yHaut + hauteur), width: largeur, height: hauteur, color: pdfCouleur(teinte.fond) });
+    if (rdv.propose) {
+        // Contour en pointillé fin gris
+        page.drawRectangle({ x, y: pdfY(yHaut + hauteur), width: largeur, height: hauteur, borderColor: pdfCouleur(PDF_COULEURS.proposeBordure), borderWidth: 0.5, borderDashArray: [1.5, 1.2] });
+    }
+    page.drawRectangle({ x, y: pdfY(yHaut + hauteur), width: 3, height: hauteur, color: pdfCouleur(rdv.propose ? PDF_COULEURS.proposeLisere : second ? PDF_COULEURS.cliniqueFonce : PDF_COULEURS.clinique) });
 
     const xTexte = x + 3 + 4;
     let y = yHaut;
     if (rdv.visio) {
-        page.drawRectangle({ x, y: pdfY(y + 10), width: largeur, height: 10, color: pdfCouleur(PDF_COULEURS.texte) });
+        page.drawRectangle({ x, y: pdfY(y + 10), width: largeur, height: 10, color: pdfCouleur(teinte.visio) });
         pdfIconeVisio(page, xTexte, y + 1, 8, PDF_COULEURS.blanc);
         pdfEcrire(page, 'VISIOCONFÉRENCE', xTexte + 10, y + 2.3, polices.extraBold, 5.5, PDF_COULEURS.blanc);
-        page.drawRectangle({ x, y: pdfY(yHaut + hauteur), width: largeur, height: hauteur, borderColor: pdfCouleur(PDF_COULEURS.texte), borderWidth: 0.8, borderDashArray: [2, 1.5] });
+        if (!rdv.propose) {
+            page.drawRectangle({ x, y: pdfY(yHaut + hauteur), width: largeur, height: hauteur, borderColor: pdfCouleur(teinte.visio), borderWidth: 0.8, borderDashArray: PDF_POINTILLES });
+        }
         y += 12;
     }
     y += 4;
-    pdfEcrire(page, carte.identifiant, xTexte, y, polices.extraBold, 9.5);
+    pdfEcrire(page, carte.identifiant, xTexte, y, polices.extraBold, 9.5, teinte.texte);
     pdfDessinerPastilles(page, carte.badge, x + largeur - 4 - carte.largeurBadge, y + 0.5, polices.bold, 6);
     y += 12;
+    if (carte.propose) {
+        pdfDessinerPastilles(page, carte.propose, xTexte, y, polices.bold, 5.5);
+        y += carte.propose.hauteur + 3;
+    }
     carte.patient.forEach(ligne => {
-        pdfEcrire(page, ligne, xTexte, y, polices.bold, 7.5);
+        pdfEcrire(page, ligne, xTexte, y, polices.bold, 7.5, teinte.texte);
         y += 9.5;
     });
     carte.contact.forEach(ligne => {
-        pdfEcrire(page, ligne.texte, xTexte, y, polices.regular, ligne.taille, '#333333');
+        pdfEcrire(page, ligne.texte, xTexte, y, polices.regular, ligne.taille, teinte.contact);
         y += 9;
     });
-    // Gris plus foncé sur le rose soutenu des seconds RDV, pour rester lisible
-    y = pdfDessinerSuivi(page, polices, carte.suivi, xTexte, y + 1, second ? '#3A3A3A' : PDF_COULEURS.doux);
+    y = pdfDessinerSuivi(page, polices, carte.suivi, xTexte, y + 1, teinte.suivi);
     y += 1.5;
-    page.drawLine({ start: { x: xTexte, y: pdfY(y) }, end: { x: x + largeur - 4, y: pdfY(y) }, thickness: 0.5, color: pdfCouleur('#B9A0A0'), dashArray: [2, 1.5] });
+    page.drawLine({ start: { x: xTexte, y: pdfY(y) }, end: { x: x + largeur - 4, y: pdfY(y) }, thickness: 0.5, color: pdfCouleur(teinte.separateur), dashArray: PDF_POINTILLES });
     y += 2.5;
     if (carte.motifs.positions.length > 0) {
         pdfDessinerPastilles(page, carte.motifs, xTexte, y, polices.bold, 6);
@@ -706,47 +737,69 @@ function pdfDessinerBandeau(ctx, images) {
 function pdfDessinerSynthese(ctx, rdvs, salles, yHaut) {
     const { page, polices } = ctx;
     const x = PDF_PAGE.marge;
-    const hauteur = 22;
-    pdfRectangleArrondi(page, x, yHaut, PDF_LARGEUR_UTILE, hauteur, 4, { bordure: PDF_COULEURS.bordure });
 
     const horaires = [...new Set(rdvs.map(rdv => rdv.horaire))];
     const nbRdv1 = rdvs.filter(rdv => rdv.creneau.ordre === 1).length;
     const nbRdv2 = rdvs.length - nbRdv1;
     const nbSalles = salles.filter(s => s !== SANS_SALLE).length;
     const nbVisio = rdvs.filter(rdv => rdv.visio).length;
+    const nbProposes = rdvs.filter(rdv => rdv.propose).length;
     const chiffres = [
         [rdvs.length, 'RDV'],
         [nbRdv1, plur(nbRdv1, 'premier', 'premiers')],
         [nbRdv2, plur(nbRdv2, 'second', 'seconds')],
         [nbSalles, plur(nbSalles, 'salle occupée', 'salles occupées')],
         ...(nbVisio > 0 ? [[nbVisio, 'en visio']] : []),
+        ...(nbProposes > 0 ? [[nbProposes, LIBELLE_PROPOSE.toLowerCase()]] : []),
         [`${horaires[0]} – ${horaires[horaires.length - 1]}`, ''],
-    ];
-    let xChiffre = x + 8;
-    const yTexte = yHaut + (hauteur - 9) / 2;
-    chiffres.forEach(([valeur, libelle]) => {
+    ].map(([valeur, libelle]) => {
         const texteValeur = pdfTexte(polices.extraBold, String(valeur));
-        pdfEcrire(page, texteValeur, xChiffre, yTexte, polices.extraBold, 9, PDF_COULEURS.clinique);
-        xChiffre += polices.extraBold.widthOfTextAtSize(texteValeur, 9) + 2.5;
-        if (libelle) {
-            const texteLibelle = pdfTexte(polices.regular, libelle);
-            pdfEcrire(page, texteLibelle, xChiffre, yTexte + 0.8, polices.regular, 7.5);
-            xChiffre += polices.regular.widthOfTextAtSize(texteLibelle, 7.5);
+        const texteLibelle = libelle ? pdfTexte(polices.regular, libelle) : '';
+        const largeurValeur = polices.extraBold.widthOfTextAtSize(texteValeur, 9);
+        const largeur = largeurValeur + (texteLibelle ? 2.5 + polices.regular.widthOfTextAtSize(texteLibelle, 7.5) : 0);
+        return { texteValeur, texteLibelle, largeurValeur, largeur };
+    });
+    const largeurChiffres = chiffres.reduce((total, c) => total + c.largeur + 10, 0);
+
+    // Légende des couleurs : carré + libellé
+    const legende = [
+        ...CRENEAUX_RDV.map(creneau => ({
+            libelle: creneau.label,
+            dessiner: (xCarre, y) => {
+                page.drawRectangle({ x: xCarre, y: pdfY(y + 8.5), width: 8.5, height: 8.5, color: pdfCouleur(creneau.ordre === 2 ? PDF_COULEURS.rdv2 : PDF_COULEURS.rdv1) });
+                page.drawRectangle({ x: xCarre, y: pdfY(y + 8.5), width: 2.5, height: 8.5, color: pdfCouleur(creneau.ordre === 2 ? PDF_COULEURS.cliniqueFonce : PDF_COULEURS.clinique) });
+            },
+        })),
+        ...(nbProposes > 0 ? [{
+            libelle: `${STATUT_PROPOSE}, ${LIBELLE_PROPOSE.toLowerCase()}`,
+            dessiner: (xCarre, y) => page.drawRectangle({ x: xCarre, y: pdfY(y + 8.5), width: 8.5, height: 8.5, color: pdfCouleur(PDF_COULEURS.proposeFond), borderColor: pdfCouleur(PDF_COULEURS.proposeBordure), borderWidth: 0.5, borderDashArray: [1.5, 1.2] }),
+        }] : []),
+    ].map(item => ({ ...item, texte: pdfTexte(polices.regular, item.libelle) }))
+        .map(item => ({ ...item, largeur: 12 + polices.regular.widthOfTextAtSize(item.texte, 6.5) }));
+    const largeurLegende = legende.reduce((total, item) => total + item.largeur, 0) + 10 * (legende.length - 1);
+
+    // Chiffres et légende sur une ligne si la place le permet, sinon légende en dessous
+    const surUneLigne = 8 + largeurChiffres + largeurLegende + 8 <= PDF_LARGEUR_UTILE;
+    const hauteur = surUneLigne ? 22 : 34;
+    pdfRectangleArrondi(page, x, yHaut, PDF_LARGEUR_UTILE, hauteur, 4, { bordure: PDF_COULEURS.bordure });
+
+    let xChiffre = x + 8;
+    const yTexte = surUneLigne ? yHaut + (22 - 9) / 2 : yHaut + 6;
+    chiffres.forEach(c => {
+        pdfEcrire(page, c.texteValeur, xChiffre, yTexte, polices.extraBold, 9, PDF_COULEURS.clinique);
+        if (c.texteLibelle) {
+            pdfEcrire(page, c.texteLibelle, xChiffre + c.largeurValeur + 2.5, yTexte + 0.8, polices.regular, 7.5);
         }
-        xChiffre += 10;
+        xChiffre += c.largeur + 10;
     });
 
-    // Légende des couleurs, alignée à droite
-    let xLegende = x + PDF_LARGEUR_UTILE - 8;
-    const yLegende = yHaut + (hauteur - 8) / 2;
-    [...CRENEAUX_RDV].reverse().forEach(creneau => {
-        const libelle = pdfTexte(polices.regular, creneau.label);
-        xLegende -= polices.regular.widthOfTextAtSize(libelle, 6.5);
-        pdfEcrire(page, libelle, xLegende, yLegende + 1, polices.regular, 6.5, PDF_COULEURS.doux);
-        xLegende -= 12;
-        page.drawRectangle({ x: xLegende, y: pdfY(yLegende + 8.5), width: 8.5, height: 8.5, color: pdfCouleur(creneau.ordre === 2 ? PDF_COULEURS.rdv2 : PDF_COULEURS.rdv1) });
-        page.drawRectangle({ x: xLegende, y: pdfY(yLegende + 8.5), width: 2.5, height: 8.5, color: pdfCouleur(creneau.ordre === 2 ? PDF_COULEURS.cliniqueFonce : PDF_COULEURS.clinique) });
-        xLegende -= 10;
+    // Légende alignée à droite
+    let xLegende = x + PDF_LARGEUR_UTILE - 8 - largeurLegende;
+    const yLegende = surUneLigne ? yHaut + (22 - 8) / 2 : yHaut + hauteur - 6 - 8.5;
+    legende.forEach(item => {
+        item.dessiner(xLegende, yLegende);
+        pdfEcrire(page, item.texte, xLegende + 12, yLegende + 1, polices.regular, 6.5, PDF_COULEURS.doux);
+        xLegende += item.largeur + 10;
     });
     return yHaut + hauteur + 8;
 }

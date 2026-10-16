@@ -9,6 +9,12 @@
     --texte-doux: #5f5f5f;
     --bordure: #d9d9d9;
     --fond-doux: #f5f5f5;
+    /* RDV « Créneaux proposés » (non confirmés) */
+    --propose-fond: #f2f2f2;
+    --propose-bordure: #a6a6a6;
+    --propose-lisere: #c4c4c4;
+    --propose-texte: #5a5a5a;
+    --propose-texte-fort: #3a3a3a;
 }
 
 *, *::before, *::after {
@@ -417,6 +423,71 @@ html, body {
     text-transform: uppercase;
 }
 
+/* Créneaux proposés au patient, pas encore confirmés : carte grise estompée, contour en pointillé fin.
+   Couleurs explicites plutôt qu'une opacité : le texte reste net et contrasté à l'impression. */
+.carte.carte-propose {
+    background: var(--propose-fond);
+    border: 1px dashed var(--propose-bordure);
+    border-left: 4px solid var(--propose-lisere);
+    color: var(--propose-texte);
+}
+
+.carte.carte-propose .carte-id,
+.carte.carte-propose .carte-patient {
+    color: var(--propose-texte-fort);
+}
+
+.carte.carte-propose .carte-contact,
+.carte.carte-propose .suivi-rdv {
+    color: var(--propose-texte);
+}
+
+.carte.carte-propose .badge {
+    background: #ffffff;
+    color: var(--propose-texte-fort);
+}
+
+.carte.carte-propose .motif-std {
+    border-color: var(--propose-bordure);
+    color: var(--propose-texte);
+}
+
+.carte.carte-propose .carte-motifs {
+    border-top-color: rgba(0, 0, 0, 0.15);
+}
+
+/* Visio non confirmée : le bandeau suffit, pas de second contour pointillé par-dessus */
+.carte.carte-propose.carte-visio {
+    outline: none;
+}
+
+.carte.carte-propose .bandeau-visio {
+    background: var(--propose-texte);
+}
+
+.badge.badge-propose {
+    align-self: flex-start;
+    border: 1px dashed var(--propose-texte) !important;
+    background: #ffffff;
+    color: var(--propose-texte-fort);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.carte.carte-propose.selectionnee {
+    box-shadow: 0 0 0 2px var(--propose-texte);
+}
+
+.chiffre-propose strong {
+    color: var(--propose-texte-fort);
+}
+
+.pastille.propose {
+    background: var(--propose-fond);
+    border: 1px dashed var(--propose-bordure);
+    border-left: 4px solid var(--propose-lisere);
+}
+
 .icone-visio {
     width: 1.3em;
     height: 1.3em;
@@ -615,6 +686,10 @@ html, body {
 
 .em-rdv.rdv-2 {
     border-left-color: var(--rdv-2) !important;
+}
+
+.em-rdv.em-propose {
+    border-left: 5px solid var(--propose-lisere) !important;
 }
 
 .em-rdv .carte-id,

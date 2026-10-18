@@ -14,8 +14,10 @@ const COLONNES = [
     { name: "Mail_patient", title: "Mail du patient", type: "Text", optional: false, description: "Destinataire du mail" },
     { name: "Creneau_RDV_1", title: "Créneau RDV 1", type: "DateTime", optional: false },
     { name: "Lieu_RDV_1", title: "Lieu RDV 1", type: "Ref,Text,Choice", optional: true, description: "Salle du premier rendez-vous (le libellé affiché dans Grist est repris dans le mail)" },
+    { name: "Adresse_RDV_1", title: "Adresse du lieu RDV 1", type: "Text,Any", optional: true, description: "Adresse de la salle du premier rendez-vous (par ex. colonne formule $Lieu_RDV_1.Adresse) ; variable {{rdv1_adresse}}" },
     { name: "Creneau_RDV_2", title: "Créneau RDV 2", type: "DateTime", optional: true },
     { name: "Lieu_RDV_2", title: "Lieu RDV 2", type: "Ref,Text,Choice", optional: true, description: "Salle du second rendez-vous" },
+    { name: "Adresse_RDV_2", title: "Adresse du lieu RDV 2", type: "Text,Any", optional: true, description: "Adresse de la salle du second rendez-vous (par ex. colonne formule $Lieu_RDV_2.Adresse) ; variable {{rdv2_adresse}}" },
     { name: "Visioconference", title: "Visioconférence", type: "Bool", optional: true, description: "Utilisée par les paragraphes [si visio] / [si présentiel] des modèles" },
 ];
 
@@ -34,9 +36,11 @@ const VARIABLES = [
     { cle: 'rdv1_date', libelle: 'Date RDV 1', valeur: d => d.rdv1.date },
     { cle: 'rdv1_heure', libelle: 'Heure RDV 1', valeur: d => d.rdv1.heure },
     { cle: 'rdv1_lieu', libelle: 'Lieu RDV 1', valeur: d => d.rdv1.lieu },
+    { cle: 'rdv1_adresse', libelle: 'Adresse RDV 1', valeur: d => d.rdv1.adresse },
     { cle: 'rdv2_date', libelle: 'Date RDV 2', valeur: d => d.rdv2.date },
     { cle: 'rdv2_heure', libelle: 'Heure RDV 2', valeur: d => d.rdv2.heure },
     { cle: 'rdv2_lieu', libelle: 'Lieu RDV 2', valeur: d => d.rdv2.lieu },
+    { cle: 'rdv2_adresse', libelle: 'Adresse RDV 2', valeur: d => d.rdv2.adresse },
     { cle: 'date_limite', libelle: 'Date limite de réponse', valeur: d => d.date_limite },
     { cle: 'date_jour', libelle: 'Date du jour', valeur: d => d.date_jour },
     { cle: 'texte_personnalise', libelle: 'Texte personnalisé', bloc: true, valeur: d => d.texte_personnalise },
@@ -48,6 +52,8 @@ const CONDITIONS = [
     { cle: 'visio', libelle: 'RDV en visio', test: d => d.visio },
     { cle: 'présentiel', libelle: 'RDV en présentiel', test: d => !d.visio },
     { cle: 'rdv2', libelle: 'RDV 2 programmé', test: d => Boolean(d.rdv2.debut) },
+    // Adresses renseignées et identiques (casse, accents et espaces ignorés) : par ex. une seule mention de l'adresse
+    { cle: 'même adresse', libelle: 'Même adresse RDV 1 et 2', test: d => Boolean(d.rdv1.adresse) && normaliser(d.rdv1.adresse) === normaliser(d.rdv2.adresse) },
 ];
 
 // Styles écrits dans le HTML du mail : conservés au collage dans la messagerie (les classes CSS ne le sont pas)
@@ -230,7 +236,7 @@ function creerSourceDemo() {
     };
     // Lieux au format reçu de Grist (libellé de la colonne Référence)
     const records = [
-        { id: 41, id_rdv_clinique: 'K7QXM', Nom_patient: 'MARTIN', Prenom_patient: 'Camille', Mail_patient: 'camille.martin@exemple.fr', Creneau_RDV_1: date(6, 18), Lieu_RDV_1: 'Salle Portalis', Creneau_RDV_2: date(20, 18), Lieu_RDV_2: 'Salle Portalis', Visioconference: false },
+        { id: 41, id_rdv_clinique: 'K7QXM', Nom_patient: 'MARTIN', Prenom_patient: 'Camille', Mail_patient: 'camille.martin@exemple.fr', Creneau_RDV_1: date(6, 18), Lieu_RDV_1: 'Salle Portalis', Adresse_RDV_1: 'Manufacture des Tabacs\n1, av. des Frères Lumière, 69008 Lyon', Creneau_RDV_2: date(20, 18), Lieu_RDV_2: 'Salle Portalis', Adresse_RDV_2: 'Manufacture des Tabacs\n1, av. des Frères Lumière, 69008 Lyon', Visioconference: false },
         { id: 42, id_rdv_clinique: '3HPAT', Nom_patient: 'NGUYEN', Prenom_patient: 'Thomas', Mail_patient: 'thomas.nguyen@exemple.org', Creneau_RDV_1: date(7, 17, 30), Lieu_RDV_1: 'Salle Cambacérès', Creneau_RDV_2: date(21, 17, 30), Lieu_RDV_2: 'Salle Cambacérès', Visioconference: true },
         { id: 43, id_rdv_clinique: 'WD9RC', Nom_patient: 'BERNARD', Prenom_patient: 'Léa', Mail_patient: '', Creneau_RDV_1: date(1, 19), Lieu_RDV_1: 'Salle Portalis', Creneau_RDV_2: null, Lieu_RDV_2: '', Visioconference: false },
     ];
@@ -303,9 +309,9 @@ function texte(valeur) {
     return valeur == null || typeof valeur === 'object' ? '' : String(valeur).trim();
 }
 
-// Sans accents ni majuscules : « Présentiel » -> « presentiel »
+// Sans accents, majuscules ni espaces multiples : « Même  Adresse » -> « meme adresse »
 function normaliser(valeur) {
-    return String(valeur).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+    return String(valeur).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
 }
 
 function echapper(valeur) {
@@ -374,13 +380,15 @@ function creneauCourt(date) {
 
 // ---------- Données d'un RDV ----------
 
-function creneau(valeurDate, valeurLieu) {
+function creneau(valeurDate, valeurLieu, valeurAdresse) {
     const debut = versDate(valeurDate);
     return {
         debut,
         date: debut ? jourLong(debut) : '',
         heure: debut ? heure(debut) : '',
         lieu: texte(valeurLieu),
+        // Adresse sur plusieurs lignes dans Grist : une seule ligne dans le mail
+        adresse: texte(valeurAdresse).replace(/\s*\n\s*/g, ', '),
     };
 }
 
@@ -408,7 +416,7 @@ function libelleLimite(limite) {
 function donnees(record) {
     const prenom = texte(record.Prenom_patient);
     const nom = texte(record.Nom_patient);
-    const rdv1 = creneau(record.Creneau_RDV_1, record.Lieu_RDV_1);
+    const rdv1 = creneau(record.Creneau_RDV_1, record.Lieu_RDV_1, record.Adresse_RDV_1);
     if (!limites.has(record.id)) {
         limites.set(record.id, limiteParDefaut(rdv1.debut));
     }
@@ -421,7 +429,7 @@ function donnees(record) {
         identifiant: texte(record.id_rdv_clinique),
         mail: texte(record.Mail_patient),
         rdv1,
-        rdv2: creneau(record.Creneau_RDV_2, record.Lieu_RDV_2),
+        rdv2: creneau(record.Creneau_RDV_2, record.Lieu_RDV_2, record.Adresse_RDV_2),
         visio: record.Visioconference === true,
         limite: limites.get(record.id),
         date_limite: libelleLimite(limites.get(record.id)),
@@ -465,18 +473,18 @@ function enrichir(html) {
 // interprétées comme de la mise en forme, puis gras / surligné / italique
 function rendreLigne(ligne, rendu) {
     const jetons = [];
-    const jeton = html => `${jetons.push(html) - 1}`;
+    const jeton = html => `\uE000${jetons.push(html) - 1}\uE001`;
 
     let html = echapper(ligne.replace(/\{\{\s*([^{}]+?)\s*\}\}/g, (tout, cle) => jeton(valeurVariable(cle, rendu))));
     html = html
         .replace(/\[([^\]]+)\]\(((?:https?:\/\/|mailto:)[^\s)]+)\)/g, (tout, libelle, url) => jeton(`<a href="${url}">${enrichir(libelle)}</a>`))
         // Adresse seule : la ponctuation finale et les marques de mise en forme (** ==) restent hors du lien
-        .replace(/https?:\/\/[^\s<]*[^\s<.,;:!?)»*=]/g, url => jeton(`<a href="${url}">${url}</a>`));
+        .replace(/https?:\/\/[^\s<\uE000]*[^\s<\uE000.,;:!?)»*=]/g, url => jeton(`<a href="${url}">${url}</a>`));
     html = enrichir(html);
 
     // Un lien peut contenir une variable : jetons remplacés jusqu'à épuisement
-    while (/\d+/.test(html)) {
-        html = html.replace(/(\d+)/g, (tout, i) => jetons[i]);
+    while (/\uE000\d+\uE001/.test(html)) {
+        html = html.replace(/\uE000(\d+)\uE001/g, (tout, i) => jetons[i]);
     }
     return html;
 }

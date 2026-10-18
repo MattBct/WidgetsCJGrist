@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <!-- Widget Grist générant les mails à envoyer aux usagers pour leurs RDV (à copier-coller dans la messagerie).
+  Les modèles de mail sont enregistrés dans la table Modeles_mails du document (créée par le widget si besoin),
+  modifiables depuis le widget (« Gérer les modèles ») ou directement dans Grist.
+  Ouvrir index.html?demo (ou hors de Grist) pour un aperçu avec des données fictives.
+  Remplace le widget emailgen (modèles écrits dans le code).
+  Matthieu Bouchet - Oct. 2026
+  -->
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Mails aux usagers</title>
+    <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+    <link rel="stylesheet" href="main.css">
+  </head>
+
+  <body>
+    <header class="entete">
+      <img class="entete-logo" src="logoCJ_blanc.png" alt="Clinique Juridique — Faculté de droit, Université Jean Moulin Lyon III">
+      <div class="entete-titre">
+        <h1>Mails aux usagers</h1>
+        <span class="compteur" id="rdv-courant" hidden></span>
+      </div>
+      <img class="entete-illustration" src="facade_blanc.png" alt="" aria-hidden="true">
+    </header>
+
+    <nav class="barre-outils">
+      <label class="choix">
+        <span class="choix-label">RDV</span>
+        <select id="choix-rdv"></select>
+      </label>
+      <label class="choix">
+        <span class="choix-label">Modèle</span>
+        <select id="choix-modele"></select>
+      </label>
+      <div class="barre-actions">
+        <button type="button" class="btn btn-secondaire" id="ouvrir-gestion" aria-expanded="false">Gérer les modèles</button>
+      </div>
+    </nav>
+
+    <div class="espace">
+    <!-- Gestion des modèles : chaque modèle est une ligne de la table Modeles_mails -->
+    <section class="config" id="gestion" hidden>
+      <div class="config-colonnes">
+        <div class="config-bloc">
+          <h2>Modèles</h2>
+          <p class="aide">Enregistrés dans la table <code id="nom-table"></code> du document : modifiables aussi directement dans Grist.</p>
+          <ol class="liste-modeles" id="liste-modeles"></ol>
+          <div class="config-boutons">
+            <button type="button" class="btn btn-secondaire btn-petit" id="ajouter-modele">+ Nouveau modèle</button>
+          </div>
+        </div>
+
+        <div class="config-bloc" id="edition-modele" hidden>
+          <h2>Modèle sélectionné</h2>
+          <label class="champ">
+            <span class="champ-label">Nom du modèle</span>
+            <input type="text" id="m-nom">
+          </label>
+          <label class="champ">
+            <span class="champ-label">Objet du mail</span>
+            <input type="text" id="m-objet">
+          </label>
+          <label class="champ">
+            <span class="champ-label">Texte du mail</span>
+            <textarea id="m-corps" rows="16" spellcheck="true"></textarea>
+          </label>
+          <div class="variables">
+            <span class="aide">Insérer une variable (cliquer) :</span>
+            <div class="variables-liste" id="variables"></div>
+            <span class="aide">Afficher un paragraphe seulement si… (cliquer pour l’ajouter au début du paragraphe) :</span>
+            <div class="variables-liste" id="conditions"></div>
+          </div>
+          <details class="aide-syntaxe">
+            <summary>Mise en forme (Markdown simplifié)</summary>
+            <ul>
+              <li>Une ligne vide sépare deux paragraphes ; un simple retour à la ligne est conservé.</li>
+              <li>Des lignes commençant par <code>- </code> forment une liste à puces.</li>
+              <li><code>**gras**</code>, <code>*italique*</code> et <code>==surligné==</code> (pour les consignes importantes).</li>
+              <li><code>[texte du lien](https://…)</code> ; une adresse <code>https://…</code> seule devient aussi un lien.</li>
+              <li><code>[si visio]</code> au début d’un paragraphe : paragraphe affiché seulement pour un RDV en visioconférence (de même <code>[si présentiel]</code>, <code>[si rdv2]</code>…).</li>
+              <li><code>{{texte_personnalise}}</code> seul dans un paragraphe : emplacement du texte personnalisé (sinon placé après la formule d’appel).</li>
+            </ul>
+          </details>
+        </div>
+      </div>
+
+      <div class="config-pied">
+        <span class="etat-config" id="etat-config"></span>
+        <button type="button" class="btn btn-texte" id="fermer-gestion">Fermer</button>
+        <button type="button" class="btn btn-secondaire" id="annuler-modele" disabled>Annuler les modifications</button>
+        <button type="button" class="btn btn-principal" id="enregistrer-modele" disabled>Enregistrer le modèle</button>
+      </div>
+    </section>
+
+    <div class="bandeau alerte" id="message" hidden></div>
+
+    <!-- Première utilisation : la table des modèles n'existe pas encore -->
+    <section class="creation-table" id="creation-table" hidden>
+      <p>La table <code class="nom-table"></code> des modèles de mail n’existe pas encore dans ce document.</p>
+      <button type="button" class="btn btn-principal" id="creer-table">Créer la table avec les modèles par défaut</button>
+    </section>
+
+    <main class="redaction" id="redaction" hidden>
+      <section class="options-mail">
+        <div class="champ" id="champ-limite" hidden>
+          <span class="champ-label">Date limite de réponse</span>
+          <div class="limite-ligne">
+            <input type="date" id="limite-date" aria-label="Date limite de réponse">
+            <span>à</span>
+            <input type="time" id="limite-heure" aria-label="Heure limite de réponse">
+          </div>
+          <span class="aide">Variable <code>{{date_limite}}</code> du modèle.</span>
+        </div>
+        <label class="champ champ-texte">
+          <span class="champ-label">Texte personnalisé (facultatif)</span>
+          <textarea id="texte-perso" rows="2" placeholder="Ex. : Pensez à apporter votre contrat de bail et le dernier avis d’échéance."></textarea>
+          <span class="aide" id="aide-texte"></span>
+        </label>
+      </section>
+
+      <article class="mail">
+        <div class="mail-entete">
+          <div class="mail-ligne">
+            <span class="mail-cle">À</span>
+            <span class="mail-valeur" id="mail-a"></span>
+            <button type="button" class="btn-icone" data-copier="a" title="Copier l’adresse">⧉</button>
+          </div>
+          <div class="mail-ligne">
+            <span class="mail-cle">Objet</span>
+            <span class="mail-valeur mail-objet" id="mail-objet"></span>
+            <button type="button" class="btn-icone" data-copier="objet" title="Copier l’objet">⧉</button>
+          </div>
+        </div>
+        <div class="mail-corps" id="mail-corps"></div>
+        <footer class="mail-pied">
+          <span class="etat-mail" id="etat-mail"></span>
+          <button type="button" class="btn btn-principal" id="copier-mail" title="Copie le texte mis en forme, à coller dans le corps du mail">Copier le mail</button>
+        </footer>
+      </article>
+    </main>
+    </div>
+
+    <div class="toast" id="toast" hidden></div>
+
+    <script src="script.js"></script>
+  </body>
+</html>

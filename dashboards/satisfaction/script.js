@@ -15,6 +15,14 @@ const COLUMNS_MAPPING = [
         allowMultiple: false
     },
     {
+        name: "satisfaction_organisation",
+        title: "Satisfaction — organisation générale du RDV",
+        description: "Note de 0 à 10 (prise de RDV, accueil, etc.)",
+        optional: true,
+        type: "Int,Numeric",
+        allowMultiple: false
+    },
+    {
         name: "satisfaction_teneur",
         title: "Satisfaction — teneur de l'entretien",
         description: "Note de 0 à 10",
@@ -49,7 +57,8 @@ const COLUMNS_MAPPING = [
 
 // Sujets notés, dans l'ordre d'affichage
 const SUJETS = [
-    { cle: 'teneur', colonne: 'satisfaction_teneur', libelle: "Teneur de l'entretien", court: 'Teneur', couleur: '#8E2626' },
+    { cle: 'organisation', colonne: 'satisfaction_organisation', libelle: 'Organisation générale du RDV', court: 'Organisation', couleur: '#8E2626' },
+    { cle: 'teneur', colonne: 'satisfaction_teneur', libelle: "Teneur de l'entretien", court: 'Teneur', couleur: '#A73030' },
     { cle: 'information', colonne: 'satisfaction_information', libelle: 'Information juridique', court: 'Information', couleur: '#C03737' },
     { cle: 'duree', colonne: 'satisfaction_duree', libelle: "Durée de l'entretien", court: 'Durée', couleur: '#DB8080' }
 ]
@@ -444,6 +453,7 @@ grist.onRecords((records) => {
     store.pct_satisfaits = retoursNotes.length > 0
         ? Math.round(retoursNotes.filter((retour) => retour.moyenne >= SEUIL_SATISFAIT).length / retoursNotes.length * 100)
         : 0;
+    store.moyenne_organisation = moyenne(notesParSujet.organisation);
     store.moyenne_teneur = moyenne(notesParSujet.teneur);
     store.moyenne_information = moyenne(notesParSujet.information);
     store.moyenne_duree = moyenne(notesParSujet.duree);

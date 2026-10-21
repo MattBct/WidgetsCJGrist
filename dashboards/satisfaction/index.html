@@ -45,10 +45,11 @@
                     dernier_retour: null,
                     moyenne_globale: null,
                     pct_satisfaits: 0,
+                    moyenne_organisation: null,
                     moyenne_teneur: null,
                     moyenne_information: null,
                     moyenne_duree: null,
-                    nb_notes_par_note: { global: [], teneur: [], information: [], duree: [] },
+                    nb_notes_par_note: { global: [], organisation: [], teneur: [], information: [], duree: [] },
                     mode_notes: 'global',
                     mode_retours: 'tous',
                     nb_affiches: RETOURS_PAR_PAGE,
@@ -117,6 +118,11 @@
                     <h3 class="carte-titre">Satisfaction moyenne par sujet</h3>
                     <div class="statistiques">
                         <div class="statistique">
+                            <span class="statistique-valeur"><span x-text="note($store.donnees.moyenne_organisation)"></span><span class="indicateur-unite">/10</span></span>
+                            <span class="statistique-libelle">Organisation générale du RDV</span>
+                            <div class="jauge jauge-fine" role="presentation"><span :style="{ width: largeurJauge($store.donnees.moyenne_organisation) }"></span></div>
+                        </div>
+                        <div class="statistique">
                             <span class="statistique-valeur"><span x-text="note($store.donnees.moyenne_teneur)"></span><span class="indicateur-unite">/10</span></span>
                             <span class="statistique-libelle">Teneur de l'entretien</span>
                             <div class="jauge jauge-fine" role="presentation"><span :style="{ width: largeurJauge($store.donnees.moyenne_teneur) }"></span></div>
@@ -166,6 +172,7 @@
                         <h3 class="carte-titre">Répartition des notes</h3>
                         <div class="bascule" role="group" aria-label="Sujet affiché">
                             <button type="button" :aria-pressed="$store.donnees.mode_notes === 'global'" @click="$store.donnees.mode_notes = 'global'; majGraphiqueNotes()">Tous sujets</button>
+                            <button type="button" :aria-pressed="$store.donnees.mode_notes === 'organisation'" @click="$store.donnees.mode_notes = 'organisation'; majGraphiqueNotes()">Organisation</button>
                             <button type="button" :aria-pressed="$store.donnees.mode_notes === 'teneur'" @click="$store.donnees.mode_notes = 'teneur'; majGraphiqueNotes()">Teneur</button>
                             <button type="button" :aria-pressed="$store.donnees.mode_notes === 'information'" @click="$store.donnees.mode_notes = 'information'; majGraphiqueNotes()">Information</button>
                             <button type="button" :aria-pressed="$store.donnees.mode_notes === 'duree'" @click="$store.donnees.mode_notes = 'duree'; majGraphiqueNotes()">Durée</button>

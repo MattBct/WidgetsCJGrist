@@ -411,8 +411,13 @@ img {
     height: 5px;
 }
 
+/* Jauges alignées en bas, même si un libellé passe sur deux lignes */
 .statistique .jauge {
-    margin-top: 4px;
+    margin-top: auto;
+}
+
+.statistique:has(.jauge) .statistique-libelle {
+    margin-bottom: 4px;
 }
 
 /* Graphiques sans anneau : hauteur fixe pour ne pas s'étirer */
@@ -490,7 +495,7 @@ img {
 
 .retour-notes li {
     display: grid;
-    grid-template-columns: 6.5em minmax(0, 1fr) 2.5ch;
+    grid-template-columns: 7.5em minmax(0, 1fr) 2.5ch;
     align-items: center;
     gap: 8px;
 }

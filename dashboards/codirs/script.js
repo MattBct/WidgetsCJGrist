@@ -199,12 +199,70 @@ initChartOptionHeures()
 
 let chartEvolutionDemandes;
 
-function initChartEvolutionDemandes() {
-    const canvas = document.getElementById('chartEvolutionDemandes');
-    if (!canvas) {
-        return;
+const LEGENDE_EVOLUTION = {
+    position: 'bottom',
+    labels: {
+        usePointStyle: true,
+        pointStyle: 'circle',
+        boxWidth: 8,
+        boxHeight: 8,
+        padding: 14
     }
+};
 
+// Vue mensuelle : barres empilées étudiants / grand public
+function configEvolutionBarres() {
+    const barres = (label, couleur, survol) => ({
+        label,
+        data: [],
+        backgroundColor: couleur,
+        hoverBackgroundColor: survol,
+        borderColor: '#ffffff',
+        borderWidth: { top: 2 },
+        maxBarThickness: 36
+    });
+
+    return {
+        type: 'bar',
+        data: {
+            labels: [],
+            datasets: [
+                barres('Étudiants', '#C03737', '#A73030'),
+                barres('Grand public', '#DB8080', '#CF6A6A')
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: LEGENDE_EVOLUTION,
+                tooltip: {
+                    mode: 'index',
+                    callbacks: {
+                        label: (context) => ' ' + context.dataset.label + ' : ' + context.parsed.y,
+                        footer: (items) => {
+                            const total = items.reduce((somme, item) => somme + item.parsed.y, 0);
+                            return 'Total : ' + total + ' ' + plur(total, 'demande', 'demandes');
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: { stacked: true, grid: { display: false } },
+                y: {
+                    stacked: true,
+                    beginAtZero: true,
+                    ticks: { precision: 0 },
+                    grid: { color: '#ececec' },
+                    border: { display: false }
+                }
+            }
+        }
+    };
+}
+
+// Vue hebdomadaire : courbes total / étudiants / grand public
+function configEvolutionCourbes() {
     const serie = (label, couleur, extra = {}) => ({
         label,
         data: [],
@@ -220,7 +278,7 @@ function initChartEvolutionDemandes() {
         ...extra
     });
 
-    chartEvolutionDemandes = new Chart(canvas, {
+    return {
         type: 'line',
         data: {
             labels: [],
@@ -235,16 +293,7 @@ function initChartEvolutionDemandes() {
             maintainAspectRatio: false,
             interaction: { mode: 'index', intersect: false },
             plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: {
-                        usePointStyle: true,
-                        pointStyle: 'circle',
-                        boxWidth: 8,
-                        boxHeight: 8,
-                        padding: 14
-                    }
-                },
+                legend: LEGENDE_EVOLUTION,
                 tooltip: {
                     callbacks: {
                         label: (context) => ' ' + context.dataset.label + ' : ' + context.parsed.y + ' ' + plur(context.parsed.y, 'demande', 'demandes')
@@ -252,9 +301,7 @@ function initChartEvolutionDemandes() {
                 }
             },
             scales: {
-                x: {
-                    grid: { display: false }
-                },
+                x: { grid: { display: false } },
                 y: {
                     beginAtZero: true,
                     ticks: { precision: 0 },
@@ -263,10 +310,23 @@ function initChartEvolutionDemandes() {
                 }
             }
         }
-    });
+    };
 }
 
-initChartEvolutionDemandes()
+// Le type de graphique change avec la granularité : on recrée le graphique à chaque bascule
+function creerChartEvolution(parSemaine) {
+    const canvas = document.getElementById('chartEvolutionDemandes');
+    if (!canvas) {
+        return;
+    }
+
+    if (chartEvolutionDemandes) {
+        chartEvolutionDemandes.destroy();
+    }
+    chartEvolutionDemandes = new Chart(canvas, parSemaine ? configEvolutionCourbes() : configEvolutionBarres());
+}
+
+creerChartEvolution(false)
 
 // La colonne formule renvoie du JSON : [["2025-09", 4, 12], ["2025-10", 6, 9], ...]
 function parseEvolution(valeur) {
@@ -292,18 +352,29 @@ function libelleSemaine(lundi) {
 
 // Affiche la série correspondant à la granularité choisie (mois / semaine)
 function majGraphiqueEvolution() {
+    const store = Alpine.store('donnees');
+    const parSemaine = store.granularite_evolution === 'semaine';
+    const typeAttendu = parSemaine ? 'line' : 'bar';
+
+    if (!chartEvolutionDemandes || chartEvolutionDemandes.config.type !== typeAttendu) {
+        creerChartEvolution(parSemaine);
+    }
     if (!chartEvolutionDemandes) {
         return;
     }
 
-    const store = Alpine.store('donnees');
-    const parSemaine = store.granularite_evolution === 'semaine';
     const evolution = store.evolution_affichee;
+    const nombre = (valeur) => Number(valeur) || 0;
 
     chartEvolutionDemandes.data.labels = evolution.map(([periode]) => parSemaine ? libelleSemaine(periode) : libelleMois(periode));
-    chartEvolutionDemandes.data.datasets[0].data = evolution.map(([, etu, gp]) => (Number(etu) || 0) + (Number(gp) || 0));
-    chartEvolutionDemandes.data.datasets[1].data = evolution.map(([, etu]) => Number(etu) || 0);
-    chartEvolutionDemandes.data.datasets[2].data = evolution.map(([, , gp]) => Number(gp) || 0);
+    if (parSemaine) {
+        chartEvolutionDemandes.data.datasets[0].data = evolution.map(([, etu, gp]) => nombre(etu) + nombre(gp));
+        chartEvolutionDemandes.data.datasets[1].data = evolution.map(([, etu]) => nombre(etu));
+        chartEvolutionDemandes.data.datasets[2].data = evolution.map(([, , gp]) => nombre(gp));
+    } else {
+        chartEvolutionDemandes.data.datasets[0].data = evolution.map(([, etu]) => nombre(etu));
+        chartEvolutionDemandes.data.datasets[1].data = evolution.map(([, , gp]) => nombre(gp));
+    }
     chartEvolutionDemandes.update();
 }
 
@@ -468,7 +539,7 @@ function majGraphiqueDiplomes() {
     chartDiplomesOption.update();
 }
 
-grist.onRecords((records) => {
+function traiterRecords(records) {
     const mappedRecords = grist.mapColumnNames(records);
 
     if (!mappedRecords || mappedRecords.length === 0) {
@@ -501,4 +572,24 @@ grist.onRecords((records) => {
     store.repartition_diplomes = repartition;
 
     majGraphiqueDiplomes();
+}
+
+// Alpine (chargé en defer) peut ne pas avoir créé le store quand Grist envoie les premières données :
+// on garde alors les dernières données reçues et on les traite dès que le store existe
+let derniersRecords = null;
+
+grist.onRecords((records) => {
+    derniersRecords = records;
+    if (Alpine.store('donnees')) {
+        traiterRecords(records);
+    }
+})
+
+document.addEventListener('alpine:init', () => {
+    // Le store est déclaré dans le <script> de la page, enregistré avant celui-ci : on attend la fin de l'init
+    queueMicrotask(() => {
+        if (derniersRecords && Alpine.store('donnees')) {
+            traiterRecords(derniersRecords);
+        }
+    });
 })

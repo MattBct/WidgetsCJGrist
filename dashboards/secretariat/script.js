@@ -59,6 +59,14 @@ const COLUMNS_MAPPING = [
         optional: true,
         type: "Text",
         allowMultiple: false
+    },
+    {
+        name: "evolution_demandes_rdv_semaine",
+        title: "Évolution hebdomadaire des demandes de RDV",
+        description: "Colonne formule renvoyant la liste JSON [[\"AAAA-MM-JJ (lundi)\", étudiants, grand public], ...]",
+        optional: true,
+        type: "Text",
+        allowMultiple: false
     }
 ]
 
@@ -83,34 +91,35 @@ function initChartEvolutionDemandes() {
         return;
     }
 
+    const serie = (label, couleur, extra = {}) => ({
+        label,
+        data: [],
+        borderColor: couleur,
+        backgroundColor: couleur,
+        pointBackgroundColor: '#ffffff',
+        pointBorderColor: couleur,
+        pointBorderWidth: 2,
+        pointRadius: 3,
+        pointHoverRadius: 5,
+        borderWidth: 2,
+        tension: 0.3,
+        ...extra
+    });
+
     chartEvolutionDemandes = new Chart(canvas, {
-        type: 'bar',
+        type: 'line',
         data: {
             labels: [],
             datasets: [
-                {
-                    label: 'Étudiants',
-                    data: [],
-                    backgroundColor: '#C03737',
-                    hoverBackgroundColor: '#A73030',
-                    borderColor: '#ffffff',
-                    borderWidth: { top: 2 },
-                    maxBarThickness: 36
-                },
-                {
-                    label: 'Grand public',
-                    data: [],
-                    backgroundColor: '#DB8080',
-                    hoverBackgroundColor: '#CF6A6A',
-                    borderColor: '#ffffff',
-                    borderWidth: { top: 2 },
-                    maxBarThickness: 36
-                }
+                serie('Total', '#8E2626', { borderWidth: 3, fill: { target: 'origin', above: 'rgba(192, 55, 55, 0.08)' } }),
+                serie('Étudiants', '#C03737'),
+                serie('Grand public', '#DB8080')
             ]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
             plugins: {
                 legend: {
                     position: 'bottom',
@@ -123,23 +132,16 @@ function initChartEvolutionDemandes() {
                     }
                 },
                 tooltip: {
-                    mode: 'index',
                     callbacks: {
-                        label: (context) => ' ' + context.dataset.label + ' : ' + context.parsed.y,
-                        footer: (items) => {
-                            const total = items.reduce((somme, item) => somme + item.parsed.y, 0);
-                            return 'Total : ' + total + ' ' + plur(total, 'demande', 'demandes');
-                        }
+                        label: (context) => ' ' + context.dataset.label + ' : ' + context.parsed.y + ' ' + plur(context.parsed.y, 'demande', 'demandes')
                     }
                 }
             },
             scales: {
                 x: {
-                    stacked: true,
                     grid: { display: false }
                 },
                 y: {
-                    stacked: true,
                     beginAtZero: true,
                     ticks: { precision: 0 },
                     grid: { color: '#ececec' },
@@ -168,18 +170,26 @@ function libelleMois(mois) {
     return new Date(annee, numero - 1, 1).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' });
 }
 
-function majGraphiqueEvolution(valeur) {
-    const store = Alpine.store('donnees');
-    const evolution = parseEvolution(valeur);
-    store.evolution_demandes_rdv = evolution;
+// « 2025-10-06 » (lundi) → « sem. du 6 oct. »
+function libelleSemaine(lundi) {
+    const [annee, mois, jour] = String(lundi).split('-').map(Number);
+    return 'sem. du ' + new Date(annee, mois - 1, jour).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+}
 
+// Affiche la série correspondant à la granularité choisie (mois / semaine)
+function majGraphiqueEvolution() {
     if (!chartEvolutionDemandes) {
         return;
     }
 
-    chartEvolutionDemandes.data.labels = evolution.map(([mois]) => libelleMois(mois));
-    chartEvolutionDemandes.data.datasets[0].data = evolution.map(([, etu]) => Number(etu) || 0);
-    chartEvolutionDemandes.data.datasets[1].data = evolution.map(([, , gp]) => Number(gp) || 0);
+    const store = Alpine.store('donnees');
+    const parSemaine = store.granularite_evolution === 'semaine';
+    const evolution = store.evolution_affichee;
+
+    chartEvolutionDemandes.data.labels = evolution.map(([periode]) => parSemaine ? libelleSemaine(periode) : libelleMois(periode));
+    chartEvolutionDemandes.data.datasets[0].data = evolution.map(([, etu, gp]) => (Number(etu) || 0) + (Number(gp) || 0));
+    chartEvolutionDemandes.data.datasets[1].data = evolution.map(([, etu]) => Number(etu) || 0);
+    chartEvolutionDemandes.data.datasets[2].data = evolution.map(([, , gp]) => Number(gp) || 0);
     chartEvolutionDemandes.update();
 }
 
@@ -197,5 +207,7 @@ grist.onRecords((records) => {
         store[column.name] = data[column.name] ?? 0;
     }
 
-    majGraphiqueEvolution(data.evolution_demandes_rdv);
+    store.evolution_demandes_rdv = parseEvolution(data.evolution_demandes_rdv);
+    store.evolution_demandes_rdv_semaine = parseEvolution(data.evolution_demandes_rdv_semaine);
+    majGraphiqueEvolution();
 })

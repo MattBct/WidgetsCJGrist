@@ -40,6 +40,11 @@
                     heures_option_min: 0,
                     heures_option_max: 0,
                     evolution_demandes_rdv: [],
+                    evolution_demandes_rdv_semaine: [],
+                    granularite_evolution: 'mois',
+                    get evolution_affichee() {
+                        return this.granularite_evolution === 'semaine' ? this.evolution_demandes_rdv_semaine : this.evolution_demandes_rdv;
+                    },,
                     repartition_diplomes: [],
                     mode_diplomes: 'tous',
                     get repartition_diplomes_affichee() {
@@ -100,11 +105,17 @@
                 </div>
 
                 <div class="carte">
-                    <h3 class="carte-titre">Évolution des demandes de RDV</h3>
-                    <div class="graphique-fixe" x-show="$store.donnees.evolution_demandes_rdv.length > 0">
+                    <div class="carte-entete">
+                        <h3 class="carte-titre">Évolution des demandes de RDV</h3>
+                        <div class="bascule" role="group" aria-label="Granularité">
+                            <button type="button" :aria-pressed="$store.donnees.granularite_evolution === 'mois'" @click="$store.donnees.granularite_evolution = 'mois'; majGraphiqueEvolution()">Par mois</button>
+                            <button type="button" :aria-pressed="$store.donnees.granularite_evolution === 'semaine'" @click="$store.donnees.granularite_evolution = 'semaine'; majGraphiqueEvolution()">Par semaine</button>
+                        </div>
+                    </div>
+                    <div class="graphique-fixe" x-show="$store.donnees.evolution_affichee.length > 0">
                         <canvas id="chartEvolutionDemandes"></canvas>
                     </div>
-                    <div class="vide" x-show="$store.donnees.evolution_demandes_rdv.length === 0">
+                    <div class="vide" x-show="$store.donnees.evolution_affichee.length === 0">
                         <img class="vide-illustration" src="../assets/facade_rouge.png" alt="" aria-hidden="true">
                         <p>Aucune demande de RDV</p>
                     </div>

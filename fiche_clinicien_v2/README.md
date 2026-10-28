@@ -66,27 +66,58 @@ Une entrée par action de projet attribuée ; le widget les regroupe par projet.
 ```python
 import json
 
+def libelle(valeur, colonne):
+  # Colonne Référence : Grist renvoie l'enregistrement lié (non sérialisable en JSON),
+  # on lit alors la colonne indiquée dans la table liée. Autre type : valeur inchangée.
+  if hasattr(valeur, "_row_id"):
+    return getattr(valeur, colonne) if valeur else None
+  return valeur
+
 return json.dumps([
   {
-    # Si Nom_du_projet est une Référence vers Projets : a.Nom_du_projet.<colonne du nom>
-    "projet": a.Nom_du_projet,
-    "action": a.Action,  # ← à adapter : intitulé de l'action
-    "statut": a.Statut_du_projet,
+    "projet": libelle(a.Nom_du_projet, "Nom_du_projet"),  # Référence vers Projets : colonne du nom du projet
+    "action": libelle(a.Action, "Action"),  # ← à adapter : intitulé de l'action
+    "statut": libelle(a.Statut_du_projet, "Statut_du_projet"),
     "heures": a.heures,
   }
   for a in $Liste_projets  # ← à adapter : colonne Liste de références vers Actions_projets
 ], ensure_ascii=False)
 ```
 
+Le second argument de `libelle` n'est utilisé que si la colonne est une Référence : c'est le nom de la colonne
+à afficher dans la table liée (par exemple `Nom_du_projet` dans Projets).
+
+### `Fiche_regulations` (facultative)
+
+```python
+import json
+
+regulations = Regulations_heures.lookupRecords(Cliniciens=CONTAINS($id), sort_by="Cree_le")
+
+return json.dumps([
+  {
+    "date": r.Cree_le.isoformat() if r.Cree_le else None,
+    "motif": r.Motif,
+    "heures": r.heures,
+    "validee": r.Validee,
+  }
+  for r in regulations
+], ensure_ascii=False)
+```
+
+Les régulations non validées sont affichées « en attente » et ne comptent pas dans le crédit, le débit et le net.
+
 ## Association des colonnes du widget
 
 | Champ du widget | Colonne Cliniciens | Obligatoire |
 | --- | --- | --- |
 | Nom de famille, Prénom, Niveau | existantes | oui |
-| Diplôme, Option clinique | existantes | non |
+| Diplôme | existante | non |
+| Option clinique | existante | non — si elle est associée et décochée, la fiche n'affiche aucune heure (ni régulations) |
 | Heures totales | existante | oui |
-| Heures RDV / projets / permanences / régulations (net) | existantes | non — à défaut, somme des listes JSON (régulations : 0) |
+| Heures RDV / projets / permanences / régulations (net) | existantes | non — à défaut, somme des listes JSON (régulations : validées uniquement) |
 | Nb appréciations très satisfaisantes / satisfaisantes / peu satisfaisantes | existantes | non — à défaut, comptées dans `Fiche_RDV` |
 | RDV (JSON), Permanences (JSON), Actions de projets (JSON) | `Fiche_RDV`, `Fiche_permanences`, `Fiche_projets` | oui |
+| Régulations (JSON) | `Fiche_regulations` | non — sans elle, pas de détail des régulations |
 
 L'objectif d'heures de la barre de progression est la constante `OBJECTIF_HEURES` de `script.js` (60 h, comme en V1).

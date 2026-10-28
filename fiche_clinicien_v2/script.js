@@ -29,6 +29,7 @@ const COLONNES = [
     { name: "rdv_json", title: "RDV (JSON)", type: "Text,Any", optional: false, description: "Colonne formule Fiche_RDV : [{id, statut, creneau_1, creneau_2, heures, appreciation}]" },
     { name: "permanences_json", title: "Permanences (JSON)", type: "Text,Any", optional: false, description: "Colonne formule Fiche_permanences : [{date, heures, commentaire}]" },
     { name: "projets_json", title: "Actions de projets (JSON)", type: "Text,Any", optional: false, description: "Colonne formule Fiche_projets : [{projet, action, statut, heures}]" },
+    { name: "regulations_json", title: "Régulations (JSON)", type: "Text,Any", optional: true, description: "Colonne formule Fiche_regulations : [{date, motif, heures, validee}]" },
 ];
 
 const APPRECIATIONS = [
@@ -104,6 +105,11 @@ function creerSourceDemo() {
                 { projet: 'Podcast « Le droit en 5 minutes »', action: 'Écriture de l’épisode sur le bail', statut: 'Terminé', heures: 3.25 },
                 { projet: 'Podcast « Le droit en 5 minutes »', action: 'Enregistrement', statut: 'À faire', heures: 1 },
             ]),
+            regulations_json: JSON.stringify([
+                { date: '2026-09-30T10:12:00+02:00', motif: 'Accueil des nouveaux cliniciens (réunion de rentrée)', heures: 2, validee: true },
+                { date: '2026-10-15T09:40:00+02:00', motif: 'Absence non excusée à un RDV', heures: -3, validee: true },
+                { date: '2026-10-27T18:05:00+01:00', motif: 'Relecture des fiches pratiques', heures: 1, validee: false },
+            ]),
         },
         {
             id: 2, prenom: 'Lucas', nom: 'Martin', niveau: 'L3', diplome: '', option: false,
@@ -163,10 +169,10 @@ function decomposeHeures(valeur) {
     };
 }
 
-// « 2 h », « 2 h 15 », « 45 min », « - 1 h »
-function formatHeures(valeur) {
+// « 2 h », « 2 h 15 », « 45 min », « - 1 h » (« + 2 h » avec signe)
+function formatHeures(valeur, { signe: avecSigne = false } = {}) {
     const { signe, heures, minutes } = decomposeHeures(valeur);
-    const prefixe = signe < 0 ? '- ' : '';
+    const prefixe = signe < 0 ? '- ' : (avecSigne && (heures || minutes) ? '+ ' : '');
     if (heures === 0 && minutes > 0) {
         return prefixe + minutes + ' min';
     }
@@ -290,6 +296,11 @@ function donnees(record) {
         .slice()
         .sort((a, b) => horodatage(a.date) - horodatage(b.date));
     const actions = lireListe(record.projets_json, 'actions de projets', erreurs);
+    const regulations = lireListe(record.regulations_json, 'régulations', erreurs)
+        .slice()
+        .sort((a, b) => horodatage(a.date) - horodatage(b.date));
+    // Seules les régulations validées comptent (sans la colonne Validee, toutes sont comptées)
+    const validees = regulations.filter(r => r.validee !== false);
 
     // Actions regroupées par projet, dans l'ordre de la liste
     const projets = [];
@@ -316,13 +327,18 @@ function donnees(record) {
         niveau: texte(record.niveau),
         diplome: texte(record.diplome),
         option: record.option === true,
+        // Heures affichées sauf si la colonne « Option clinique » est associée et décochée
+        avecHeures: record.option !== false,
         heures: {
             totales: nombre(record.heures_totales),
             rdv: valeurOu(record.heures_rdv, somme(rdv)),
             projets: valeurOu(record.heures_projets, somme(actions)),
             permanences: valeurOu(record.heures_permanences, somme(permanences)),
-            regulations: nombre(record.heures_regulations),
+            regulations: valeurOu(record.heures_regulations, somme(validees)),
         },
+        regulations,
+        credit: somme(validees.filter(r => nombre(r.heures) > 0)),
+        debit: somme(validees.filter(r => nombre(r.heures) < 0)),
         rdv,
         nb_rdv_termines: rdv.filter(r => classeStatut(r.statut) === 'termine').length,
         permanences,
@@ -349,6 +365,11 @@ function tuile(label, valeur, detail) {
         </div>`;
 }
 
+// « 22 h 30 attribuées » dans les tuiles, seulement pour les cliniciens dont les heures sont suivies
+function detailHeures(d, valeur) {
+    return d.avecHeures ? `<span class="tuile-detail"><strong>${formatHeures(valeur)}</strong> attribuées</span>` : '';
+}
+
 function rendreChiffres(d) {
     const h = d.heures;
     const pourcentage = Math.round(h.totales / OBJECTIF_HEURES * 100);
@@ -356,7 +377,7 @@ function rendreChiffres(d) {
     const parts = PARTS_HEURES.filter(p => h[p.cle] !== 0 || p.cle !== 'regulations');
     const totalBarre = parts.reduce((total, p) => total + Math.max(0, h[p.cle]), 0);
 
-    const tuileHeures = `
+    const tuileHeures = !d.avecHeures ? '' : `
         <div class="tuile">
             <span class="tuile-label">Heures réalisées</span>
             <span class="tuile-valeur">${valeurHeures(h.totales)}</span>
@@ -366,7 +387,7 @@ function rendreChiffres(d) {
                 ${totalBarre > 0 ? parts.filter(p => h[p.cle] > 0).map(p => `<span style="width:${h[p.cle] / totalBarre * 100}%; background:${p.couleur}"></span>`).join('') : ''}
             </div>
             <div class="legende">
-                ${parts.map(p => `<span><i class="pastille" style="background:${p.couleur}"></i>${p.libelle} <strong>${formatHeures(h[p.cle])}</strong></span>`).join('')}
+                ${parts.map(p => `<span><i class="pastille" style="background:${p.couleur}"></i>${p.libelle} <strong>${formatHeures(h[p.cle], { signe: p.cle === 'regulations' })}</strong></span>`).join('')}
             </div>
         </div>`;
 
@@ -389,17 +410,20 @@ function rendreChiffres(d) {
     return tuileHeures
         + tuile(plur(nbRdv, 'Rendez-vous', 'Rendez-vous'), nbRdv,
             `<span class="tuile-detail">dont <strong>${d.nb_rdv_termines}</strong> ${plur(d.nb_rdv_termines, 'terminé')}</span>
-             <span class="tuile-detail"><strong>${formatHeures(d.heures.rdv)}</strong> attribuées</span>`)
-        + tuile(plur(nbPermanences, 'Permanence'), nbPermanences,
-            `<span class="tuile-detail"><strong>${formatHeures(d.heures.permanences)}</strong> attribuées</span>`)
+             ${detailHeures(d, h.rdv)}`)
+        + tuile(plur(nbPermanences, 'Permanence'), nbPermanences, detailHeures(d, h.permanences))
         + tuile(plur(nbProjets, 'Projet'), nbProjets,
             `<span class="tuile-detail"><strong>${d.nb_actions}</strong> ${plur(d.nb_actions, 'action')}</span>
-             <span class="tuile-detail"><strong>${formatHeures(d.heures.projets)}</strong> attribuées</span>`)
+             ${detailHeures(d, h.projets)}`)
         + tuileAppreciations;
 }
 
-function celluleHeures(valeur) {
-    return `<td class="num"><span class="heures${nombre(valeur) === 0 ? ' zero' : ''}">${formatHeures(valeur)}</span></td>`;
+function celluleHeures(d, valeur) {
+    return d.avecHeures ? `<td class="num"><span class="heures${nombre(valeur) === 0 ? ' zero' : ''}">${formatHeures(valeur)}</span></td>` : '';
+}
+
+function enteteHeures(d) {
+    return d.avecHeures ? '<th class="num">Heures</th>' : '';
 }
 
 function pastilleStatut(statut) {
@@ -411,10 +435,10 @@ function pastilleAppreciation(valeur) {
     return classe ? `<span class="apprec apprec-${classe}">${echapper(valeur)}</span>` : '<span class="detail">—</span>';
 }
 
-function tableRdv(liste) {
+function tableRdv(d, liste) {
     return `
         <table class="liste">
-            <thead><tr><th>N°</th><th>Créneau(x)</th><th>Statut</th><th>Appréciation</th><th class="num">Heures</th></tr></thead>
+            <thead><tr><th>N°</th><th>Créneau(x)</th><th>Statut</th><th>Appréciation</th>${enteteHeures(d)}</tr></thead>
             <tbody>
                 ${liste.map(r => `
                 <tr>
@@ -422,7 +446,7 @@ function tableRdv(liste) {
                     <td>${echapper(formatDate(r.creneau_1)) || '<span class="detail">Non fixé</span>'}${r.creneau_2 ? `<span class="detail">puis ${echapper(formatDate(r.creneau_2))}</span>` : ''}</td>
                     <td>${pastilleStatut(r.statut)}</td>
                     <td>${pastilleAppreciation(r.appreciation)}</td>
-                    ${celluleHeures(r.heures)}
+                    ${celluleHeures(d, r.heures)}
                 </tr>`).join('')}
             </tbody>
         </table>`;
@@ -433,10 +457,10 @@ function rendreRdv(d) {
         return '<p class="vide">Aucun rendez-vous.</p>';
     }
     if (d.rdv.length <= SEUIL_RDV_DEUX_COLONNES) {
-        return `<div class="tables">${tableRdv(d.rdv)}</div>`;
+        return `<div class="tables">${tableRdv(d, d.rdv)}</div>`;
     }
     const moitie = Math.ceil(d.rdv.length / 2);
-    return `<div class="tables x2">${tableRdv(d.rdv.slice(0, moitie))}${tableRdv(d.rdv.slice(moitie))}</div>`;
+    return `<div class="tables x2">${tableRdv(d, d.rdv.slice(0, moitie))}${tableRdv(d, d.rdv.slice(moitie))}</div>`;
 }
 
 function rendrePermanences(d) {
@@ -445,13 +469,13 @@ function rendrePermanences(d) {
     }
     return `
         <table class="liste">
-            <thead><tr><th>Date</th><th>Commentaire</th><th class="num">Heures</th></tr></thead>
+            <thead><tr><th>Date</th><th>Commentaire</th>${enteteHeures(d)}</tr></thead>
             <tbody>
                 ${d.permanences.map(p => `
                 <tr>
                     <td class="nowrap"><strong>${echapper(formatDate(p.date)) || '—'}</strong></td>
                     <td>${echapper(texte(p.commentaire))}</td>
-                    ${celluleHeures(p.heures)}
+                    ${celluleHeures(d, p.heures)}
                 </tr>`).join('')}
             </tbody>
         </table>`;
@@ -467,7 +491,7 @@ function rendreProjets(d) {
             <div>
                 <div class="projet-entete">
                     <span>${echapper(projet.nom)}</span>
-                    <span class="heures">${formatHeures(somme(projet.actions))}</span>
+                    ${d.avecHeures ? `<span class="heures">${formatHeures(somme(projet.actions))}</span>` : ''}
                 </div>
                 <table class="liste">
                     <tbody>
@@ -475,7 +499,7 @@ function rendreProjets(d) {
                         <tr>
                             <td>${echapper(texte(a.action)) || '<span class="detail">Action sans intitulé</span>'}</td>
                             <td>${pastilleStatut(a.statut)}</td>
-                            ${celluleHeures(a.heures)}
+                            ${celluleHeures(d, a.heures)}
                         </tr>`).join('')}
                     </tbody>
                 </table>
@@ -483,8 +507,41 @@ function rendreProjets(d) {
         </div>`;
 }
 
+// Balance crédit / débit (barres partant du centre, à l'échelle du plus grand des deux) puis détail des régulations
+function rendreRegulations(d) {
+    const echelle = Math.max(d.credit, -d.debit) || 1;
+    const net = d.heures.regulations;
+    return `
+        <div class="balance">
+            <span class="balance-libelle debit">Débit <strong>${formatHeures(d.debit)}</strong></span>
+            <div class="balance-barre">
+                <span class="balance-moitie gauche"><span class="balance-debit" style="width:${-d.debit / echelle * 100}%"></span></span>
+                <span class="balance-moitie"><span class="balance-credit" style="width:${d.credit / echelle * 100}%"></span></span>
+            </div>
+            <span class="balance-libelle credit">Crédit <strong>${formatHeures(d.credit, { signe: true })}</strong></span>
+        </div>
+        <p class="balance-net">Net : <strong class="${net < 0 ? 'negatif' : net > 0 ? 'positif' : ''}">${formatHeures(net, { signe: true })}</strong></p>
+        <table class="liste">
+            <thead><tr><th>Date</th><th>Motif</th><th class="num">Heures</th></tr></thead>
+            <tbody>
+                ${d.regulations.map(r => {
+                    const heures = nombre(r.heures);
+                    const enAttente = r.validee === false;
+                    return `
+                <tr${enAttente ? ' class="en-attente"' : ''}>
+                    <td class="nowrap">${echapper(formatDate(r.date).split(' ')[0]) || '—'}</td>
+                    <td>${echapper(texte(r.motif)) || '<span class="detail">Sans motif</span>'}${enAttente ? ' <span class="statut">Non validée</span>' : ''}</td>
+                    <td class="num"><span class="heures ${heures < 0 ? 'negatif' : 'positif'}">${formatHeures(heures, { signe: true })}</span></td>
+                </tr>`;
+                }).join('')}
+            </tbody>
+        </table>`;
+}
+
 function rendreFiche(d) {
     const maintenant = new Date();
+    const compte = (nombre, heures) => d.avecHeures ? `${nombre} · ${formatHeures(heures)}` : String(nombre);
+
     $('annee').textContent = anneeUniversitaire(maintenant);
     $('identite').textContent = d.identite;
     $('etiquettes').innerHTML = [
@@ -493,14 +550,21 @@ function rendreFiche(d) {
     ].join('');
 
     $('chiffres').innerHTML = rendreChiffres(d);
+    $('chiffres').classList.toggle('sans-heures', !d.avecHeures);
 
-    $('compte-rdv').textContent = `${d.rdv.length} · ${formatHeures(d.heures.rdv)}`;
+    $('compte-rdv').textContent = compte(d.rdv.length, d.heures.rdv);
     $('rdv').innerHTML = rendreRdv(d);
 
-    $('compte-permanences').textContent = `${d.permanences.length} · ${formatHeures(d.heures.permanences)}`;
+    $('compte-permanences').textContent = compte(d.permanences.length, d.heures.permanences);
     $('permanences').innerHTML = rendrePermanences(d);
 
-    $('compte-projets').textContent = `${d.projets.length} · ${formatHeures(d.heures.projets)}`;
+    // Régulations : uniquement des heures, masquées hors option ou sans régulation
+    const avecRegulations = d.avecHeures && d.regulations.length > 0;
+    $('bloc-regulations').hidden = !avecRegulations;
+    $('compte-regulations').textContent = avecRegulations ? String(d.regulations.length) : '';
+    $('regulations').innerHTML = avecRegulations ? rendreRegulations(d) : '';
+
+    $('compte-projets').textContent = compte(d.projets.length, d.heures.projets);
     $('projets').innerHTML = rendreProjets(d);
 
     $('date-edition').textContent = `Fiche éditée le ${dateLongue(maintenant)}`;

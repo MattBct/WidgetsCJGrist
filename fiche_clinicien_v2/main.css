@@ -257,6 +257,11 @@ html, body {
     gap: 0.6em;
 }
 
+/* Hors option clinique : pas de tuile des heures */
+.chiffres.sans-heures {
+    grid-template-columns: 1fr 1fr 1fr 1.35fr;
+}
+
 .tuile {
     display: flex;
     flex-direction: column;
@@ -432,6 +437,13 @@ html, body {
     align-items: start;
 }
 
+.colonne {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2em;
+    min-width: 0;
+}
+
 .tables {
     display: grid;
     gap: 1.2em;
@@ -569,6 +581,83 @@ html, body {
 
 .projet-entete .heures {
     white-space: nowrap;
+}
+
+/* Régulations individuelles : balance débit / crédit partant du centre */
+.balance {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.6em;
+}
+
+.balance-libelle {
+    font-size: 0.85em;
+    white-space: nowrap;
+    color: var(--texte-doux);
+}
+
+.balance-libelle.debit strong {
+    color: var(--clinique);
+}
+
+.balance-libelle.credit strong {
+    color: var(--ok);
+}
+
+.balance-barre {
+    display: flex;
+    height: 0.75em;
+    border-radius: 999px;
+    overflow: hidden;
+    background: var(--fond-doux);
+}
+
+.balance-moitie {
+    display: flex;
+    flex: 1 1 0;
+}
+
+.balance-moitie.gauche {
+    justify-content: flex-end;
+    border-right: 1.5px solid var(--texte-doux);
+}
+
+.balance-debit {
+    background: var(--clinique);
+}
+
+.balance-credit {
+    background: var(--ok);
+}
+
+.balance-net {
+    margin: 0;
+    font-size: 0.85em;
+    text-align: center;
+    color: var(--texte-doux);
+}
+
+.positif {
+    color: var(--ok);
+}
+
+.negatif {
+    color: var(--clinique);
+}
+
+.balance-net strong {
+    font-size: 1.15em;
+}
+
+/* Régulation non validée : non comptée */
+.liste tr.en-attente td {
+    color: var(--texte-doux);
+}
+
+.liste tr.en-attente .heures {
+    font-weight: 400;
+    color: var(--texte-doux);
 }
 
 /* ---------- Pied ---------- */

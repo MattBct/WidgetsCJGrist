@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <!-- Widget Grist : fiche bilan d'un clinicien (RDV, permanences, projets, appréciations), tenant sur une feuille A4 portrait.
+  Ne lit que des colonnes de la table Cliniciens (listes en JSON via des colonnes formules : voir README.md).
+  Ouvrir index.html?demo (ou hors de Grist) pour un aperçu avec des données fictives.
+  Matthieu Bouchet - Oct. 2026
+  -->
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Fiche clinicien</title>
+    <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+    <link rel="stylesheet" href="main.css">
+  </head>
+
+  <body>
+    <nav class="barre-outils no-print">
+      <label class="choix" id="choix-demo" hidden>
+        <span class="choix-label">Clinicien (démo)</span>
+        <select id="demo-clinicien"></select>
+      </label>
+      <span class="etat-echelle" id="etat-echelle"></span>
+      <div class="barre-actions">
+        <button type="button" class="btn btn-principal" id="imprimer" title="Dans la fenêtre d'impression, choisir « Enregistrer au format PDF »" disabled>Imprimer / PDF</button>
+      </div>
+    </nav>
+
+    <div class="bandeau-message alerte no-print" id="message" hidden></div>
+
+    <!-- Aperçu à l'écran = rendu imprimé (réduit à la largeur du panneau si besoin) -->
+    <div class="apercu" id="apercu">
+      <div class="cadre" id="cadre">
+        <article class="feuille" id="feuille" hidden>
+          <div class="contenu" id="contenu">
+            <header class="bandeau">
+              <img src="facade_blanc.png" alt="" class="bandeau-facade" aria-hidden="true">
+              <img src="logoCJ_blanc.png" alt="Clinique juridique" class="bandeau-logo">
+              <div class="bandeau-titre">
+                <span class="bandeau-surtitre">Fiche clinicien · <span id="annee"></span></span>
+                <h1 id="identite"></h1>
+                <div class="bandeau-etiquettes" id="etiquettes"></div>
+              </div>
+            </header>
+
+            <section class="chiffres" id="chiffres"></section>
+
+            <section class="bloc">
+              <h2 class="bloc-titre">Rendez-vous <span class="bloc-compte" id="compte-rdv"></span></h2>
+              <div id="rdv"></div>
+            </section>
+
+            <div class="deux-blocs">
+              <section class="bloc">
+                <h2 class="bloc-titre">Permanences <span class="bloc-compte" id="compte-permanences"></span></h2>
+                <div id="permanences"></div>
+              </section>
+
+              <section class="bloc">
+                <h2 class="bloc-titre">Projets et actions <span class="bloc-compte" id="compte-projets"></span></h2>
+                <div id="projets"></div>
+              </section>
+            </div>
+
+            <footer class="pied">
+              <span id="date-edition"></span>
+              <span>Document interne à la Clinique juridique — ne pas diffuser.</span>
+            </footer>
+          </div>
+        </article>
+      </div>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>

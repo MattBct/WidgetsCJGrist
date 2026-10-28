@@ -1,0 +1,625 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&family=Zilla+Slab:wght@600;700&display=swap');
+
+:root {
+    --clinique: #C03737;
+    --clinique-fonce: #8E2626;
+    --rdv-1: #F6DFDF;
+    --rdv-2: #DB8080;
+    --texte: #1d1d1d;
+    --texte-doux: #5f5f5f;
+    --bordure: #d9d9d9;
+    --fond-doux: #f5f5f5;
+    --ok: #2e7d32;
+    --ok-fond: #e8f5e9;
+    --alerte: #a15c07;
+    --alerte-fond: #fff4e5;
+    --critique-fond: #fde8e8;
+    /* Répartition des heures */
+    --part-rdv: #C03737;
+    --part-projets: #8E2626;
+    --part-permanences: #DB8080;
+    --part-regulations: #b5b5b5;
+}
+
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+html, body {
+    margin: 0;
+    background: #e9e9e9;
+    color: var(--texte);
+    font-family: 'Montserrat', sans-serif;
+    font-size: 13px;
+    /* Conserve les fonds colorés (bandeau, pastilles) à l'impression */
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+
+[hidden] {
+    display: none !important;
+}
+
+/* ---------- Barre d'outils (écran uniquement) ---------- */
+
+.barre-outils {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 14px;
+    padding: 10px 15px;
+    background: #ffffff;
+    border-bottom: 1px solid var(--bordure);
+}
+
+.choix {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.choix-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--texte-doux);
+}
+
+.choix select {
+    max-width: 280px;
+    padding: 5px 8px;
+    font: inherit;
+    font-weight: 600;
+    color: inherit;
+    background: #ffffff;
+    border: 1px solid var(--bordure);
+    border-radius: 6px;
+}
+
+.etat-echelle {
+    font-size: 11px;
+    color: var(--texte-doux);
+}
+
+.barre-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-left: auto;
+}
+
+.btn {
+    padding: 6px 14px;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1px solid var(--clinique);
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.btn:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+.btn-principal {
+    color: #ffffff;
+    background: var(--clinique);
+}
+
+.btn-principal:hover:not(:disabled) {
+    background: var(--clinique-fonce);
+    border-color: var(--clinique-fonce);
+}
+
+.bandeau-message {
+    margin: 12px 15px 0;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+}
+
+.bandeau-message.info {
+    background: #eef3fb;
+    color: #1f3f6e;
+}
+
+.bandeau-message.alerte {
+    background: var(--alerte-fond);
+    color: var(--alerte);
+}
+
+.bandeau-message.critique {
+    background: var(--critique-fond);
+    color: var(--clinique);
+}
+
+/* ---------- Feuille A4 ---------- */
+
+.apercu {
+    padding: 15px;
+}
+
+/* Cadre aux dimensions de la feuille réduite (largeur du panneau < 210 mm) : voir ajusterApercu() */
+.cadre {
+    margin: 0 auto;
+}
+
+.feuille {
+    width: 210mm;
+    height: 297mm;
+    padding: 10mm;
+    overflow: hidden;
+    background: #ffffff;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.2);
+    transform-origin: top left;
+}
+
+/* Contenu à taille de texte variable (--taille, réduite pour tenir sur la page) : toutes les tailles internes en em */
+.contenu {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9em;
+    min-height: 100%;
+    font-size: var(--taille, 9pt);
+    line-height: 1.35;
+}
+
+/* ---------- Bandeau ---------- */
+
+.bandeau {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    gap: 1.8em;
+    padding: 1.5em 1.8em;
+    background: var(--clinique);
+    color: #ffffff;
+    border-radius: 6px;
+}
+
+.bandeau-facade {
+    position: absolute;
+    right: -2%;
+    top: 50%;
+    transform: translateY(-38%);
+    width: 40%;
+    height: auto;
+    opacity: 0.22;
+    pointer-events: none;
+}
+
+.bandeau-logo,
+.bandeau-titre {
+    position: relative;
+}
+
+.bandeau-logo {
+    flex: 0 0 auto;
+    height: 5.2em;
+    width: auto;
+}
+
+.bandeau-titre {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6em;
+    padding-left: 1.8em;
+    border-left: 2px solid rgba(255, 255, 255, 0.6);
+}
+
+.bandeau-surtitre {
+    font-size: 0.85em;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.9;
+}
+
+.bandeau-titre h1 {
+    margin: 0;
+    font-size: 1.85em;
+    font-weight: 800;
+    line-height: 1.05;
+}
+
+.bandeau-etiquettes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4em;
+}
+
+.etiquette {
+    padding: 0.25em 0.9em;
+    border-radius: 999px;
+    font-size: 0.85em;
+    font-weight: 600;
+    background: var(--clinique-fonce);
+}
+
+.etiquette.claire {
+    color: var(--clinique-fonce);
+    background: #ffffff;
+}
+
+/* ---------- Chiffres clés ---------- */
+
+.chiffres {
+    display: grid;
+    grid-template-columns: 1.7fr 1fr 1fr 1fr 1.35fr;
+    gap: 0.6em;
+}
+
+.tuile {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25em;
+    min-width: 0;
+    padding: 0.7em 0.9em;
+    border: 1px solid var(--bordure);
+    border-top: 3px solid var(--clinique);
+    border-radius: 6px;
+}
+
+.tuile-label {
+    font-size: 0.8em;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--texte-doux);
+}
+
+.tuile-valeur {
+    font-size: 2.2em;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--clinique);
+}
+
+.tuile-valeur small {
+    font-size: 0.45em;
+    font-weight: 700;
+    color: var(--texte);
+}
+
+.tuile-detail {
+    font-size: 0.85em;
+    color: var(--texte-doux);
+}
+
+.tuile-detail strong {
+    color: var(--texte);
+}
+
+.progression {
+    height: 0.55em;
+    border-radius: 999px;
+    background: var(--fond-doux);
+    overflow: hidden;
+}
+
+.progression span {
+    display: block;
+    height: 100%;
+    background: var(--clinique);
+}
+
+.repartition {
+    display: flex;
+    height: 0.55em;
+    margin-top: 0.2em;
+    border-radius: 999px;
+    overflow: hidden;
+    background: var(--fond-doux);
+}
+
+.legende {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.1em 0.8em;
+    font-size: 0.8em;
+    color: var(--texte-doux);
+}
+
+.legende span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35em;
+    white-space: nowrap;
+}
+
+.legende strong {
+    color: var(--texte);
+}
+
+.pastille {
+    display: inline-block;
+    flex: none;
+    width: 0.75em;
+    height: 0.75em;
+    border-radius: 50%;
+}
+
+/* Appréciations */
+.appreciations {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3em;
+    margin-top: 0.15em;
+}
+
+.appreciation-ligne {
+    display: grid;
+    grid-template-columns: 2.2em 1fr;
+    align-items: center;
+    gap: 0.5em;
+    font-size: 0.9em;
+}
+
+.appreciation-nb {
+    padding: 0.1em 0;
+    border-radius: 4px;
+    font-weight: 800;
+    text-align: center;
+}
+
+.apprec-tres {
+    color: var(--ok);
+    background: var(--ok-fond);
+}
+
+.apprec-sat {
+    color: var(--alerte);
+    background: var(--alerte-fond);
+}
+
+.apprec-peu {
+    color: var(--clinique);
+    background: var(--critique-fond);
+}
+
+.apprec-autre {
+    color: var(--texte-doux);
+    background: var(--fond-doux);
+}
+
+/* ---------- Blocs (listes) ---------- */
+
+.bloc {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4em;
+    min-width: 0;
+}
+
+.bloc-titre {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5em;
+    margin: 0;
+    padding-bottom: 0.2em;
+    font-family: 'Zilla Slab', Georgia, serif;
+    font-size: 1.35em;
+    font-weight: 700;
+    color: var(--clinique-fonce);
+    border-bottom: 1.5px solid var(--clinique);
+}
+
+.bloc-compte {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.6em;
+    font-weight: 600;
+    color: var(--texte-doux);
+}
+
+.vide {
+    margin: 0;
+    font-style: italic;
+    color: var(--texte-doux);
+}
+
+.deux-blocs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.2em;
+    align-items: start;
+}
+
+.tables {
+    display: grid;
+    gap: 1.2em;
+    align-items: start;
+}
+
+.tables.x2 {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+/* Deux tableaux côte à côte : les pastilles peuvent passer sur deux lignes */
+.tables.x2 .statut,
+.tables.x2 .apprec {
+    white-space: normal;
+}
+
+.liste {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.liste th {
+    padding: 0.3em 0.45em;
+    font-size: 0.8em;
+    font-weight: 700;
+    text-align: left;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--texte-doux);
+    border-bottom: 1px solid var(--bordure);
+}
+
+.liste td {
+    padding: 0.3em 0.45em;
+    vertical-align: top;
+    border-bottom: 1px solid #eeeeee;
+}
+
+.liste tbody tr:nth-child(even) td {
+    background: #fafafa;
+}
+
+.liste .num {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.liste .nowrap {
+    white-space: nowrap;
+}
+
+.id-rdv {
+    font-weight: 700;
+}
+
+.detail {
+    display: block;
+    font-size: 0.85em;
+    color: var(--texte-doux);
+}
+
+.heures {
+    font-weight: 700;
+}
+
+.heures.zero {
+    font-weight: 400;
+    color: var(--texte-doux);
+}
+
+/* Statuts (RDV, actions) */
+.statut {
+    display: inline-block;
+    padding: 0.1em 0.6em;
+    border-radius: 999px;
+    font-size: 0.85em;
+    font-weight: 600;
+    white-space: nowrap;
+    color: var(--texte-doux);
+    background: var(--fond-doux);
+}
+
+.statut.termine {
+    color: var(--ok);
+    background: var(--ok-fond);
+}
+
+.statut.confirme {
+    color: var(--clinique-fonce);
+    background: var(--rdv-1);
+}
+
+.statut.propose {
+    border: 1px dashed #a6a6a6;
+    padding: 0 0.55em;
+}
+
+.statut.annule {
+    text-decoration: line-through;
+}
+
+.statut.en-cours {
+    color: var(--alerte);
+    background: var(--alerte-fond);
+}
+
+.apprec {
+    display: inline-block;
+    padding: 0.35em 0.9em;
+    border-radius: 999px;
+    font-size: 0.78em;
+    line-height: 1.2;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* Projets */
+.projets {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6em;
+}
+
+.projet-entete {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.6em;
+    padding: 0.3em 0.45em;
+    border-radius: 4px;
+    background: var(--rdv-1);
+    font-weight: 700;
+    color: var(--clinique-fonce);
+}
+
+.projet-entete .heures {
+    white-space: nowrap;
+}
+
+/* ---------- Pied ---------- */
+
+.pied {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.4em 1em;
+    /* En bas de la feuille */
+    margin-top: auto;
+    padding-top: 0.5em;
+    border-top: 1px solid var(--bordure);
+    font-size: 0.8em;
+    color: var(--texte-doux);
+}
+
+/* ---------- Impression (A4 portrait, une page) ---------- */
+
+@page {
+    size: A4 portrait;
+    margin: 0;
+}
+
+@media print {
+    html,
+    body {
+        background: #ffffff;
+    }
+
+    .no-print {
+        display: none !important;
+    }
+
+    .apercu {
+        padding: 0;
+    }
+
+    .cadre {
+        width: auto !important;
+        height: auto !important;
+    }
+
+    .feuille {
+        transform: none !important;
+        box-shadow: none;
+    }
+
+    /* Contenu trop long même à la plus petite taille : la fiche continue sur une seconde page plutôt que d'être coupée */
+    .feuille.deborde {
+        height: auto;
+        overflow: visible;
+    }
+}

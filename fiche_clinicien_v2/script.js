@@ -52,20 +52,23 @@ const $ = id => document.getElementById(id);
 
 const source = MODE_DEMO ? creerSourceDemo() : creerSourceGrist();
 
-let courant = null;      // clinicien sélectionné (colonnes du widget)
+let courant = null;      // clinicien sélectionné dans la table (colonnes du widget)
 let colonnesOk = true;
-let cliniciens = [];     // cliniciens de la vue, pour « Imprimer tout »
+let cliniciens = [];     // cliniciens de la vue : choix dans le widget et « Imprimer tout »
+let idAffiche = null;    // clinicien affiché : celui de la table, ou choisi dans le widget
 
 brancherInterface();
 source.demarrer({
     surEnregistrement(record, ok) {
+        // Un changement de ligne dans la table reprend la main sur le choix fait dans le widget
         courant = record;
         colonnesOk = ok;
+        idAffiche = record?.id ?? null;
         afficher();
     },
     surEnregistrements(records) {
         cliniciens = records;
-        majBoutonLot();
+        afficher();
     },
 });
 
@@ -77,10 +80,10 @@ function creerSourceGrist() {
             grist.ready({ requiredAccess: 'read table', columns: COLONNES });
             grist.onRecord(record => {
                 const colonnes = record ? grist.mapColumnNames(record) : null;
-                rappels.surEnregistrement(colonnes, !record || Boolean(colonnes));
+                rappels.surEnregistrement(colonnes ? { ...colonnes, id: record.id } : null, !record || Boolean(colonnes));
             });
             // Tous les cliniciens de la vue (filtres compris), dans l'ordre affiché
-            grist.onRecords(records => rappels.surEnregistrements(grist.mapColumnNames(records) || []));
+            grist.onRecords(records => rappels.surEnregistrements((grist.mapColumnNames(records) || []).map((r, i) => ({ ...r, id: records[i].id }))));
         },
     };
 }
@@ -143,10 +146,7 @@ function creerSourceDemo() {
 
     return {
         demarrer(rappels) {
-            const select = $('demo-clinicien');
-            select.innerHTML = records.map(r => `<option value="${r.id}">${echapper(r.prenom + ' ' + r.nom)}</option>`).join('');
-            select.addEventListener('change', () => rappels.surEnregistrement(records.find(r => r.id === Number(select.value)), true));
-            $('choix-demo').hidden = false;
+            $('label-clinicien').textContent = 'Clinicien (démo)';
             rappels.surEnregistrements(records);
             rappels.surEnregistrement(records[0], true);
         },
@@ -670,12 +670,19 @@ function texteErreurs(erreurs) {
     return `Liste${erreurs.length > 1 ? 's' : ''} illisible${erreurs.length > 1 ? 's' : ''} (${erreurs.join(', ')}) : vérifiez que la formule renvoie du JSON (json.dumps) et ne contient pas d’erreur.`;
 }
 
+// Clinicien affiché : version de la liste de la vue (à jour), sinon la ligne sélectionnée dans la table
+function clinicienAffiche() {
+    return cliniciens.find(c => c.id === idAffiche) ?? (courant?.id === idAffiche ? courant : null);
+}
+
 function afficher() {
     const cadre = $('cadre');
-    $('imprimer').disabled = !colonnesOk || !courant;
+    const clinicien = clinicienAffiche();
+    $('imprimer').disabled = !colonnesOk || !clinicien;
     majBoutonLot();
+    majChoixClinicien();
 
-    if (!colonnesOk || !courant) {
+    if (!colonnesOk || !clinicien) {
         message(colonnesOk
             ? 'Sélectionnez un clinicien dans la table pour afficher sa fiche.'
             : 'Associez les colonnes du widget (panneau de droite, rubrique « Colonnes ») pour afficher la fiche. Les colonnes JSON à créer sont décrites dans le README du widget.', 'info');
@@ -685,7 +692,7 @@ function afficher() {
         return;
     }
 
-    const d = donnees(courant);
+    const d = donnees(clinicien);
     cadre.innerHTML = feuilleHtml(d);
     const feuille = cadre.querySelector('.feuille');
 
@@ -713,6 +720,40 @@ function afficher() {
 }
 
 // ---------- Plusieurs cliniciens ----------
+
+function libelleClinicien(record) {
+    return [texte(record.prenom), texte(record.nom).toLocaleUpperCase('fr')].filter(Boolean).join(' ') || `Ligne ${record.id}`;
+}
+
+// Liste déroulante des cliniciens de la vue, et boutons précédent / suivant
+function majChoixClinicien() {
+    const visible = colonnesOk && cliniciens.length > 1;
+    $('choix-clinicien').hidden = !visible;
+    if (!visible) {
+        return;
+    }
+    const select = $('clinicien');
+    select.innerHTML = cliniciens.map(c => `<option value="${c.id}">${echapper(libelleClinicien(c))}</option>`).join('');
+    const index = cliniciens.findIndex(c => c.id === idAffiche);
+    select.value = index >= 0 ? String(idAffiche) : '';
+    $('precedent').disabled = index <= 0;
+    $('suivant').disabled = index < 0 || index >= cliniciens.length - 1;
+}
+
+function choisirClinicien(id) {
+    if (id !== idAffiche && cliniciens.some(c => c.id === id)) {
+        idAffiche = id;
+        afficher();
+    }
+}
+
+function decalerClinicien(pas) {
+    const index = cliniciens.findIndex(c => c.id === idAffiche);
+    const cible = cliniciens[index + pas];
+    if (index >= 0 && cible) {
+        choisirClinicien(cible.id);
+    }
+}
 
 function majBoutonLot() {
     const bouton = $('imprimer-tout');
@@ -768,6 +809,10 @@ function brancherInterface() {
         window.print();
     });
     $('imprimer-tout').addEventListener('click', imprimerTout);
+
+    $('clinicien').addEventListener('change', e => choisirClinicien(Number(e.target.value)));
+    $('precedent').addEventListener('click', () => decalerClinicien(-1));
+    $('suivant').addEventListener('click', () => decalerClinicien(1));
 
     new ResizeObserver(ajusterApercu).observe($('apercu'));
 }

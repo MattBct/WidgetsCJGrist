@@ -15,10 +15,12 @@
 
   <body>
     <nav class="barre-outils no-print">
-      <label class="choix" id="choix-demo" hidden>
-        <span class="choix-label">Clinicien (démo)</span>
-        <select id="demo-clinicien"></select>
-      </label>
+      <div class="choix" id="choix-clinicien" hidden>
+        <label class="choix-label" for="clinicien" id="label-clinicien">Clinicien</label>
+        <button type="button" class="btn-icone" id="precedent" title="Clinicien précédent" aria-label="Clinicien précédent">‹</button>
+        <select id="clinicien"></select>
+        <button type="button" class="btn-icone" id="suivant" title="Clinicien suivant" aria-label="Clinicien suivant">›</button>
+      </div>
       <span class="etat-echelle" id="etat-echelle"></span>
       <div class="barre-actions">
         <button type="button" class="btn btn-secondaire" id="imprimer-tout" hidden>Imprimer tout</button>

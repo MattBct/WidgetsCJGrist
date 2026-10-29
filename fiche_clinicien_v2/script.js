@@ -52,19 +52,35 @@ const $ = id => document.getElementById(id);
 
 const source = MODE_DEMO ? creerSourceDemo() : creerSourceGrist();
 
+let courant = null;      // clinicien sélectionné (colonnes du widget)
+let colonnesOk = true;
+let cliniciens = [];     // cliniciens de la vue, pour « Imprimer tout »
+
 brancherInterface();
-source.demarrer(afficher);
+source.demarrer({
+    surEnregistrement(record, ok) {
+        courant = record;
+        colonnesOk = ok;
+        afficher();
+    },
+    surEnregistrements(records) {
+        cliniciens = records;
+        majBoutonLot();
+    },
+});
 
 // ---------- Sources de données ----------
 
 function creerSourceGrist() {
     return {
-        demarrer(rappel) {
+        demarrer(rappels) {
             grist.ready({ requiredAccess: 'read table', columns: COLONNES });
             grist.onRecord(record => {
                 const colonnes = record ? grist.mapColumnNames(record) : null;
-                rappel(colonnes, !record || Boolean(colonnes));
+                rappels.surEnregistrement(colonnes, !record || Boolean(colonnes));
             });
+            // Tous les cliniciens de la vue (filtres compris), dans l'ordre affiché
+            grist.onRecords(records => rappels.surEnregistrements(grist.mapColumnNames(records) || []));
         },
     };
 }
@@ -126,12 +142,13 @@ function creerSourceDemo() {
     ];
 
     return {
-        demarrer(rappel) {
+        demarrer(rappels) {
             const select = $('demo-clinicien');
             select.innerHTML = records.map(r => `<option value="${r.id}">${echapper(r.prenom + ' ' + r.nom)}</option>`).join('');
-            select.addEventListener('change', () => rappel(records.find(r => r.id === Number(select.value)), true));
+            select.addEventListener('change', () => rappels.surEnregistrement(records.find(r => r.id === Number(select.value)), true));
             $('choix-demo').hidden = false;
-            rappel(records[0], true);
+            rappels.surEnregistrements(records);
+            rappels.surEnregistrement(records[0], true);
         },
     };
 }
@@ -538,44 +555,67 @@ function rendreRegulations(d) {
         </table>`;
 }
 
-function rendreFiche(d) {
+function feuilleHtml(d) {
     const maintenant = new Date();
     const compte = (nombre, heures) => d.avecHeures ? `${nombre} · ${formatHeures(heures)}` : String(nombre);
-
-    $('annee').textContent = anneeUniversitaire(maintenant);
-    $('identite').textContent = d.identite;
-    $('etiquettes').innerHTML = [
-        `<span class="etiquette claire">${echapper([d.niveau, d.diplome].filter(Boolean).join(' '))}</span>`,
-        d.option ? '<span class="etiquette">Option clinique</span>' : '',
-    ].join('');
-
-    $('chiffres').innerHTML = rendreChiffres(d);
-    $('chiffres').classList.toggle('sans-heures', !d.avecHeures);
-
-    $('compte-rdv').textContent = compte(d.rdv.length, d.heures.rdv);
-    $('rdv').innerHTML = rendreRdv(d);
-
-    $('compte-permanences').textContent = compte(d.permanences.length, d.heures.permanences);
-    $('permanences').innerHTML = rendrePermanences(d);
-
     // Régulations : uniquement des heures, masquées hors option ou sans régulation
     const avecRegulations = d.avecHeures && d.regulations.length > 0;
-    $('bloc-regulations').hidden = !avecRegulations;
-    $('compte-regulations').textContent = avecRegulations ? String(d.regulations.length) : '';
-    $('regulations').innerHTML = avecRegulations ? rendreRegulations(d) : '';
 
-    $('compte-projets').textContent = compte(d.projets.length, d.heures.projets);
-    $('projets').innerHTML = rendreProjets(d);
+    return `
+        <article class="feuille">
+          <div class="contenu">
+            <header class="bandeau">
+              <img src="facade_blanc.png" alt="" class="bandeau-facade" aria-hidden="true">
+              <img src="logoCJ_blanc.png" alt="Clinique juridique" class="bandeau-logo">
+              <div class="bandeau-titre">
+                <span class="bandeau-surtitre">Fiche clinicien · ${anneeUniversitaire(maintenant)}</span>
+                <h1>${echapper(d.identite)}</h1>
+                <div class="bandeau-etiquettes">
+                  <span class="etiquette claire">${echapper([d.niveau, d.diplome].filter(Boolean).join(' '))}</span>
+                  ${d.option ? '<span class="etiquette">Option clinique</span>' : ''}
+                </div>
+              </div>
+            </header>
 
-    $('date-edition').textContent = `Fiche éditée le ${dateLongue(maintenant)}`;
+            <section class="chiffres${d.avecHeures ? '' : ' sans-heures'}">${rendreChiffres(d)}</section>
+
+            <section class="bloc">
+              <h2 class="bloc-titre">Rendez-vous <span class="bloc-compte">${compte(d.rdv.length, d.heures.rdv)}</span></h2>
+              ${rendreRdv(d)}
+            </section>
+
+            <div class="deux-blocs">
+              <div class="colonne">
+                <section class="bloc">
+                  <h2 class="bloc-titre">Permanences <span class="bloc-compte">${compte(d.permanences.length, d.heures.permanences)}</span></h2>
+                  ${rendrePermanences(d)}
+                </section>
+                ${avecRegulations ? `
+                <section class="bloc">
+                  <h2 class="bloc-titre">Régulations individuelles <span class="bloc-compte">${d.regulations.length}</span></h2>
+                  ${rendreRegulations(d)}
+                </section>` : ''}
+              </div>
+
+              <section class="bloc">
+                <h2 class="bloc-titre">Projets et actions <span class="bloc-compte">${compte(d.projets.length, d.heures.projets)}</span></h2>
+                ${rendreProjets(d)}
+              </section>
+            </div>
+
+            <footer class="pied">
+              <span>Fiche éditée le ${dateLongue(maintenant)}</span>
+              <span>Document interne à la Clinique juridique — ne pas diffuser.</span>
+            </footer>
+          </div>
+        </article>`;
 }
 
 // ---------- Mise en page A4 ----------
 
 // Réduit la taille du texte jusqu'à ce que la fiche tienne sur la hauteur utile de la feuille
-function ajusterTaille() {
-    const feuille = $('feuille');
-    const contenu = $('contenu');
+function ajusterTaille(feuille) {
+    const contenu = feuille.querySelector('.contenu');
     const style = getComputedStyle(feuille);
     const hauteurUtile = feuille.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
 
@@ -591,15 +631,17 @@ function ajusterTaille() {
 
     const deborde = contenu.offsetHeight > hauteurUtile + 1;
     feuille.classList.toggle('deborde', deborde);
-    $('etat-echelle').textContent = taille < TAILLE_MAX ? `Texte réduit à ${Math.round(taille / TAILLE_MAX * 100)} % pour tenir sur une page A4` : '';
-    return deborde;
+    return { taille, deborde };
 }
 
 // À l'écran, la feuille (210 mm) est réduite pour tenir dans la largeur du panneau
 function ajusterApercu() {
     const apercu = $('apercu');
-    const feuille = $('feuille');
     const cadre = $('cadre');
+    const feuille = cadre.querySelector('.feuille');
+    if (!feuille) {
+        return;
+    }
     const style = getComputedStyle(apercu);
     const largeurDispo = apercu.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
     const echelle = Math.min(1, largeurDispo / feuille.offsetWidth);
@@ -607,6 +649,12 @@ function ajusterApercu() {
     feuille.style.transform = echelle < 1 ? `scale(${echelle})` : '';
     cadre.style.width = feuille.offsetWidth * echelle + 'px';
     cadre.style.height = feuille.offsetHeight * echelle + 'px';
+}
+
+// Images (logo, façade) et polices chargées : la hauteur du contenu est alors définitive
+async function imagesChargees(conteneur) {
+    await Promise.all([...conteneur.querySelectorAll('img')].map(img => img.decode().catch(() => {})));
+    await document.fonts.ready;
 }
 
 // ---------- Affichage ----------
@@ -618,59 +666,108 @@ function message(texteMessage, type = 'alerte') {
     bandeau.textContent = texteMessage || '';
 }
 
-function afficher(record, colonnesOk) {
-    const feuille = $('feuille');
-    const imprimer = $('imprimer');
+function texteErreurs(erreurs) {
+    return `Liste${erreurs.length > 1 ? 's' : ''} illisible${erreurs.length > 1 ? 's' : ''} (${erreurs.join(', ')}) : vérifiez que la formule renvoie du JSON (json.dumps) et ne contient pas d’erreur.`;
+}
 
-    if (!colonnesOk || !record) {
+function afficher() {
+    const cadre = $('cadre');
+    $('imprimer').disabled = !colonnesOk || !courant;
+    majBoutonLot();
+
+    if (!colonnesOk || !courant) {
         message(colonnesOk
             ? 'Sélectionnez un clinicien dans la table pour afficher sa fiche.'
             : 'Associez les colonnes du widget (panneau de droite, rubrique « Colonnes ») pour afficher la fiche. Les colonnes JSON à créer sont décrites dans le README du widget.', 'info');
-        feuille.hidden = true;
-        imprimer.disabled = true;
+        cadre.innerHTML = '';
+        cadre.style.width = cadre.style.height = '';
         $('etat-echelle').textContent = '';
         return;
     }
 
-    const d = donnees(record);
-    rendreFiche(d);
-    feuille.hidden = false;
-    imprimer.disabled = false;
+    const d = donnees(courant);
+    cadre.innerHTML = feuilleHtml(d);
+    const feuille = cadre.querySelector('.feuille');
 
-    const deborde = ajusterTaille();
-    ajusterApercu();
+    const ajuster = () => {
+        const { taille, deborde } = ajusterTaille(feuille);
+        ajusterApercu();
+        $('etat-echelle').textContent = taille < TAILLE_MAX ? `Texte réduit à ${Math.round(taille / TAILLE_MAX * 100)} % pour tenir sur une page A4` : '';
 
-    const alertes = [];
-    if (d.erreurs.length) {
-        alertes.push(`Liste${d.erreurs.length > 1 ? 's' : ''} illisible${d.erreurs.length > 1 ? 's' : ''} (${d.erreurs.join(', ')}) : vérifiez que la formule renvoie du JSON (json.dumps) et ne contient pas d’erreur.`);
-    }
-    if (deborde) {
-        alertes.push('Contenu trop long pour une seule page, même avec le texte réduit : l’impression continuera sur une seconde page.');
-    }
-    message(alertes.join(' '), d.erreurs.length ? 'critique' : 'alerte');
+        const alertes = [];
+        if (d.erreurs.length) {
+            alertes.push(texteErreurs(d.erreurs));
+        }
+        if (deborde) {
+            alertes.push('Contenu trop long pour une seule page, même avec le texte réduit : l’impression continuera sur une seconde page.');
+        }
+        message(alertes.join(' '), d.erreurs.length ? 'critique' : 'alerte');
+    };
+    ajuster();
+    // Réajustement une fois les images et polices chargées (la feuille a pu être remplacée entre-temps)
+    imagesChargees(feuille).then(() => {
+        if (feuille.isConnected) {
+            ajuster();
+        }
+    });
 }
+
+// ---------- Plusieurs cliniciens ----------
+
+function majBoutonLot() {
+    const bouton = $('imprimer-tout');
+    bouton.hidden = !colonnesOk || cliniciens.length < 2;
+    bouton.textContent = `Imprimer tout (${cliniciens.length})`;
+    bouton.title = `Une fiche A4 par clinicien de la vue (${cliniciens.length}, filtres compris), dans l’ordre de la table`;
+}
+
+// Une feuille par clinicien, chacune ajustée à sa propre taille de texte, puis impression
+async function imprimerTout() {
+    const bouton = $('imprimer-tout');
+    bouton.disabled = true;
+    bouton.textContent = 'Préparation…';
+    try {
+        const lot = $('lot');
+        const fiches = cliniciens.map(donnees);
+        lot.innerHTML = fiches.map(feuilleHtml).join('');
+        await imagesChargees(lot);
+
+        const feuilles = [...lot.querySelectorAll('.feuille')];
+        const debordent = fiches.filter((d, i) => ajusterTaille(feuilles[i]).deborde).map(d => d.identite);
+        const enErreur = fiches.filter(d => d.erreurs.length).map(d => d.identite);
+        const alertes = [];
+        if (enErreur.length) {
+            alertes.push(`Listes illisibles pour : ${enErreur.join(', ')}.`);
+        }
+        if (debordent.length) {
+            alertes.push(`Fiche${debordent.length > 1 ? 's' : ''} sur deux pages : ${debordent.join(', ')}.`);
+        }
+        if (alertes.length) {
+            message(alertes.join(' '), enErreur.length ? 'critique' : 'alerte');
+        }
+
+        document.body.classList.add('impression-lot');
+        window.print();
+    } finally {
+        bouton.disabled = false;
+        majBoutonLot();
+    }
+}
+
+window.addEventListener('afterprint', () => {
+    document.body.classList.remove('impression-lot');
+    $('lot').innerHTML = '';
+});
 
 // ---------- Événements ----------
 
 function brancherInterface() {
     $('imprimer').addEventListener('click', async () => {
+        document.body.classList.remove('impression-lot');
         await document.fonts.ready;
         window.print();
     });
+    $('imprimer-tout').addEventListener('click', imprimerTout);
 
-    new ResizeObserver(() => {
-        if (!$('feuille').hidden) {
-            ajusterApercu();
-        }
-    }).observe($('apercu'));
-
-    // Polices et images chargées après le premier rendu : la hauteur du contenu change
-    const reajuster = () => {
-        if (!$('feuille').hidden) {
-            ajusterTaille();
-            ajusterApercu();
-        }
-    };
-    document.fonts.ready.then(reajuster);
-    document.querySelectorAll('.feuille img').forEach(img => img.addEventListener('load', reajuster));
+    new ResizeObserver(ajusterApercu).observe($('apercu'));
 }

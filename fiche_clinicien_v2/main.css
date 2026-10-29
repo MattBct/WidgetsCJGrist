@@ -118,6 +118,15 @@ html, body {
     border-color: var(--clinique-fonce);
 }
 
+.btn-secondaire {
+    color: var(--clinique);
+    background: #ffffff;
+}
+
+.btn-secondaire:hover:not(:disabled) {
+    background: var(--critique-fond);
+}
+
 .bandeau-message {
     margin: 12px 15px 0;
     padding: 8px 12px;
@@ -144,6 +153,13 @@ html, body {
 
 .apercu {
     padding: 15px;
+}
+
+/* « Imprimer tout » : fiches construites hors de l'écran (mais mesurables, pour ajuster leur taille de texte) */
+.lot {
+    position: absolute;
+    top: 0;
+    left: -10000px;
 }
 
 /* Cadre aux dimensions de la feuille réduite (largeur du panneau < 210 mm) : voir ajusterApercu() */
@@ -704,6 +720,25 @@ html, body {
     .feuille {
         transform: none !important;
         box-shadow: none;
+    }
+
+    .lot {
+        display: none;
+    }
+
+    body.impression-lot .apercu {
+        display: none;
+    }
+
+    body.impression-lot .lot {
+        display: block;
+        position: static;
+    }
+
+    /* Une fiche par page */
+    .lot .feuille + .feuille {
+        break-before: page;
+        page-break-before: always;
     }
 
     /* Contenu trop long même à la plus petite taille : la fiche continue sur une seconde page plutôt que d'être coupée */

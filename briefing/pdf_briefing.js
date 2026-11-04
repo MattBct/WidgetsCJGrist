@@ -328,7 +328,7 @@ function pdfPreparerLigne(rdv, polices, colonnes) {
     const patient = pdfLignes(`${rdv.nom} ${rdv.prenom}`.trim(), polices.bold, 8, interieur(1));
     const motifs = pdfDisposerPastilles(pdfPastillesMotifs(rdv), polices.bold, 6.5, interieur(1));
     const suivi = pdfPreparerSuivi(rdv, polices, interieur(1) - 2, 6);
-    const hauteurRdv = 13 + 3 + badges.hauteur + 3 + patient.length * 10 + 1 + suivi.hauteur + 3 + (motifs.hauteur || 9);
+    const hauteurRdv = 13 + 3 + badges.hauteur + 3 + (pdfLogosRdv(rdv).length > 0 ? PDF_HAUTEUR_LOGOS + 3 : 0) + patient.length * 10 + 1 + suivi.hauteur + 3 + (motifs.hauteur || 9);
 
     const cliniciens = rdv.cliniciens.map(clinicien => pdfPreparerClinicien(clinicien, polices, interieur(2) - 13));
     const nbLignesVierges = Math.max(0, NB_LIGNES_CLINICIENS_MIN - rdv.cliniciens.length);
@@ -383,6 +383,7 @@ function pdfDessinerLigne(ctx, rdv, prep, yHaut, index) {
     y += 16;
     pdfDessinerPastilles(page, prep.badges, x, y, polices.bold, 6.5);
     y += prep.badges.hauteur + 3;
+    y = pdfDessinerLogos(page, rdv, x, y);
     prep.patient.forEach(ligne => {
         pdfEcrire(page, ligne, x, y, polices.bold, 8);
         y += 10;
@@ -511,6 +512,37 @@ function pdfLignesMail(mail, police, largeur) {
     return lignes.flatMap(l => pdfLignes(l, police, 6.3, largeur)).map(l => ({ texte: l, taille: 6.3 }));
 }
 
+// ---------- Logos partenaires (CVEC, Fragile X France) ----------
+
+// Images chargées à chaque génération (null si un fichier est indisponible)
+let pdfImagesPartenaires = {};
+const PDF_HAUTEUR_LOGOS = 13;
+
+// CVEC (lettres blanches) sur étiquette noire ; Fragile X directement sur la carte
+function pdfLogosRdv(rdv) {
+    return [
+        rdv.cvec && pdfImagesPartenaires.cvec && { image: pdfImagesPartenaires.cvec, fond: PDF_COULEURS.texte },
+        rdv.fragileX && pdfImagesPartenaires.fragileX && { image: pdfImagesPartenaires.fragileX, fond: null },
+    ].filter(Boolean);
+}
+
+// Rangée de logos ; retourne la position sous la rangée
+function pdfDessinerLogos(page, rdv, x, yHaut) {
+    const logos = pdfLogosRdv(rdv);
+    let xLogo = x;
+    logos.forEach(({ image, fond }) => {
+        const marge = fond ? 2 : 0;
+        const hauteurImage = PDF_HAUTEUR_LOGOS - 2 * marge;
+        const largeurImage = image.width * hauteurImage / image.height;
+        if (fond) {
+            pdfRectangleArrondi(page, xLogo, yHaut, largeurImage + 6, PDF_HAUTEUR_LOGOS, 2, { fond });
+        }
+        page.drawImage(image, { x: xLogo + (fond ? 3 : 0), y: pdfY(yHaut + marge + hauteurImage), width: largeurImage, height: hauteurImage });
+        xLogo += largeurImage + (fond ? 6 : 0) + 5;
+    });
+    return logos.length > 0 ? yHaut + PDF_HAUTEUR_LOGOS + 3 : yHaut;
+}
+
 // Carte RDV de la grille : identifiant, badge, patient, coordonnées, motifs standardisés
 function pdfPreparerCarte(rdv, polices, largeur) {
     const interieur = largeur - 3 - 2 * 4;
@@ -525,7 +557,7 @@ function pdfPreparerCarte(rdv, polices, largeur) {
     ];
     const suivi = pdfPreparerSuivi(rdv, polices, interieur, 6);
     const motifs = pdfDisposerPastilles(pdfPastillesMotifs(rdv), polices.bold, 6, interieur);
-    const hauteur = 4 + (rdv.visio ? 12 : 0) + 12 + (propose ? propose.hauteur + 3 : 0) + patient.length * 9.5 + contact.length * 9 + 1 + suivi.hauteur + 4 + (motifs.hauteur || 9) + 4;
+    const hauteur = 4 + (rdv.visio ? 12 : 0) + 12 + (pdfLogosRdv(rdv).length > 0 ? PDF_HAUTEUR_LOGOS + 3 : 0) + (propose ? propose.hauteur + 3 : 0) + patient.length * 9.5 + contact.length * 9 + 1 + suivi.hauteur + 4 + (motifs.hauteur || 9) + 4;
     return { rdv, badge, largeurBadge, propose, identifiant, patient, contact, suivi, motifs, hauteur };
 }
 
@@ -558,6 +590,7 @@ function pdfDessinerCarte(page, polices, carte, x, yHaut, largeur) {
     pdfEcrire(page, carte.identifiant, xTexte, y, polices.extraBold, 9.5, teinte.texte);
     pdfDessinerPastilles(page, carte.badge, x + largeur - 4 - carte.largeurBadge, y + 0.5, polices.bold, 6);
     y += 12;
+    y = pdfDessinerLogos(page, rdv, xTexte, y);
     if (carte.propose) {
         pdfDessinerPastilles(page, carte.propose, xTexte, y, polices.bold, 5.5);
         y += carte.propose.hauteur + 3;
@@ -843,7 +876,13 @@ async function genererPdfBriefing() {
     doc.setLanguage('fr-FR');
 
     const polices = await chargerPolicesPdf(doc);
-    const [logo, facade] = await Promise.all([chargerImagePdf(doc, 'logoCJ_blanc.png'), chargerImagePdf(doc, 'facade_blanc.png')]);
+    const [logo, facade, cvec, fragileX] = await Promise.all([
+        chargerImagePdf(doc, 'logoCJ_blanc.png'),
+        chargerImagePdf(doc, 'facade_blanc.png'),
+        chargerImagePdf(doc, 'logo_CVEC_blanc.png'),
+        chargerImagePdf(doc, 'logo_FragileX.png'),
+    ]);
+    pdfImagesPartenaires = { cvec, fragileX };
 
     const ctx = {
         doc,

@@ -15,6 +15,8 @@ const COLONNES = [
     { name: "Visioconference", title: "Visioconférence", type: "Bool", optional: true, description: "RDV en visioconférence (affiche une vignette Visio, le RDV reste dans sa salle)" },
     { name: "Cliniciens_briefing", title: "Cliniciens (briefing)", type: "Any,RefList,Text", optional: true, description: "Colonne formule donnant le nom et le téléphone de chaque clinicien : [[c.Prenom + \" \" + c.Nom.upper(), c.Telephone] for c in $Cliniciens_affectes]" },
     { name: "Commentaires", title: "Commentaires", type: "Text", optional: true, description: "Commentaires affichés sur la feuille d'émargement" },
+    { name: "Etudiant", title: "RDV étudiant (CVEC)", type: "Bool", optional: true, description: "Si coché, affiche le logo « Financé par la CVEC »" },
+    { name: "Partenariat_Fragile_X", title: "RDV partenariat Fragile X France", type: "Bool", optional: true, description: "Si coché, affiche le logo Fragile X France" },
     { name: "Statut_RDV", title: "Statut de la demande", type: "Choice,Text", optional: true, description: "Les RDV « Créneaux proposés » (non confirmés par le patient) sont affichés en gris pointillé" },
 ];
 
@@ -205,6 +207,8 @@ function getRdvDuJour(cle) {
                 motif: String(dossier.Motif_RDV || '').trim(),
                 motifsStandardises: lireListe(dossier.Motifs_standardises),
                 visio: dossier.Visioconference === true,
+                cvec: dossier.Etudiant === true,
+                fragileX: dossier.Partenariat_Fragile_X === true,
                 propose: String(dossier.Statut_RDV ?? '').trim() === STATUT_PROPOSE,
                 cliniciens: getCliniciens(dossier.Cliniciens_briefing),
                 commentaires: String(dossier.Commentaires || '').trim(),
@@ -334,6 +338,7 @@ function renderCarte(rdv) {
                 <span class="carte-id">${echapper(rdv.identifiant) || '—'}</span>
                 <span class="badge">${rdv.creneau.badge}</span>
             </div>
+            ${renderLogosPartenaires(rdv)}
             ${rdv.propose ? `<span class="badge badge-propose">${LIBELLE_PROPOSE}</span>` : ''}
             <span class="carte-patient">${echapper(rdv.nom)} ${echapper(rdv.prenom)}</span>
             ${contact}
@@ -348,6 +353,15 @@ function renderSuiviRdv(rdv) {
         ? `<span class="alerte-delai" title="Délai attendu : ${DELAI_ATTENDU_JOURS} jours">⚠ ${echapper(rdv.suivi.alerte)}</span>`
         : '';
     return `<span class="suivi-rdv${rdv.suivi.programme ? '' : ' non-programme'}">${echapper(rdv.suivi.texte)}</span>${alerte}`;
+}
+
+// Logos des RDV financés par la CVEC (étudiants) ou en partenariat avec Fragile X France
+function renderLogosPartenaires(rdv) {
+    const logos = [
+        rdv.cvec ? '<img class="logo-partenaire logo-cvec" src="logo_CVEC_blanc.png" alt="Financé par la CVEC" title="RDV étudiant — financé par la CVEC">' : '',
+        rdv.fragileX ? '<img class="logo-partenaire" src="logo_FragileX.png" alt="Fragile X France" title="RDV en partenariat avec Fragile X France">' : '',
+    ].join('');
+    return logos ? `<span class="logos-partenaires">${logos}</span>` : '';
 }
 
 function renderMotifsStandardises(rdv) {
@@ -405,6 +419,7 @@ function renderLigneEmargement(rdv) {
                     ${rdv.visio ? `<span class="badge badge-visio">${ICONE_VISIO}Visio</span>` : ''}
                     ${rdv.propose ? `<span class="badge badge-propose">${LIBELLE_PROPOSE}</span>` : ''}
                 </span>
+                ${renderLogosPartenaires(rdv)}
                 <span class="carte-patient">${echapper(rdv.nom)} ${echapper(rdv.prenom)}</span>
                 ${renderSuiviRdv(rdv)}
                 <div class="em-motifs">${renderMotifsStandardises(rdv)}</div>

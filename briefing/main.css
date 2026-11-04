@@ -528,6 +528,29 @@ html, body {
     font-weight: 700;
 }
 
+/* Logos partenaires : Fragile X directement sur la carte (fond transparent) ;
+   CVEC (version à lettres blanches) sur une petite étiquette noire, aux couleurs de la marque */
+.logos-partenaires {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 5px;
+    margin: 1px 0 2px;
+}
+
+.logo-partenaire {
+    height: 14px;
+    width: auto;
+}
+
+.logo-partenaire.logo-cvec {
+    height: 11px;
+    padding: 2px 5px;
+    border-radius: 3px;
+    background: #1d1d1d;
+    box-sizing: content-box;
+}
+
 .carte-contact {
     color: #333333;
 }

@@ -43,6 +43,7 @@ const COLONNES = [
     { name: "Motifs_standardises", title: "Motifs standardisés", type: "ChoiceList,Text", optional: false, description: "Motifs standardisés (colonne Choix multiples), affichés en pastilles aux couleurs définies dans Grist" },
     { name: "Cree_le", title: "Date de création de la demande", type: "DateTime", optional: true, description: "Affichée en petit à côté de l'identifiant" },
     { name: "Etudiant", title: "RDV étudiant", type: "Bool", optional: false, description: "Modifiable ; si coché, affiche la mention « Financé par la CVEC » et l'établissement" },
+    { name: "Partenariat_Fragile_X", title: "RDV partenariat avec Fragile X France", type: "Bool", optional: false, description: "Modifiable ; si coché, affiche le logo Fragile X France" },
     { name: "Etablissement_COMUE", title: "Établissement COMUE", type: "Choice", optional: false, description: "Établissement de l'étudiant, modifiable si RDV étudiant" },
     { name: "Statut_RDV", title: "Statut de la demande", type: "Choice,Text", optional: false, description: `Colonne filtrée dans la vue ; reçoit « ${STATUT_CONFIRME} » ou « ${STATUT_REJETE} » via les boutons du widget` },
 ];
@@ -60,6 +61,7 @@ const TYPES_CHAMPS = {
     Lieu_RDV_2: 'lieu',
     Visioconference: 'bool',
     Etudiant: 'bool',
+    Partenariat_Fragile_X: 'bool',
 };
 
 const EMAIL_VALIDE = /^[a-z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*\.[a-z]{2,}$/;
@@ -239,7 +241,7 @@ function creerSourceDemo() {
     const dossiers = [
         { id: 41, Cree_le: new Date(Date.UTC(2026, 8, 25, 8, 12)), Motif_RDV: "Mon propriétaire refuse de me rendre mon dépôt de garantie (850 €) alors que l'état des lieux de sortie ne mentionne aucune dégradation. J'ai quitté le logement il y a trois mois et il ne répond plus à mes relances par mail ni par courrier.\nJe voudrais savoir quels sont mes recours et s'il faut passer par une mise en demeure avant de saisir le tribunal.", Motifs_standardises: ['Logement', 'Consommation'], id_rdv_clinique: 'K7QXM', Nom_patient: 'MARTIN', Prenom_patient: 'Camille', Mail_patient: 'camille.martin@exemple.fr', Telephone_patient: '06 12 34 56 78', Creneau_RDV_1: date(6, 14), Lieu_RDV_1: 1, Creneau_RDV_2: null, Lieu_RDV_2: 0, Visioconference: false, Commentaires: 'Souhaite un RDV en fin de journée.', Statut_RDV: STATUT_DEMANDE },
         { id: 42, Cree_le: new Date(Date.UTC(2026, 8, 26, 14, 40)), Motif_RDV: "Contestation d'une rupture de période d'essai.", Motifs_standardises: ['Travail'], id_rdv_clinique: '3HPAT', Nom_patient: 'NGUYEN', Prenom_patient: 'Thomas', Mail_patient: '', Telephone_patient: '07 45 21 98 03', Creneau_RDV_1: date(7, 10, 30), Lieu_RDV_1: 3, Creneau_RDV_2: date(21, 10, 30), Lieu_RDV_2: 3, Visioconference: true, Commentaires: '', Etudiant: true, Etablissement_COMUE: 'Université Lumière Lyon 2', Statut_RDV: STATUT_DEMANDE },
-        { id: 43, Cree_le: new Date(Date.UTC(2026, 8, 28, 7, 5)), Motif_RDV: "Litige avec mon bailleur social concernant des charges locatives régularisées sur trois ans d'un coup. Le montant réclamé représente plus de deux mois de loyer et je n'ai reçu aucun justificatif malgré ma demande écrite.", Motifs_standardises: ['Logement'], id_rdv_clinique: 'WD9RC', Nom_patient: 'BERNARD', Prenom_patient: 'Léa', Mail_patient: 'lea.bernard@exemple.org', Telephone_patient: '', Creneau_RDV_1: date(8, 9, 15), Lieu_RDV_1: 5, Creneau_RDV_2: null, Lieu_RDV_2: 0, Visioconference: false, Commentaires: 'Litige bailleur — pièces transmises par mail.', Statut_RDV: STATUT_DEMANDE },
+        { id: 43, Partenariat_Fragile_X: true, Cree_le: new Date(Date.UTC(2026, 8, 28, 7, 5)), Motif_RDV: "Litige avec mon bailleur social concernant des charges locatives régularisées sur trois ans d'un coup. Le montant réclamé représente plus de deux mois de loyer et je n'ai reçu aucun justificatif malgré ma demande écrite.", Motifs_standardises: ['Logement'], id_rdv_clinique: 'WD9RC', Nom_patient: 'BERNARD', Prenom_patient: 'Léa', Mail_patient: 'lea.bernard@exemple.org', Telephone_patient: '', Creneau_RDV_1: date(8, 9, 15), Lieu_RDV_1: 5, Creneau_RDV_2: null, Lieu_RDV_2: 0, Visioconference: false, Commentaires: 'Litige bailleur — pièces transmises par mail.', Statut_RDV: STATUT_DEMANDE },
         { id: 44, Cree_le: new Date(Date.UTC(2026, 9, 1, 9, 30)), Motif_RDV: "", Motifs_standardises: [], id_rdv_clinique: 'B4NZE', Nom_patient: 'HADDAD', Prenom_patient: 'Yanis', Mail_patient: '', Telephone_patient: '', Creneau_RDV_1: date(8, 9), Lieu_RDV_1: 5, Creneau_RDV_2: null, Lieu_RDV_2: 0, Visioconference: false, Commentaires: 'Demande déposée à l’accueil, coordonnées non laissées.', Etudiant: true, Etablissement_COMUE: '', Statut_RDV: STATUT_DEMANDE },
         { id: 45, Cree_le: new Date(Date.UTC(2026, 9, 2, 6, 47)), Motif_RDV: "Renouvellement de titre de séjour étudiant : la préfecture m'a délivré un récépissé qui expire avant la date du rendez-vous qu'elle m'a fixé. Je crains de perdre mon droit de travailler en parallèle de mes études.", Motifs_standardises: ['Droit des étrangers', 'Administratif'], id_rdv_clinique: 'Q2UFL', Nom_patient: 'LEROY', Prenom_patient: 'Inès', Mail_patient: 'ines.leroy@exemple', Telephone_patient: '06 98 76 54 32', Creneau_RDV_1: date(9, 11), Lieu_RDV_1: 2, Creneau_RDV_2: date(23, 11), Lieu_RDV_2: 4, Visioconference: false, Commentaires: '', Etudiant: true, Etablissement_COMUE: 'Université Jean Moulin Lyon 3', Statut_RDV: STATUT_DEMANDE },
         // RDV hors de la vue (déjà traités) : ils occupent des salles
@@ -475,6 +477,7 @@ const FILTRES = {
     tous: { garder: () => true, vide: 'Aucune demande de RDV à traiter.' },
     etudiants: { garder: d => d.Etudiant === true, vide: 'Aucune demande étudiante à traiter.' },
     'non-etudiants': { garder: d => d.Etudiant !== true, vide: 'Aucune demande non étudiante à traiter.' },
+    'fragile-x': { garder: d => d.Partenariat_Fragile_X === true, vide: 'Aucune demande en partenariat avec Fragile X France.' },
     conflits: { garder: (d, element) => aConflitDeSalle(element), vide: 'Aucun conflit de salle parmi les demandes.' },
 };
 let filtreActif = 'tous';
@@ -706,6 +709,13 @@ function valeurDeListe(champ, valeur) {
     }
     const parLibelle = choix.find(c => c.libelle === reference.libelle);
     return parLibelle ? String(parLibelle.valeur) : reference.id;
+}
+
+// RDV en partenariat avec Fragile X France : encart et logo suivent la case (carte ou formulaire)
+function majPartenariat(conteneur) {
+    const partenariat = valeurChamp(conteneur, 'Partenariat_Fragile_X');
+    conteneur.querySelector('.partenariat').classList.toggle('actif', partenariat);
+    conteneur.querySelector('.logo-partenaire').hidden = !partenariat;
 }
 
 // « Demande reçue le 28/09/2026 à 14h32 · il y a 4 jours » (jours comptés au calendrier, à Paris)
@@ -1034,6 +1044,7 @@ function majAlertes(element) {
     const etudiant = valeurChamp(element, 'Etudiant');
     element.querySelector('.etudiant').classList.toggle('actif', etudiant);
     element.querySelector('.etudiant-details').hidden = !etudiant;
+    majPartenariat(element);
     const etablissement = valeurChamp(element, 'Etablissement_COMUE');
     if (etudiant && !etablissement) {
         alertes.push({ niveau: 'avertissement', texte: 'Établissement manquant' });
@@ -1429,6 +1440,7 @@ function reinitialiserFormulaire() {
     }
     formulaire.querySelector('.etudiant-details').hidden = true;
     formulaire.querySelector('.etudiant').classList.remove('actif');
+    majPartenariat(formulaire);
     formulaire.querySelectorAll('textarea').forEach(ajusterHauteur);
 
     // Motifs standardisés : une case à cocher par choix de la colonne
@@ -1596,6 +1608,7 @@ function afficherSucces(rowId, identifiant, action) {
         ['RDV 2', creneau(2)],
         ['Visioconférence', valeurChamp(formulaire, 'Visioconference') ? 'Oui' : ''],
         ['Étudiant', valeurChamp(formulaire, 'Etudiant') ? libelle('Etablissement_COMUE') : ''],
+        ['Partenariat', valeurChamp(formulaire, 'Partenariat_Fragile_X') ? 'Fragile X France' : ''],
     ].filter(([, valeur]) => valeur);
 
     document.getElementById('succes-titre').textContent = action.titre;
@@ -1644,6 +1657,9 @@ formulaire.addEventListener('input', (e) => {
     }
     if (/^Creneau_RDV_/.test(input?.dataset.champ ?? '')) {
         delete formulaire.dataset.plagesAcceptees;
+    }
+    if (input?.dataset.champ === 'Partenariat_Fragile_X') {
+        majPartenariat(formulaire);
     }
     if (input?.dataset.champ === 'Etudiant') {
         formulaire.querySelector('.etudiant-details').hidden = !input.checked;

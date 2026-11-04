@@ -175,6 +175,16 @@ html, body {
     background: var(--clinique);
 }
 
+/* Logo dans un bouton de filtre : fond blanc pour rester lisible sur le bouton actif (rouge) */
+.filtre-logo {
+    flex: none;
+    height: 16px;
+    width: auto;
+    padding: 1px 3px;
+    background: #ffffff;
+    border-radius: 3px;
+}
+
 .filtre-nombre {
     min-width: 18px;
     padding: 0 5px;
@@ -395,6 +405,50 @@ html, body {
 .etudiant.actif {
     border: 1px solid #f3e27a;
     background: #fffbe0;
+}
+
+/* RDV en partenariat avec Fragile X France : encart aux couleurs du logo */
+.partenariat {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    max-width: 100%;
+    gap: 6px 12px;
+    padding: 4px 10px 4px 6px;
+    border: 1px dashed var(--bordure);
+    border-radius: 6px;
+}
+
+.partenariat.actif {
+    border: 1px solid #9fd6e6;
+    background: #eaf6fa;
+}
+
+.logo-partenaire {
+    flex: none;
+    height: 26px;
+    width: auto;
+}
+
+.logo-partenaire[hidden] {
+    display: none;
+}
+
+/* Carte : encarts étudiant et partenariat côte à côte */
+.identite-options {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 8px;
+    margin-top: 6px;
+}
+
+.identite-options .etudiant {
+    margin-top: 0;
+}
+
+.formulaire-groupe .partenariat {
+    justify-self: start;
 }
 
 .etudiant-details {

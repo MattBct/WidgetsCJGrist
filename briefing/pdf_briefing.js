@@ -11,9 +11,9 @@ const PDF_POLICES = { regular: '400-normal', bold: '700-normal', extraBold: '800
 const MM = 72 / 25.4;
 const PDF_PAGE = { largeur: 595.28, hauteur: 841.89, marge: 10 * MM, margeBas: 14 * MM };
 const PDF_LARGEUR_UTILE = PDF_PAGE.largeur - 2 * PDF_PAGE.marge;
-// Mêmes proportions que le tableau d'émargement HTML : heure/salle, RDV, cliniciens, patient, motif/notes
-const PDF_COLONNES = [0.12, 0.18, 0.30, 0.11, 0.29];
-const PDF_TITRES_COLONNES = ['Heure / salle', 'RDV', 'Cliniciens présents', 'Patient', 'Motif, commentaires / notes'];
+// Mêmes proportions que le tableau d'émargement HTML : heure/salle, RDV, cliniciens, patient, motifs/notes
+const PDF_COLONNES = [0.11, 0.17, 0.26, 0.11, 0.35];
+const PDF_TITRES_COLONNES = ['Heure / salle', 'RDV', 'Cliniciens présents', 'Patient', 'Motifs, commentaires / notes'];
 const PDF_PADDING = 5;
 const PDF_LIGNE_CLINICIEN = 15;
 const PDF_HAUTEUR_ENTETE_TABLEAU = 18;
@@ -301,16 +301,10 @@ function pdfColonnes() {
     });
 }
 
-// Clinicien inscrit : nom jamais tronqué. Téléphone à droite si le nom tient sur une ligne à côté,
-// sinon nom sur toute la largeur (sur plusieurs lignes si besoin) et téléphone en dessous.
+// Clinicien inscrit : nom jamais tronqué (coordonnées reportées dans l'annuaire de fin de document)
 function pdfPreparerClinicien(clinicien, polices, largeur) {
-    const telephone = clinicien.telephone ? pdfTexte(polices.regular, `Tél. ${clinicien.telephone}`) : '';
-    const largeurTel = telephone ? polices.regular.widthOfTextAtSize(telephone, 6.5) : 0;
-    const nom = pdfTexte(polices.regular, clinicien.nom);
-    const telADroite = Boolean(telephone) && polices.regular.widthOfTextAtSize(nom, 8) <= largeur - largeurTel - 4;
-    const lignes = telADroite ? [nom] : pdfLignes(clinicien.nom, polices.regular, 8, largeur);
-    const hauteur = PDF_LIGNE_CLINICIEN + (lignes.length - 1) * 10 + (telephone && !telADroite ? 9 : 0);
-    return { telephone, largeurTel, lignes, telADroite, hauteur };
+    const lignes = pdfLignes(clinicien.nom, polices.regular, 8, largeur);
+    return { lignes, hauteur: PDF_LIGNE_CLINICIEN + (lignes.length - 1) * 10 };
 }
 
 // Prépare le contenu d'une ligne (textes découpés, pastilles) et calcule sa hauteur
@@ -326,9 +320,7 @@ function pdfPreparerLigne(rdv, polices, colonnes) {
         ...(rdv.propose ? [pdfPastillePropose()] : []),
     ], polices.bold, 6.5, interieur(1));
     const patient = pdfLignes(`${rdv.nom} ${rdv.prenom}`.trim(), polices.bold, 8, interieur(1));
-    const motifs = pdfDisposerPastilles(pdfPastillesMotifs(rdv), polices.bold, 6.5, interieur(1));
-    const suivi = pdfPreparerSuivi(rdv, polices, interieur(1) - 2, 6);
-    const hauteurRdv = 13 + 3 + badges.hauteur + 3 + (pdfLogosRdv(rdv).length > 0 ? PDF_HAUTEUR_LOGOS + 3 : 0) + patient.length * 10 + 1 + suivi.hauteur + 3 + (motifs.hauteur || 9);
+    const hauteurRdv = 13 + 3 + badges.hauteur + 3 + (pdfLogosRdv(rdv).length > 0 ? PDF_HAUTEUR_LOGOS + 3 : 0) + patient.length * 10;
 
     const cliniciens = rdv.cliniciens.map(clinicien => pdfPreparerClinicien(clinicien, polices, interieur(2) - 13));
     const nbLignesVierges = Math.max(0, NB_LIGNES_CLINICIENS_MIN - rdv.cliniciens.length);
@@ -338,15 +330,17 @@ function pdfPreparerLigne(rdv, polices, colonnes) {
 
     const hauteurPatient = 2 * PDF_LIGNE_CLINICIEN + 16;
 
+    // Motifs standardisés, motif détaillé et commentaire regroupés dans la même colonne
+    const motifs = pdfDisposerPastilles(pdfPastillesMotifs(rdv), polices.bold, 6.5, interieur(4));
     const blocs = [
         { titre: 'Motif détaillé', lignes: rdv.motif ? pdfLignes(rdv.motif, polices.italique, 7.5, interieur(4) - 6) : ['Non renseigné'] },
         ...(rdv.commentaires ? [{ titre: 'Commentaire', lignes: pdfLignes(rdv.commentaires, polices.italique, 7.5, interieur(4) - 6) }] : []),
     ].map(bloc => ({ ...bloc, hauteur: 3 + 8 + bloc.lignes.length * 9.5 + 3 }));
     const hauteurBlocs = blocs.reduce((total, bloc) => total + bloc.hauteur + 3, 0);
-    const hauteurNotes = hauteurBlocs + 9 + PDF_HAUTEUR_NOTES_MIN;
+    const hauteurNotes = (motifs.hauteur || 9) + 4 + hauteurBlocs + 9 + PDF_HAUTEUR_NOTES_MIN;
 
     const hauteur = 2 * PDF_PADDING + Math.max(hauteurHoraire, hauteurRdv, hauteurCliniciens, hauteurPatient, hauteurNotes);
-    return { salle, badges, patient, suivi, motifs, cliniciens, nbLignesVierges, blocs, hauteurBlocs, hauteur };
+    return { salle, badges, patient, motifs, cliniciens, nbLignesVierges, blocs, hauteurBlocs, hauteur };
 }
 
 function pdfDessinerLigne(ctx, rdv, prep, yHaut, index) {
@@ -388,13 +382,6 @@ function pdfDessinerLigne(ctx, rdv, prep, yHaut, index) {
         pdfEcrire(page, ligne, x, y, polices.bold, 8);
         y += 10;
     });
-    y = pdfDessinerSuivi(page, polices, prep.suivi, x, y + 1);
-    y += 3;
-    if (prep.motifs.positions.length > 0) {
-        pdfDessinerPastilles(page, prep.motifs, x, y, polices.bold, 6.5);
-    } else {
-        pdfEcrire(page, 'Motif non qualifié', x, y, polices.italique, 7, PDF_COULEURS.doux);
-    }
 
     // 3. Cliniciens : une case par clinicien inscrit, complétée par des lignes à remplir
     const cliniciens = colonnes[2];
@@ -414,11 +401,6 @@ function pdfDessinerLigne(ctx, rdv, prep, yHaut, index) {
         const largeurTexte = cliniciens.x + cliniciens.largeur - pad - xTexte;
         if (clinicien) {
             clinicien.lignes.forEach((ligne, k) => pdfEcrire(page, ligne, xTexte, haut + 2.5 + k * 10, polices.regular, 8));
-            if (clinicien.telADroite) {
-                pdfEcrire(page, clinicien.telephone, cliniciens.x + cliniciens.largeur - pad - clinicien.largeurTel, haut + 3.5, polices.regular, 6.5, PDF_COULEURS.doux);
-            } else if (clinicien.telephone) {
-                pdfEcrire(page, clinicien.telephone, xTexte, haut + 2.5 + clinicien.lignes.length * 10, polices.regular, 6.5, PDF_COULEURS.doux);
-            }
             haut += clinicien.hauteur;
         } else {
             const champNom = form.createTextField(`${nomChamp}_clinicien_${j + 1}_nom`);
@@ -453,6 +435,13 @@ function pdfDessinerLigne(ctx, rdv, prep, yHaut, index) {
     x = notes.x + pad;
     y = yHaut + pad;
     const largeurNotes = notes.largeur - 2 * pad;
+    if (prep.motifs.positions.length > 0) {
+        pdfDessinerPastilles(page, prep.motifs, x, y, polices.bold, 6.5);
+        y += prep.motifs.hauteur + 4;
+    } else {
+        pdfEcrire(page, 'Motif non qualifié', x, y, polices.italique, 7, PDF_COULEURS.doux);
+        y += 13;
+    }
     prep.blocs.forEach(bloc => {
         page.drawRectangle({ x, y: pdfY(y + bloc.hauteur), width: largeurNotes, height: bloc.hauteur, color: pdfCouleur(PDF_COULEURS.fondDoux) });
         page.drawRectangle({ x, y: pdfY(y + bloc.hauteur), width: 2, height: bloc.hauteur, color: pdfCouleur(PDF_COULEURS.bordure) });
@@ -490,10 +479,11 @@ function pdfHachures(page, x, yHaut, largeur, hauteur) {
     page.pushOperators(popGraphicsState());
 }
 
-// Adresse mail d'une carte : réduite si besoin pour tenir sur une ligne, sinon coupée après "@" ou un point
+// Adresse mail : réduite si besoin pour tenir sur une seule ligne — une adresse coupée en deux
+// ne se copie plus proprement depuis le PDF. Au-delà, repli sur une coupure après "@" ou un point.
 function pdfLignesMail(mail, police, largeur) {
     const texte = pdfTexte(police, mail);
-    for (const taille of [7, 6.3]) {
+    for (const taille of [7, 6.3, 5.8, 5.4]) {
         if (police.widthOfTextAtSize(texte, taille) <= largeur) {
             return [{ texte, taille }];
         }
@@ -691,6 +681,129 @@ function pdfDessinerOccupation(ctx, rdvs, salles, yHaut) {
     return y;
 }
 
+// ---------- Titres de section ----------
+
+// Bandeau rose à liseré rouge (annuaire des cliniciens, feuille d'émargement) ; retourne la position sous le bandeau
+function pdfDessinerTitreSection(ctx, texte, yHaut, hauteur = 20, taille = 10.5) {
+    const { page, polices } = ctx;
+    const x = PDF_PAGE.marge;
+    page.drawRectangle({ x, y: pdfY(yHaut + hauteur), width: PDF_LARGEUR_UTILE, height: hauteur, color: pdfCouleur(PDF_COULEURS.rdv1) });
+    page.drawRectangle({ x, y: pdfY(yHaut + hauteur), width: 4, height: hauteur, color: pdfCouleur(PDF_COULEURS.clinique) });
+    pdfEcrire(page, pdfLigneTronquee(texte, polices.extraBold, taille, PDF_LARGEUR_UTILE - 20), x + 12, yHaut + (hauteur - taille) / 2, polices.extraBold, taille, PDF_COULEURS.cliniqueFonce);
+    return yHaut + hauteur + 6;
+}
+
+// ---------- Annuaire des cliniciens (fin de document) ----------
+
+const PDF_ANNUAIRE_COLONNES = 2;
+const PDF_ANNUAIRE_ECART = 5;
+
+// Un bloc par RDV : identifiant, badge, heure et salle, puis les cliniciens avec leurs coordonnées.
+// Rien n'est tronqué : le mail passe à la ligne après le « @ » ou un point si besoin.
+function pdfPreparerBlocAnnuaire(rdv, polices, largeur) {
+    const interieur = largeur - 4 - 2 * 6;
+    const badge = pdfDisposerPastilles([{
+        texte: rdv.creneau.badge,
+        fond: PDF_COULEURS.blanc,
+        bordure: PDF_COULEURS.bordure,
+        couleur: rdv.propose ? PDF_COULEURS.proposeTexteFort : PDF_COULEURS.cliniqueFonce,
+    }], polices.bold, 6, interieur);
+    const largeurBadge = badge.positions[0].largeur;
+    const identifiant = pdfLigneTronquee(rdv.identifiant || '—', polices.extraBold, 8.5, interieur - largeurBadge - 6);
+    const lieu = pdfLignes(`${rdv.horaire} · ${rdv.salle.libelle}`, polices.regular, 6.5, interieur, 1);
+
+    const cliniciens = rdv.cliniciens.map(clinicien => {
+        // Niveau (EA, L3, M1, M2) en pastille, alignée à droite de la première ligne du nom
+        const niveau = clinicien.niveau
+            ? pdfDisposerPastilles([{ texte: clinicien.niveau, fond: PDF_COULEURS.blanc, bordure: PDF_COULEURS.doux, couleur: PDF_COULEURS.doux }], polices.bold, 5.5, interieur)
+            : null;
+        const largeurNiveau = niveau ? niveau.positions[0].largeur : 0;
+        const nom = pdfLignes(clinicien.nom, polices.bold, 7, interieur - (largeurNiveau ? largeurNiveau + 5 : 0));
+        const contact = clinicien.telephone || clinicien.mail
+            ? [
+                ...(clinicien.telephone ? [{ texte: pdfTexte(polices.regular, `Tél. ${clinicien.telephone}`), taille: 6.5 }] : []),
+                ...(clinicien.mail ? pdfLignesMail(clinicien.mail, polices.regular, interieur) : []),
+            ]
+            : [{ texte: pdfTexte(polices.italique, 'Coordonnées non renseignées'), taille: 6.5, absent: true }];
+        const hauteur = 3 + Math.max(nom.length * 8.5, niveau ? niveau.hauteur : 0)
+            + contact.reduce((total, ligne) => total + ligne.taille + 1.8, 0);
+        return { nom, niveau, largeurNiveau, contact, hauteur };
+    });
+
+    const hauteur = 4 + 11 + lieu.length * 8 + 2
+        + cliniciens.reduce((total, clinicien) => total + clinicien.hauteur, 0) + 4;
+    return { rdv, badge, largeurBadge, identifiant, lieu, cliniciens, hauteur };
+}
+
+function pdfDessinerBlocAnnuaire(ctx, prep, x, yHaut, largeur, hauteur) {
+    const { page, polices } = ctx;
+    const { rdv } = prep;
+    const lisere = rdv.propose ? PDF_COULEURS.proposeLisere : rdv.creneau.ordre === 2 ? PDF_COULEURS.cliniqueFonce : PDF_COULEURS.clinique;
+    page.drawRectangle({ x, y: pdfY(yHaut + hauteur), width: largeur, height: hauteur, borderColor: pdfCouleur(PDF_COULEURS.bordure), borderWidth: 0.6 });
+    page.drawRectangle({ x, y: pdfY(yHaut + hauteur), width: 4, height: hauteur, color: pdfCouleur(lisere) });
+
+    const xTexte = x + 4 + 6;
+    const largeurTexte = largeur - 4 - 2 * 6;
+    let y = yHaut + 4;
+    pdfEcrire(page, prep.identifiant, xTexte, y, polices.extraBold, 8.5, rdv.propose ? PDF_COULEURS.proposeTexteFort : PDF_COULEURS.texte);
+    pdfDessinerPastilles(page, prep.badge, xTexte + largeurTexte - prep.largeurBadge, y + 0.5, polices.bold, 6);
+    y += 11;
+    prep.lieu.forEach(ligne => {
+        pdfEcrire(page, ligne, xTexte, y, polices.regular, 6.5, PDF_COULEURS.doux);
+        y += 8;
+    });
+    y += 2;
+
+    prep.cliniciens.forEach(clinicien => {
+        pdfLignePointillee(page, xTexte, xTexte + largeurTexte, y);
+        y += 3;
+        if (clinicien.niveau) {
+            pdfDessinerPastilles(page, clinicien.niveau, xTexte + largeurTexte - clinicien.largeurNiveau, y - 0.5, polices.bold, 5.5);
+        }
+        clinicien.nom.forEach(ligne => {
+            pdfEcrire(page, ligne, xTexte, y, polices.bold, 7);
+            y += 8.5;
+        });
+        y += Math.max(0, (clinicien.niveau ? clinicien.niveau.hauteur : 0) - clinicien.nom.length * 8.5);
+        clinicien.contact.forEach(ligne => {
+            pdfEcrire(page, ligne.texte, xTexte, y, ligne.absent ? polices.italique : polices.regular, ligne.taille, PDF_COULEURS.doux);
+            y += ligne.taille + 1.8;
+        });
+    });
+}
+
+// Grille de blocs (2 colonnes), paginée par rangée ; retourne la position sous l'annuaire
+function pdfDessinerAnnuaire(ctx, rdvs, yHaut) {
+    const avecCliniciens = rdvs.filter(rdv => rdv.cliniciens.length > 0);
+    if (avecCliniciens.length === 0) {
+        return yHaut;
+    }
+    const nbColonnes = Math.min(PDF_ANNUAIRE_COLONNES, avecCliniciens.length);
+    const largeur = (PDF_LARGEUR_UTILE - (nbColonnes - 1) * PDF_ANNUAIRE_ECART) / nbColonnes;
+    const blocs = avecCliniciens.map(rdv => pdfPreparerBlocAnnuaire(rdv, ctx.polices, largeur));
+
+    // Le titre ne reste jamais seul en bas de page : il part à la page suivante avec sa première rangée
+    const hauteurTitre = 16 + 6;
+    let y = yHaut;
+    if (y + hauteurTitre + Math.max(...blocs.slice(0, nbColonnes).map(bloc => bloc.hauteur)) > ctx.basDePage) {
+        ctx.page = ctx.doc.addPage([PDF_PAGE.largeur, PDF_PAGE.hauteur]);
+        y = PDF_PAGE.marge;
+    }
+    y = pdfDessinerTitreSection(ctx, 'Contacts des cliniciens - RDV par RDV', y, 16, 9);
+
+    for (let i = 0; i < blocs.length; i += nbColonnes) {
+        const rangee = blocs.slice(i, i + nbColonnes);
+        const hauteur = Math.max(...rangee.map(bloc => bloc.hauteur));
+        if (y + hauteur > ctx.basDePage) {
+            ctx.page = ctx.doc.addPage([PDF_PAGE.largeur, PDF_PAGE.hauteur]);
+            y = PDF_PAGE.marge;
+        }
+        rangee.forEach((bloc, j) => pdfDessinerBlocAnnuaire(ctx, bloc, PDF_PAGE.marge + j * (largeur + PDF_ANNUAIRE_ECART), y, largeur, hauteur));
+        y += hauteur + PDF_ANNUAIRE_ECART;
+    }
+    return y;
+}
+
 // ---------- Émargement ----------
 
 function pdfDessinerEnteteEmargement(ctx, yHaut) {
@@ -706,12 +819,7 @@ function pdfDessinerEnteteEmargement(ctx, yHaut) {
 function pdfDessinerEmargement(ctx, rdvs, yHaut) {
     const { polices } = ctx;
     const x = PDF_PAGE.marge;
-    let y = yHaut;
-
-    ctx.page.drawRectangle({ x, y: pdfY(y + 20), width: PDF_LARGEUR_UTILE, height: 20, color: pdfCouleur(PDF_COULEURS.rdv1) });
-    ctx.page.drawRectangle({ x, y: pdfY(y + 20), width: 4, height: 20, color: pdfCouleur(PDF_COULEURS.clinique) });
-    pdfEcrire(ctx.page, pdfLigneTronquee(`Émargement des RDV - ${libelleJour(jourSelectionne)}`, polices.extraBold, 10.5, PDF_LARGEUR_UTILE - 20), x + 12, y + 5, polices.extraBold, 10.5, PDF_COULEURS.cliniqueFonce);
-    y += 26;
+    let y = pdfDessinerTitreSection(ctx, `Émargement des RDV - ${libelleJour(jourSelectionne)}`, yHaut);
 
     const consigne = 'À compléter : cochez les présences et écrivez directement dans les zones teintées (Acrobat Reader, Aperçu, navigateur…), puis enregistrez le fichier.';
     pdfLignes(consigne, polices.italique, 7, PDF_LARGEUR_UTILE).forEach(ligne => {
@@ -777,11 +885,13 @@ function pdfDessinerSynthese(ctx, rdvs, salles, yHaut) {
     const nbSalles = salles.filter(s => s !== SANS_SALLE).length;
     const nbVisio = rdvs.filter(rdv => rdv.visio).length;
     const nbProposes = rdvs.filter(rdv => rdv.propose).length;
+    const nbCliniciens = compterCliniciens(rdvs);
     const chiffres = [
         [rdvs.length, 'RDV'],
         [nbRdv1, plur(nbRdv1, 'premier', 'premiers')],
         [nbRdv2, plur(nbRdv2, 'second', 'seconds')],
         [nbSalles, plur(nbSalles, 'salle occupée', 'salles occupées')],
+        [nbCliniciens, plur(nbCliniciens, 'clinicien')],
         ...(nbVisio > 0 ? [[nbVisio, 'en visio']] : []),
         ...(nbProposes > 0 ? [[nbProposes, LIBELLE_PROPOSE.toLowerCase()]] : []),
         [`${horaires[0]} – ${horaires[horaires.length - 1]}`, ''],
@@ -898,9 +1008,11 @@ async function genererPdfBriefing() {
     y = pdfDessinerSynthese(ctx, rdvs, salles, y);
     pdfDessinerOccupation(ctx, rdvs, salles, y);
 
-    // 2. Émargement à remplir, sur une nouvelle page
+    // 2. Émargement à remplir, sur une nouvelle page, puis annuaire des cliniciens
+    const rdvsEmargement = trierRdvEmargement(rdvs, salles);
     ctx.page = doc.addPage([PDF_PAGE.largeur, PDF_PAGE.hauteur]);
-    pdfDessinerEmargement(ctx, trierRdvEmargement(rdvs, salles), PDF_PAGE.marge);
+    y = pdfDessinerEmargement(ctx, rdvsEmargement, PDF_PAGE.marge);
+    pdfDessinerAnnuaire(ctx, rdvsEmargement, y + 12);
 
     pdfDessinerPiedsDePage(doc, polices);
     ctx.form.updateFieldAppearances(polices.regular);

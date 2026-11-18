@@ -288,6 +288,156 @@ html, body {
     gap: 5px;
 }
 
+/* ---------- Annuaire des cliniciens (fin de document) ---------- */
+
+.cliniciens-section {
+    margin-top: 18px;
+}
+
+/* Titre plus discret que celui de la feuille d'émargement : section de simple consultation */
+.titre-annuaire {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 6px 12px;
+    margin-bottom: 6px;
+    font-size: 1.05em;
+}
+
+/* Copie en une fois de toutes les adresses du jour, prêtes à coller dans un champ « À : » */
+.copier-tout {
+    padding: 2px 10px;
+    border: 1px solid var(--clinique-fonce);
+    border-radius: 999px;
+    background: #ffffff;
+    color: var(--clinique-fonce);
+    font: inherit;
+    font-size: 0.75em;
+    font-weight: 700;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+/* Blocs répartis automatiquement sur 1 à 2 colonnes selon la largeur disponible */
+.annuaire {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80mm, 1fr));
+    gap: 5px;
+}
+
+/* Un bloc par RDV : les cliniciens restent rattachés à leur RDV */
+.fiche-rdv {
+    padding: 4px 8px 5px;
+    border: 1px solid var(--bordure);
+    border-left: 4px solid var(--clinique);
+    border-radius: 3px;
+    font-size: 0.9em;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+    break-inside: avoid;
+}
+
+.fiche-rdv.rdv-2 {
+    border-left-color: var(--clinique-fonce);
+}
+
+.fiche-rdv.fiche-propose {
+    border-left-color: var(--propose-lisere);
+}
+
+.fiche-rdv-entete {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 6px;
+}
+
+.fiche-rdv-entete .badge {
+    border: 1px solid var(--bordure);
+}
+
+.fiche-rdv-lieu {
+    display: block;
+    color: var(--texte-doux);
+    font-size: 0.9em;
+}
+
+.fiche-cliniciens {
+    margin: 3px 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.fiche-cliniciens li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 10px;
+    padding-top: 2px;
+    border-top: 1px dotted var(--bordure);
+}
+
+.fiche-identite {
+    display: flex;
+    align-items: baseline;
+    gap: 5px;
+}
+
+.fiche-nom {
+    font-weight: 700;
+}
+
+/* Niveau du clinicien (EA, L3, M1, M2) */
+.fiche-niveau {
+    flex: 0 0 auto;
+    padding: 0 6px;
+    border: 1px solid var(--texte-doux);
+    border-radius: 999px;
+    color: var(--texte-doux);
+    font-size: 0.78em;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+.fiche-contact {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 10px;
+    color: var(--texte-doux);
+}
+
+/* Mail copiable d'un clic : bouton sans habillage, pour un rendu identique à l'impression */
+.fiche-mail {
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    overflow-wrap: anywhere;
+    cursor: pointer;
+}
+
+.fiche-mail:hover {
+    color: var(--clinique-fonce);
+    text-decoration: underline;
+}
+
+.copiable.copie {
+    color: #1d7a3c;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.copiable.echec {
+    color: var(--clinique);
+    font-weight: 700;
+    text-decoration: none;
+}
+
 /* ---------- Tableau d'occupation des salles ---------- */
 
 .occupation {
@@ -682,9 +832,9 @@ html, body {
     page-break-inside: avoid;
 }
 
-.col-em-horaire { width: 12%; }
-.col-em-rdv { width: 18%; }
-.col-em-cliniciens { width: 30%; }
+.col-em-horaire { width: 11%; }
+.col-em-rdv { width: 17%; }
+.col-em-cliniciens { width: 26%; }
 .col-em-patient { width: 11%; }
 
 .em-horaire {
@@ -787,13 +937,6 @@ html, body {
     min-width: 0;
 }
 
-.clinicien-tel {
-    flex: 0 0 auto;
-    color: var(--texte-doux);
-    font-size: 0.9em;
-    white-space: nowrap;
-}
-
 .non-renseigne {
     color: var(--texte-doux);
     font-size: 0.85em;
@@ -809,7 +952,7 @@ html, body {
     display: flex;
     flex-wrap: wrap;
     gap: 3px;
-    margin-top: 3px;
+    margin-bottom: 4px;
 }
 
 /* Blocs de lecture (motif détaillé, commentaire) au-dessus des lignes d'écriture */

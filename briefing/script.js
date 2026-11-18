@@ -13,7 +13,7 @@ const COLONNES = [
     { name: "Creneau_RDV_2", title: "Créneau RDV 2", type: "DateTime", optional: false, description: "Créneau horaire du deuxième rendez-vous" },
     { name: "Lieu_RDV_2", title: "Lieu RDV 2", type: "Ref,Text,Choice", optional: false, description: "Salle du deuxième rendez-vous (colonne Référence, ou colonne formule texte ex. $Lieu_RDV_2.Nom pour afficher le nom de la salle)" },
     { name: "Visioconference", title: "Visioconférence", type: "Bool", optional: true, description: "RDV en visioconférence (affiche une vignette Visio, le RDV reste dans sa salle)" },
-    { name: "Cliniciens_briefing", title: "Cliniciens (briefing)", type: "Any,RefList,Text", optional: true, description: "Colonne formule donnant le nom et le téléphone de chaque clinicien : [[c.Prenom + \" \" + c.Nom.upper(), c.Telephone] for c in $Cliniciens_affectes]" },
+    { name: "Cliniciens_briefing", title: "Cliniciens (briefing)", type: "Any,RefList,Text", optional: true, description: "Colonne formule donnant le nom, le téléphone, le mail et le niveau (EA, L3, M1, M2) de chaque clinicien : [[c.Prenom + \" \" + c.Nom.upper(), c.Telephone, c.Mail, c.Niveau] for c in $Cliniciens_affectes]" },
     { name: "Commentaires", title: "Commentaires", type: "Text", optional: true, description: "Commentaires affichés sur la feuille d'émargement" },
     { name: "Etudiant", title: "RDV étudiant (CVEC)", type: "Bool", optional: true, description: "Si coché, affiche le logo « Financé par la CVEC »" },
     { name: "Partenariat_Fragile_X", title: "RDV partenariat Fragile X France", type: "Bool", optional: true, description: "Si coché, affiche le logo Fragile X France" },
@@ -145,9 +145,13 @@ function getSalle(valeur) {
     return { cle: reference.id, libelle: reference.libelle || `Salle ${reference.id}`, ordre: 0 };
 }
 
-// Liste de cliniciens -> [{ nom, telephone }]. Formats acceptés pour chaque clinicien :
-// - paire [nom, téléphone] (colonne formule conseillée : le téléphone reste lié à la bonne personne) ;
-// - texte "Nom | Téléphone" (une ligne par clinicien) ou nom seul ;
+function texteSimple(valeur) {
+    return String(valeur ?? '').trim();
+}
+
+// Liste de cliniciens -> [{ nom, telephone, mail, niveau }]. Formats acceptés pour chaque clinicien :
+// - liste [nom, téléphone, mail, niveau] (colonne formule conseillée : les champs restent liés à la bonne personne) ;
+// - texte "Nom | Téléphone | Mail | Niveau" (une ligne par clinicien) ou nom seul ;
 // - référence brute (RefList) : seul l'identifiant est connu.
 function getCliniciens(valeur) {
     if (valeur === null || valeur === undefined || valeur === '') {
@@ -155,16 +159,15 @@ function getCliniciens(valeur) {
     }
     const elements = Array.isArray(valeur) ? valeur : String(valeur).split(/[\n;]/);
     return elements.map(element => {
-        if (Array.isArray(element)) {
-            const [nom, telephone] = element;
-            return { nom: String(nom ?? '').trim(), telephone: String(telephone ?? '').trim() };
-        }
-        if (typeof element === 'string') {
-            const [nom, telephone] = element.split('|');
-            return { nom: nom.trim(), telephone: String(telephone ?? '').trim() };
+        const champs = Array.isArray(element) ? element
+            : typeof element === 'string' ? element.split('|')
+            : null;
+        if (champs) {
+            const [nom, telephone, mail, niveau] = champs;
+            return { nom: texteSimple(nom), telephone: texteSimple(telephone), mail: texteSimple(mail), niveau: texteSimple(niveau).toUpperCase() };
         }
         const reference = lireReference(element);
-        return reference ? { nom: reference.libelle || `Clinicien n°${reference.id}`, telephone: '' } : null;
+        return reference ? { nom: reference.libelle || `Clinicien n°${reference.id}`, telephone: '', mail: '', niveau: '' } : null;
     }).filter(clinicien => clinicien && clinicien.nom);
 }
 
@@ -219,6 +222,11 @@ function getRdvDuJour(cle) {
     return rdvs.sort((a, b) => a.debut - b.debut || a.creneau.ordre - b.creneau.ordre);
 }
 
+// Nombre de cliniciens distincts mobilisés dans la journée (un clinicien peut tenir plusieurs RDV)
+function compterCliniciens(rdvs) {
+    return new Set(rdvs.flatMap(rdv => rdv.cliniciens.map(clinicien => clinicien.nom.toLocaleLowerCase('fr')))).size;
+}
+
 // Salles occupées par les RDV du jour, triées par nom
 function getSallesDuJour(rdvs) {
     const salles = [];
@@ -258,6 +266,7 @@ function afficherBriefing() {
     const horaires = [...new Set(rdvs.map(rdv => rdv.horaire))];
 
     document.getElementById('synthese').innerHTML = renderSynthese(rdvs, salles, horaires);
+    document.getElementById('cliniciens').innerHTML = rdvs.length > 0 ? renderAnnuaire(trierRdvEmargement(rdvs, salles)) : '';
     document.getElementById('occupation').innerHTML = rdvs.length > 0
         ? renderTableau(rdvs, salles, horaires)
         : `<div class="vide-journee">
@@ -275,6 +284,7 @@ function renderSynthese(rdvs, salles, horaires) {
     const nbSalles = salles.filter(s => s !== SANS_SALLE).length;
     const nbVisio = rdvs.filter(rdv => rdv.visio).length;
     const nbProposes = rdvs.filter(rdv => rdv.propose).length;
+    const nbCliniciens = compterCliniciens(rdvs);
     const plage = horaires.length > 0 ? `${horaires[0]} → ${horaires[horaires.length - 1]}` : '—';
 
     const legende = CRENEAUX_RDV.map(c => `<span class="legende-item"><span class="pastille ${c.classe}"></span>${echapper(c.label)}</span>`).join('')
@@ -286,6 +296,7 @@ function renderSynthese(rdvs, salles, horaires) {
             <span class="chiffre"><strong>${nbRdv1}</strong> ${plur(nbRdv1, 'premier', 'premiers')}</span>
             <span class="chiffre"><strong>${nbRdv2}</strong> ${plur(nbRdv2, 'second', 'seconds')}</span>
             <span class="chiffre"><strong>${nbSalles}</strong> ${plur(nbSalles, 'salle occupée', 'salles occupées')}</span>
+            <span class="chiffre"><strong>${nbCliniciens}</strong> ${plur(nbCliniciens, 'clinicien')}</span>
             ${nbVisio > 0 ? `<span class="chiffre chiffre-visio">${ICONE_VISIO}<strong>${nbVisio}</strong> en visio</span>` : ''}
             ${nbProposes > 0 ? `<span class="chiffre chiffre-propose"><strong>${nbProposes}</strong> ${LIBELLE_PROPOSE.toLowerCase()}</span>` : ''}
             <span class="chiffre"><strong>${plage}</strong></span>
@@ -370,6 +381,63 @@ function renderMotifsStandardises(rdv) {
         : '<span class="motif-vide">Motif non qualifié</span>';
 }
 
+// ---------- Annuaire des cliniciens (fin de document) ----------
+
+// Les coordonnées des cliniciens sont regroupées ici, RDV par RDV, plutôt que répétées dans le
+// tableau d'émargement : celui-ci garde des cellules courtes et les mails tiennent sur une ligne.
+function renderAnnuaire(rdvs) {
+    const avecCliniciens = rdvs.filter(rdv => rdv.cliniciens.length > 0);
+    if (avecCliniciens.length === 0) {
+        return '';
+    }
+
+    const blocs = avecCliniciens.map(rdv => `
+        <div class="fiche-rdv ${rdv.creneau.classe}${rdv.propose ? ' fiche-propose' : ''}">
+            <div class="fiche-rdv-entete">
+                <span class="carte-id">${echapper(rdv.identifiant) || '—'}</span>
+                <span class="badge">${rdv.creneau.badge}</span>
+            </div>
+            <span class="fiche-rdv-lieu">${echapper(rdv.horaire)} · ${echapper(rdv.salle.libelle)}</span>
+            <ul class="fiche-cliniciens">
+                ${rdv.cliniciens.map(renderFicheClinicien).join('')}
+            </ul>
+        </div>`).join('');
+
+    const mails = [...new Set(avecCliniciens.flatMap(rdv => rdv.cliniciens.map(c => c.mail).filter(Boolean)))];
+    const copierTout = mails.length > 0
+        ? `<button type="button" class="copier-tout copiable no-print" data-copie="${echapper(mails.join('; '))}"
+                title="Copier les ${mails.length} adresses, séparées par des points-virgules">Copier les ${mails.length} mails</button>`
+        : '';
+
+    return `
+        <h2 class="titre-section titre-annuaire">
+            <span>Contacts des cliniciens - RDV par RDV</span>
+            ${copierTout}
+        </h2>
+        <div class="annuaire">${blocs}</div>
+    `;
+}
+
+// Le mail est un bouton : un clic le copie (voir copierTexte), et il s'imprime comme du texte simple
+function renderFicheClinicien(clinicien) {
+    const contact = clinicien.telephone || clinicien.mail
+        ? `<span class="fiche-contact">
+                ${clinicien.telephone ? `<span class="fiche-tel">☎&nbsp;${echapper(clinicien.telephone)}</span>` : ''}
+                ${clinicien.mail ? `<button type="button" class="fiche-mail copiable" data-copie="${echapper(clinicien.mail)}"
+                    title="Cliquer pour copier l'adresse">✉&nbsp;${echapper(clinicien.mail)}</button>` : ''}
+            </span>`
+        : '<span class="non-renseigne">Coordonnées non renseignées</span>';
+
+    return `
+        <li>
+            <span class="fiche-identite">
+                <span class="fiche-nom">${echapper(clinicien.nom)}</span>
+                ${clinicien.niveau ? `<span class="fiche-niveau">${echapper(clinicien.niveau)}</span>` : ''}
+            </span>
+            ${contact}
+        </li>`;
+}
+
 // ---------- Feuille d'émargement (à remplir à la main) ----------
 
 function renderEmargement(rdvs, salles) {
@@ -387,7 +455,7 @@ function renderEmargement(rdvs, salles) {
                     <th>RDV</th>
                     <th>Cliniciens présents</th>
                     <th>Patient</th>
-                    <th>Motif, commentaires / notes</th>
+                    <th>Motifs, commentaires / notes</th>
                 </tr>
             </thead>
             <tbody>${rdvsTries.map(renderLigneEmargement).join('')}</tbody>
@@ -402,7 +470,6 @@ function renderLigneEmargement(rdv) {
             <div class="a-cocher">
                 <span class="case"></span>
                 <span class="clinicien-nom">${echapper(clinicien.nom)}</span>
-                ${clinicien.telephone ? `<span class="clinicien-tel">☎&nbsp;${echapper(clinicien.telephone)}</span>` : ''}
             </div>`).join('')
         + '<div class="a-cocher"><span class="case"></span><span class="ligne-ecriture"></span></div>'.repeat(nbLignesVierges);
 
@@ -421,8 +488,6 @@ function renderLigneEmargement(rdv) {
                 </span>
                 ${renderLogosPartenaires(rdv)}
                 <span class="carte-patient">${echapper(rdv.nom)} ${echapper(rdv.prenom)}</span>
-                ${renderSuiviRdv(rdv)}
-                <div class="em-motifs">${renderMotifsStandardises(rdv)}</div>
             </td>
             <td class="em-cliniciens">${cliniciens}</td>
             <td class="em-patient">
@@ -431,6 +496,7 @@ function renderLigneEmargement(rdv) {
                 <div class="em-heure-arrivee">à <span class="ligne-ecriture courte"></span></div>
             </td>
             <td class="em-notes">
+                <div class="em-motifs">${renderMotifsStandardises(rdv)}</div>
                 <div class="em-bloc">
                     <span class="em-bloc-titre">Motif détaillé</span>
                     <span class="carte-motif${rdv.motif ? '' : ' vide'}">${rdv.motif ? echapper(rdv.motif) : 'Non renseigné'}</span>
@@ -537,6 +603,47 @@ document.getElementById('generer-pdf').addEventListener('click', async e => {
     } finally {
         bouton.textContent = libelle;
         bouton.disabled = false;
+    }
+});
+
+// Copie d'une adresse mail (ou de la liste complète) : navigator.clipboard est souvent refusé
+// dans l'iframe du widget, d'où le repli sur une zone de texte cachée.
+async function copierTexte(texte) {
+    try {
+        await navigator.clipboard.writeText(texte);
+        return true;
+    } catch (erreur) {
+        const zone = document.createElement('textarea');
+        zone.value = texte;
+        zone.setAttribute('readonly', '');
+        zone.style.cssText = 'position:fixed;top:-1000px;opacity:0';
+        document.body.appendChild(zone);
+        zone.select();
+        const copie = document.execCommand('copy');
+        zone.remove();
+        return copie;
+    }
+}
+
+// Confirmation visible sur le bouton lui-même, puis retour au libellé d'origine
+function confirmerCopie(bouton, reussi) {
+    if (bouton.dataset.libelle) {
+        return;
+    }
+    bouton.dataset.libelle = bouton.textContent;
+    bouton.classList.add(reussi ? 'copie' : 'echec');
+    bouton.textContent = reussi ? '✓ Copié' : '⚠ Échec de la copie';
+    setTimeout(() => {
+        bouton.textContent = bouton.dataset.libelle;
+        delete bouton.dataset.libelle;
+        bouton.classList.remove('copie', 'echec');
+    }, 1300);
+}
+
+document.getElementById('cliniciens').addEventListener('click', async e => {
+    const bouton = e.target.closest('.copiable');
+    if (bouton) {
+        confirmerCopie(bouton, await copierTexte(bouton.dataset.copie));
     }
 });
 

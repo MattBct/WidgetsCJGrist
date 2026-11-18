@@ -9,6 +9,7 @@ const COLONNES = [
     { name: "nb_projets", title: "Nombre de projets", type: "Int,Numeric", optional: false },
     { name: "nb_permanences", title: "Nombre de permanences", type: "Int,Numeric", optional: true, description: "Compté dans les participations et dans la liste des activités (0 si la colonne n'est pas associée)" },
     { name: "texte_personnalise", title: "Texte personnalisé", type: "Text", optional: true, description: "Texte ajouté à l'attestation, modifiable depuis le widget. Sans cette colonne, le texte n'est pas conservé" },
+    { name: "modele_impose", title: "Modèle imposé", type: "Text,Choice", optional: true, description: "Nom du modèle à utiliser pour ce clinicien, à la place du choix automatique (vide : automatique). Modifiable depuis le widget. Sans cette colonne, le choix manuel n'est pas conservé" },
 ];
 
 // Grandeur comparée aux bornes de la condition d'un modèle
@@ -93,12 +94,14 @@ const DELAI_ENREGISTREMENT_TEXTE_MS = 900;
 let config = normaliserConfig(null); // configuration enregistrée (options du widget)
 let brouillon = null;                // copie modifiée pendant la configuration (null : panneau fermé)
 let idModeleEdite = null;
-let choixManuel = '';                // id du modèle imposé, '' : choix automatique
 let clinicien = null;                // enregistrement sélectionné (colonnes du widget)
-let cliniciens = [];                 // enregistrements de la vue, pour « Imprimer tout »
+let cliniciens = [];                 // enregistrements de la vue (filtres et tris Grist appliqués)
 let colonnesAssociees = true;
 const textesLocaux = new Map();      // rowId -> texte personnalisé saisi (non associé, ou en cours d'enregistrement)
+const modelesLocaux = new Map();     // rowId -> modèle imposé choisi (non associé, ou en cours d'enregistrement)
+const lotDecoches = new Set();       // rowIds décochés dans le panneau d'impression (les nouveaux arrivent cochés)
 let saisieTexte = null;              // { rowId, minuteur } : enregistrement du texte en attente
+let etatModeleMinuteur = null;       // retour visuel « enregistré » du choix de modèle
 let dernierChampModele = null;       // champ (titre ou texte) recevant les variables insérées
 
 const $ = id => document.getElementById(id);
@@ -122,7 +125,14 @@ source.demarrer({
     },
     surEnregistrements(records) {
         cliniciens = records;
-        majBoutonLot();
+        // Les lignes qui quittent la vue (filtre) ne restent pas décochées pour autant
+        const ids = new Set(records.map(r => r.id));
+        for (const id of [...lotDecoches]) {
+            if (!ids.has(id)) {
+                lotDecoches.delete(id);
+            }
+        }
+        majPanneauLot();
     },
     surConfiguration() {
         ouvrirConfiguration();
@@ -151,8 +161,21 @@ function creerSourceGrist() {
             return Boolean(mappings?.texte_personnalise);
         },
 
+        modeleAssocie() {
+            return Boolean(mappings?.modele_impose);
+        },
+
         async enregistrerTexte(rowId, texte) {
             await grist.selectedTable.update({ id: rowId, fields: { [mappings.texte_personnalise]: texte } });
+        },
+
+        async enregistrerModeleImpose(rowId, reference) {
+            await grist.selectedTable.update({ id: rowId, fields: { [mappings.modele_impose]: reference } });
+        },
+
+        // Déplace le curseur de la vue (clic sur un clinicien du panneau d'impression)
+        selectionner(rowId) {
+            grist.setCursorPos({ rowId }).catch(e => console.error('Sélection du clinicien impossible :', e));
         },
 
         async enregistrerOptions(options) {
@@ -163,10 +186,10 @@ function creerSourceGrist() {
 
 function creerSourceDemo() {
     const records = [
-        { id: 1, prenom: 'Camille', nom: 'Durand', niveau: 'M2', diplome: 'Droit des affaires', nb_rdv_termines: 9, nb_projets: 3, nb_permanences: 2, texte_personnalise: '' },
-        { id: 2, prenom: 'Lucas', nom: 'Martin', niveau: 'L3', diplome: '', nb_rdv_termines: 2, nb_projets: 0, nb_permanences: 1, texte_personnalise: '' },
-        { id: 3, prenom: 'Inès', nom: 'Benali', niveau: 'M1', diplome: 'Droit public', nb_rdv_termines: 0, nb_projets: 1, nb_permanences: 0, texte_personnalise: 'Mention particulière : conception d’une fiche pratique sur le droit au logement, diffusée lors de la journée d’accès au droit.' },
-        { id: 4, prenom: 'Hugo', nom: 'Petit', niveau: 'M1', diplome: 'Droit pénal', nb_rdv_termines: 0, nb_projets: 0, nb_permanences: 0, texte_personnalise: '' },
+        { id: 1, prenom: 'Camille', nom: 'Durand', niveau: 'M2', diplome: 'Droit des affaires', nb_rdv_termines: 9, nb_projets: 3, nb_permanences: 2, texte_personnalise: '', modele_impose: '' },
+        { id: 2, prenom: 'Lucas', nom: 'Martin', niveau: 'L3', diplome: '', nb_rdv_termines: 2, nb_projets: 0, nb_permanences: 1, texte_personnalise: '', modele_impose: '' },
+        { id: 3, prenom: 'Inès', nom: 'Benali', niveau: 'M1', diplome: 'Droit public', nb_rdv_termines: 0, nb_projets: 1, nb_permanences: 0, texte_personnalise: 'Mention particulière : conception d’une fiche pratique sur le droit au logement, diffusée lors de la journée d’accès au droit.', modele_impose: '' },
+        { id: 4, prenom: 'Hugo', nom: 'Petit', niveau: 'M1', diplome: 'Droit pénal', nb_rdv_termines: 0, nb_projets: 0, nb_permanences: 0, texte_personnalise: '', modele_impose: '' },
     ];
     const attendre = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -193,9 +216,24 @@ function creerSourceDemo() {
             return true;
         },
 
+        modeleAssocie() {
+            return true;
+        },
+
         async enregistrerTexte(rowId, texte) {
             await attendre(300);
             records.find(r => r.id === rowId).texte_personnalise = texte;
+        },
+
+        async enregistrerModeleImpose(rowId, reference) {
+            await attendre(200);
+            records.find(r => r.id === rowId).modele_impose = reference;
+        },
+
+        selectionner(rowId) {
+            const select = $('demo-clinicien');
+            select.value = String(rowId);
+            select.dispatchEvent(new Event('change'));
         },
 
         async enregistrerOptions(options) {
@@ -232,6 +270,8 @@ function normaliserModele(m) {
     return {
         id: String(m.id || nouvelId()),
         nom: String(m.nom ?? ''),
+        // « manuel » : modèle jamais choisi automatiquement, uniquement par sélection manuelle
+        manuel: Boolean(m.manuel),
         condition: { critere, min: entierOuNull(m.condition?.min), max: entierOuNull(m.condition?.max) },
         titre: String(m.titre ?? ''),
         corps: String(m.corps ?? ''),
@@ -243,7 +283,7 @@ function normaliserConfig(options) {
     return {
         modeles: Array.isArray(options?.modeles)
             ? options.modeles.filter(m => m && typeof m === 'object').map(normaliserModele)
-            : cloner(MODELES_DEFAUT),
+            : cloner(MODELES_DEFAUT).map(normaliserModele),
         parametres: {
             annee_universitaire: typeof parametres.annee_universitaire === 'string' ? parametres.annee_universitaire : PARAMETRES_DEFAUT.annee_universitaire,
             lieu: typeof parametres.lieu === 'string' ? parametres.lieu : PARAMETRES_DEFAUT.lieu,
@@ -279,11 +319,33 @@ function resumeCondition(condition) {
     return min === max ? `${sujet} = ${min}` : `${sujet} entre ${min} et ${max}`;
 }
 
-function modeleAutomatique(d, cfg) {
-    return cfg.modeles.find(m => conditionRemplie(m.condition, d)) ?? null;
+function resumeModele(m) {
+    return m.manuel ? 'Sélection manuelle uniquement' : resumeCondition(m.condition);
 }
 
-// Modèle de l'attestation : modèle en cours de modification (aperçu), choix manuel, sinon le premier applicable
+// Premier modèle conditionnel applicable (les modèles manuels sont ignorés)
+function modeleAutomatique(d, cfg) {
+    return cfg.modeles.find(m => !m.manuel && conditionRemplie(m.condition, d)) ?? null;
+}
+
+// Référence enregistrée dans la colonne « Modèle imposé » : le nom du modèle (lisible dans Grist), à défaut son id
+function referenceModele(modele) {
+    return texte(modele.nom) || modele.id;
+}
+
+// Modèle désigné par la colonne « Modèle imposé » (nom, insensible à la casse, ou id)
+function modeleImpose(d, cfg) {
+    const reference = texte(d.modele_impose);
+    if (!reference) {
+        return null;
+    }
+    const cle = reference.toLocaleLowerCase('fr');
+    return cfg.modeles.find(m => m.id === reference)
+        ?? cfg.modeles.find(m => texte(m.nom).toLocaleLowerCase('fr') === cle)
+        ?? null;
+}
+
+// Modèle de l'attestation : modèle en cours de modification (aperçu), modèle imposé au clinicien, sinon le premier applicable
 function modelePour(d, cfg, { apercuEdition = false } = {}) {
     if (apercuEdition && brouillon && idModeleEdite) {
         const edite = brouillon.modeles.find(m => m.id === idModeleEdite);
@@ -291,13 +353,7 @@ function modelePour(d, cfg, { apercuEdition = false } = {}) {
             return edite;
         }
     }
-    if (choixManuel) {
-        const impose = cfg.modeles.find(m => m.id === choixManuel);
-        if (impose) {
-            return impose;
-        }
-    }
-    return modeleAutomatique(d, cfg);
+    return modeleImpose(d, cfg) ?? modeleAutomatique(d, cfg);
 }
 
 // ---------- Données d'un clinicien ----------
@@ -333,6 +389,14 @@ function texteDe(record) {
     return source.texteAssocie() ? texte(record.texte_personnalise) : '';
 }
 
+// Choix manuel du clinicien : saisie en cours, sinon la colonne associée ('' : choix automatique)
+function modeleImposeDe(record) {
+    if (modelesLocaux.has(record.id)) {
+        return modelesLocaux.get(record.id);
+    }
+    return source.modeleAssocie() ? texte(record.modele_impose) : '';
+}
+
 function donnees(record, cfg) {
     const prenom = texte(record.prenom);
     const nom = texte(record.nom);
@@ -356,6 +420,7 @@ function donnees(record, cfg) {
         nb_permanences,
         nb_participations: nb_rdv + nb_projets + nb_permanences,
         texte_personnalise: texteDe(record),
+        modele_impose: modeleImposeDe(record),
         annee_universitaire: texte(cfg.parametres.annee_universitaire) || anneeUniversitaire(maintenant),
         lieu: texte(cfg.parametres.lieu),
         date: dateLongue(maintenant),
@@ -499,7 +564,7 @@ function message(texteMessage, type = 'alerte') {
 
 function afficher() {
     majChoixModele();
-    majBoutonLot();
+    majPanneauLot();
 
     const apercu = $('apercu');
     const enTete = $('clinicien-courant');
@@ -533,8 +598,19 @@ function afficher() {
         return;
     }
 
+    const impose = modeleImpose(d, cfg);
     if (brouillon && modele.id === idModeleEdite) {
-        message(`Aperçu du modèle « ${modele.nom || 'Sans nom'} » en cours de modification${conditionRemplie(modele.condition, d) ? '' : ` (il ne s’applique pas automatiquement à ce clinicien : ${resumeCondition(modele.condition)})`}.`, 'info');
+        const inapplicable = modele.manuel
+            ? ' (sélection manuelle uniquement : il ne s’applique jamais automatiquement)'
+            : (conditionRemplie(modele.condition, d) ? '' : ` (il ne s’applique pas automatiquement à ce clinicien : ${resumeCondition(modele.condition)})`);
+        message(`Aperçu du modèle « ${modele.nom || 'Sans nom'} » en cours de modification${inapplicable}.`, 'info');
+    } else if (texte(d.modele_impose) && !impose) {
+        message(`Le modèle « ${texte(d.modele_impose)} » imposé à ${d.identite} n’existe plus : le modèle automatique « ${modele.nom || 'Sans nom'} » est utilisé. Choisissez un modèle dans la liste « Modèle » pour corriger.`, 'alerte');
+    } else if (impose) {
+        const auto = modeleAutomatique(d, cfg);
+        message(`Modèle imposé manuellement à ${d.identite} : « ${impose.nom || 'Sans nom'} »`
+            + (auto && auto.id !== impose.id ? ` — le choix automatique serait « ${auto.nom || 'Sans nom'} ».` : '.')
+            + (source.modeleAssocie() ? '' : ' ⚠ Ce choix n’est pas conservé : associez la colonne facultative « Modèle imposé ».'), 'info');
     } else {
         message('');
     }
@@ -543,41 +619,143 @@ function afficher() {
     imprimer.disabled = false;
 }
 
+// Liste déroulante « Modèle » : choix automatique (par les conditions) ou modèle imposé au clinicien sélectionné
+function optionsModeles(cfg, d, idSelectionne) {
+    const auto = d ? modeleAutomatique(d, cfg) : null;
+    const libelleAuto = d ? `Automatique : ${auto ? auto.nom || 'Sans nom' : 'aucun'}` : 'Automatique';
+    return `<option value=""${idSelectionne ? '' : ' selected'}>${echapper(libelleAuto)}</option>`
+        + cfg.modeles.map(m => `<option value="${echapper(m.id)}"${m.id === idSelectionne ? ' selected' : ''}>`
+            + `${echapper(m.nom || 'Sans nom')}${m.manuel ? ' (manuel)' : ''}</option>`).join('');
+}
+
 function majChoixModele() {
     const select = $('choix-modele');
     const cfg = configActive();
-    if (choixManuel && !cfg.modeles.some(m => m.id === choixManuel)) {
-        choixManuel = '';
+    const d = clinicien && colonnesAssociees ? donnees(clinicien, cfg) : null;
+    const impose = d ? modeleImpose(d, cfg) : null;
+    select.innerHTML = optionsModeles(cfg, d, impose?.id ?? '');
+    select.disabled = Boolean(brouillon) || !d;
+    select.title = brouillon
+        ? 'L’aperçu affiche le modèle en cours de modification'
+        : (source.modeleAssocie()
+            ? 'Enregistré dans Grist pour ce clinicien (colonne « Modèle imposé »)'
+            : 'Non conservé : associez la colonne facultative « Modèle imposé »');
+    if (!etatModeleMinuteur) {
+        etatModele(null);
     }
-    const auto = clinicien && colonnesAssociees ? modeleAutomatique(donnees(clinicien, cfg), cfg) : null;
-    const libelleAuto = clinicien ? `Automatique : ${auto ? auto.nom || 'Sans nom' : 'aucun'}` : 'Automatique';
-    select.innerHTML = `<option value="">${echapper(libelleAuto)}</option>`
-        + cfg.modeles.map(m => `<option value="${echapper(m.id)}">${echapper(m.nom || 'Sans nom')}</option>`).join('');
-    select.value = choixManuel;
-    select.disabled = Boolean(brouillon);
-    select.title = brouillon ? 'L’aperçu affiche le modèle en cours de modification' : '';
 }
 
-// Cliniciens de la vue ayant un modèle applicable (même règle que l'aperçu)
-function cliniciensImprimables() {
-    return cliniciens
-        .map(record => donnees(record, configActive()))
-        .map(d => ({ d, modele: modelePour(d, configActive()) }))
-        .filter(x => x.modele);
+// Retour visuel de l'enregistrement du choix manuel
+function etatModele(etat) {
+    const el = $('etat-modele');
+    const libelles = { enregistrement: 'Enregistrement…', enregistre: '✓ Enregistré', erreur: 'Non enregistré (droits d’édition requis)' };
+    clearTimeout(etatModeleMinuteur);
+    etatModeleMinuteur = null;
+    el.textContent = libelles[etat] ?? (source.modeleAssocie() ? '' : '⚠ Choix manuel non conservé');
+    el.className = 'choix-etat' + (etat ? ` ${etat}` : (source.modeleAssocie() ? '' : ' alerte'));
+    if (etat === 'enregistre') {
+        etatModeleMinuteur = setTimeout(() => etatModele(null), 2000);
+    } else if (etat === 'enregistrement') {
+        etatModeleMinuteur = setTimeout(() => { etatModeleMinuteur = null; }, 10000);
+    }
 }
 
-function majBoutonLot() {
-    const bouton = $('imprimer-tout');
-    bouton.hidden = cliniciens.length < 2;
-    if (bouton.hidden) {
+// Choix dans une liste « Modèle » (barre d'outils ou panneau d'impression) : enregistré dans la colonne associée
+async function imposerModele(rowId, idModele) {
+    const cfg = configActive();
+    const modele = cfg.modeles.find(m => m.id === idModele);
+    const reference = modele ? referenceModele(modele) : '';
+    modelesLocaux.set(rowId, reference);
+    afficher();
+    if (!source.modeleAssocie()) {
         return;
     }
-    const imprimables = cliniciensImprimables();
-    const ignores = cliniciens.length - imprimables.length;
-    bouton.textContent = `Imprimer tout (${imprimables.length})`;
-    bouton.disabled = imprimables.length === 0;
-    bouton.title = 'Une attestation par page pour chaque clinicien de la vue'
-        + (ignores ? ` — ${ignores} ${plur(ignores, 'clinicien ignoré', 'cliniciens ignorés')} (aucun modèle applicable)` : '');
+    etatModele('enregistrement');
+    try {
+        await source.enregistrerModeleImpose(rowId, reference);
+        // Une sélection plus récente reste prioritaire sur la valeur relue depuis Grist
+        if (modelesLocaux.get(rowId) === reference) {
+            modelesLocaux.delete(rowId);
+        }
+        etatModele('enregistre');
+        afficher();
+    } catch (e) {
+        console.error('Enregistrement du modèle imposé impossible :', e);
+        etatModele('erreur');
+    }
+}
+
+// ---------- Impression en lot (cliniciens de la vue) ----------
+
+// Tous les cliniciens de la vue, dans l'ordre de la vue (filtres et tris Grist appliqués)
+function lignesLot() {
+    const cfg = configActive();
+    return cliniciens.map(record => {
+        const d = donnees(record, cfg);
+        return { d, modele: modelePour(d, cfg), impose: modeleImpose(d, cfg), coche: !lotDecoches.has(record.id) };
+    });
+}
+
+// Attestations retenues : cochées et ayant un modèle (même règle que l'aperçu)
+function lignesAImprimer() {
+    return lignesLot().filter(l => l.coche && l.modele);
+}
+
+function majPanneauLot() {
+    const bouton = $('ouvrir-lot');
+    const panneau = $('panneau-lot');
+    bouton.hidden = cliniciens.length < 2;
+    if (bouton.hidden) {
+        panneau.hidden = true;
+        bouton.setAttribute('aria-expanded', 'false');
+        return;
+    }
+
+    const lignes = lignesLot();
+    const retenues = lignes.filter(l => l.coche && l.modele);
+    const sansModele = lignes.filter(l => !l.modele).length;
+    bouton.textContent = `Attestations à imprimer (${retenues.length})`;
+    bouton.title = `${lignes.length} ${plur(lignes.length, 'clinicien')} dans la vue (filtres et tris Grist appliqués)`
+        + (sansModele ? ` — ${sansModele} sans modèle applicable` : '');
+    if (panneau.hidden) {
+        return;
+    }
+
+    const cfg = configActive();
+    $('liste-lot').innerHTML = lignes.length ? lignes.map(({ d, modele, impose, coche }) => `
+        <li class="lot-item${modele ? '' : ' sans-modele'}${d.id === clinicien?.id ? ' courant' : ''}" data-id="${d.id}">
+            <input type="checkbox" class="lot-case" ${coche && modele ? 'checked' : ''} ${modele ? '' : 'disabled'}
+                aria-label="Imprimer l’attestation de ${echapper(d.identite)}">
+            <span class="lot-texte">
+                <button type="button" class="lot-nom" data-action="selectionner" title="Sélectionner ce clinicien dans la vue">${echapper(d.identite)}</button>
+                <span class="lot-info">${d.formation ? echapper(d.formation) + ' · ' : ''}${d.nb_participations} ${plur(d.nb_participations, 'participation')}</span>
+            </span>
+            <select class="lot-modele" aria-label="Modèle pour ${echapper(d.identite)}" ${brouillon ? 'disabled' : ''}>${optionsModeles(cfg, d, impose?.id ?? '')}</select>
+            <span class="lot-etat">${modele ? (impose ? 'imposé' : 'automatique') : 'aucun modèle applicable'}</span>
+        </li>`).join('') : '<li class="aide">Aucun clinicien dans la vue.</li>';
+
+    $('lot-resume').textContent = `${retenues.length} ${plur(retenues.length, 'attestation')} sur ${lignes.length} ${plur(lignes.length, 'clinicien')} de la vue`
+        + (sansModele ? ` — ${sansModele} sans modèle applicable (imposez-en un dans la liste)` : '')
+        + '. Les filtres et tris de la vue Grist sont appliqués.';
+    $('imprimer-lot').textContent = `Imprimer la sélection (${retenues.length})`;
+    $('imprimer-lot').disabled = retenues.length === 0;
+}
+
+function ouvrirFermerLot() {
+    const panneau = $('panneau-lot');
+    panneau.hidden = !panneau.hidden;
+    $('ouvrir-lot').setAttribute('aria-expanded', String(!panneau.hidden));
+    majPanneauLot();
+}
+
+function cocherLot(tout) {
+    lotDecoches.clear();
+    if (!tout) {
+        for (const record of cliniciens) {
+            lotDecoches.add(record.id);
+        }
+    }
+    majPanneauLot();
 }
 
 // Images (logo, filigrane) et polices chargées avant l'ouverture de la fenêtre d'impression
@@ -586,10 +764,10 @@ async function imagesChargees(conteneur) {
     await document.fonts.ready;
 }
 
-async function imprimerTout() {
+async function imprimerLot() {
     const cfg = configActive();
     const lot = $('lot');
-    lot.innerHTML = cliniciensImprimables().map(({ d, modele }) => feuilleHtml(d, modele, cfg)).join('');
+    lot.innerHTML = lignesAImprimer().map(({ d, modele }) => feuilleHtml(d, modele, cfg)).join('');
     await imagesChargees(lot);
     document.body.classList.add('impression-lot');
     window.print();
@@ -740,7 +918,8 @@ function rendreConfiguration() {
 
 function rendreListeModeles() {
     const d = clinicien && colonnesAssociees ? donnees(clinicien, brouillon) : null;
-    const auto = d ? modeleAutomatique(d, brouillon) : null;
+    const applique = d ? modelePour(d, brouillon) : null;
+    const impose = d ? modeleImpose(d, brouillon) : null;
     const nb = brouillon.modeles.length;
 
     $('liste-modeles').innerHTML = nb ? brouillon.modeles.map((m, i) => `
@@ -748,8 +927,8 @@ function rendreListeModeles() {
             <span class="modele-rang">${i + 1}</span>
             <span class="modele-texte">
                 <span class="modele-nom">${echapper(m.nom || 'Sans nom')}</span>
-                <span class="modele-condition">${echapper(resumeCondition(m.condition))}</span>
-                ${auto?.id === m.id ? `<span class="modele-badge" title="Modèle choisi automatiquement pour ${echapper(d.identite)}">Appliqué au clinicien sélectionné</span>` : ''}
+                <span class="modele-condition">${echapper(resumeModele(m))}</span>
+                ${applique?.id === m.id ? `<span class="modele-badge" title="Modèle utilisé pour ${echapper(d.identite)}">${impose?.id === m.id ? 'Imposé au clinicien sélectionné' : 'Appliqué au clinicien sélectionné'}</span>` : ''}
             </span>
             <span class="modele-actions">
                 <button type="button" class="btn-icone" data-action="monter" title="Monter (prioritaire)" ${i === 0 ? 'disabled' : ''}>↑</button>
@@ -767,12 +946,23 @@ function remplirFormulaireModele() {
         return;
     }
     $('m-nom').value = modele.nom;
+    $('m-manuel').checked = modele.manuel;
     $('m-critere').value = modele.condition.critere;
     $('m-min').value = modele.condition.min ?? '';
     $('m-max').value = modele.condition.max ?? '';
     $('m-titre').value = modele.titre;
     $('m-corps').value = modele.corps;
-    $('m-resume').textContent = resumeCondition(modele.condition);
+    majConditionModele(modele);
+}
+
+// Condition inactive pour un modèle à sélection manuelle
+function majConditionModele(modele) {
+    for (const id of ['m-critere', 'm-min', 'm-max']) {
+        $(id).disabled = modele.manuel;
+    }
+    $('m-resume').textContent = modele.manuel
+        ? 'Sélection manuelle uniquement : ce modèle n’est jamais choisi automatiquement, il reste disponible dans la liste « Modèle ».'
+        : resumeModele(modele);
 }
 
 function remplirParametres() {
@@ -851,11 +1041,40 @@ function brancherInterface() {
         document.body.classList.remove('impression-lot');
         window.print();
     });
-    $('imprimer-tout').addEventListener('click', imprimerTout);
+    $('ouvrir-lot').addEventListener('click', ouvrirFermerLot);
+    $('imprimer-lot').addEventListener('click', imprimerLot);
+    $('lot-tout').addEventListener('click', () => cocherLot(true));
+    $('lot-rien').addEventListener('click', () => cocherLot(false));
+
+    $('liste-lot').addEventListener('change', e => {
+        const item = e.target.closest('.lot-item');
+        if (!item) {
+            return;
+        }
+        const rowId = Number(item.dataset.id);
+        if (e.target.classList.contains('lot-case')) {
+            if (e.target.checked) {
+                lotDecoches.delete(rowId);
+            } else {
+                lotDecoches.add(rowId);
+            }
+            majPanneauLot();
+        } else if (e.target.classList.contains('lot-modele')) {
+            imposerModele(rowId, e.target.value);
+        }
+    });
+
+    $('liste-lot').addEventListener('click', e => {
+        const item = e.target.closest('.lot-item');
+        if (item && e.target.closest('[data-action="selectionner"]')) {
+            source.selectionner(Number(item.dataset.id));
+        }
+    });
 
     $('choix-modele').addEventListener('change', e => {
-        choixManuel = e.target.value;
-        afficher();
+        if (clinicien) {
+            imposerModele(clinicien.id, e.target.value);
+        }
     });
 
     $('texte-perso').addEventListener('input', surSaisieTexte);
@@ -885,6 +1104,7 @@ function brancherInterface() {
         const modele = {
             id: nouvelId(),
             nom: 'Nouveau modèle',
+            manuel: false,
             condition: { critere: 'total', min: 1, max: null },
             titre: 'Attestation de participation à la Clinique juridique',
             corps: [INTRODUCTION, PRESENTATION, '{{activites}}', '{{texte_personnalise}}', CONCLUSION].join('\n\n'),
@@ -900,7 +1120,7 @@ function brancherInterface() {
         if (!confirm('Remplacer tous les modèles par les modèles par défaut ? (les paramètres communs sont conservés)')) {
             return;
         }
-        brouillon.modeles = cloner(MODELES_DEFAUT);
+        brouillon.modeles = cloner(MODELES_DEFAUT).map(normaliserModele);
         idModeleEdite = brouillon.modeles[0].id;
         remplirFormulaireModele();
         brouillonModifie();
@@ -914,6 +1134,7 @@ function brancherInterface() {
         'm-critere': (m, v) => { m.condition.critere = v; },
         'm-min': (m, v) => { m.condition.min = entierOuNull(v); },
         'm-max': (m, v) => { m.condition.max = entierOuNull(v); },
+        'm-manuel': (m, v, coche) => { m.manuel = coche; },
     };
     for (const [id, appliquer] of Object.entries(champsModele)) {
         $(id).addEventListener('input', e => {
@@ -921,8 +1142,8 @@ function brancherInterface() {
             if (!modele) {
                 return;
             }
-            appliquer(modele, e.target.value);
-            $('m-resume').textContent = resumeCondition(modele.condition);
+            appliquer(modele, e.target.value, e.target.checked);
+            majConditionModele(modele);
             brouillonModifie();
         });
     }

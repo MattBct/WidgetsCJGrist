@@ -2,7 +2,10 @@
 <html lang="fr">
   <!-- Widget Grist générant l'attestation de participation d'un clinicien, imprimable en A4 portrait (PDF via l'impression).
   Plusieurs modèles configurables (texte, conditions sur le nombre de participations), enregistrés dans les options du widget.
+  Le modèle est choisi automatiquement par les conditions, ou imposé manuellement pour un clinicien : ce choix est enregistré
+  dans la colonne associée « Modèle imposé » (facultative), et il est respecté par « Imprimer tout ».
   Le texte personnalisé est enregistré dans la colonne associée « Texte personnalisé » (facultative).
+  Le panneau « Attestations à imprimer » liste les cliniciens de la vue (filtres et tris Grist appliqués) : cocher ceux à imprimer en un seul PDF.
   Ouvrir index.html?demo (ou hors de Grist) pour un aperçu avec des données fictives.
   Matthieu Bouchet - Oct. 2026
   -->
@@ -33,9 +36,10 @@
         <span class="choix-label">Modèle</span>
         <select id="choix-modele"></select>
       </label>
+      <span class="choix-etat" id="etat-modele"></span>
       <div class="barre-actions">
         <button type="button" class="btn btn-secondaire" id="ouvrir-config" aria-expanded="false">Configurer les modèles</button>
-        <button type="button" class="btn btn-secondaire" id="imprimer-tout" hidden title="Une attestation par page pour chaque clinicien de la vue ayant un modèle applicable">Imprimer tout</button>
+        <button type="button" class="btn btn-secondaire" id="ouvrir-lot" hidden aria-expanded="false" title="Choisir les cliniciens de la vue à imprimer en un seul document">Attestations à imprimer</button>
         <button type="button" class="btn btn-principal" id="imprimer" title="Dans la fenêtre d'impression, choisir « Enregistrer au format PDF »">Imprimer / PDF</button>
       </div>
     </nav>
@@ -46,7 +50,8 @@
       <div class="config-colonnes">
         <div class="config-bloc">
           <h2>Modèles</h2>
-          <p class="aide">Le <strong>premier modèle applicable</strong> de la liste est utilisé automatiquement. Réordonnez avec les flèches.</p>
+          <p class="aide">Le <strong>premier modèle applicable</strong> de la liste est utilisé automatiquement. Réordonnez avec les flèches.
+            Un modèle « sélection manuelle uniquement » n’est jamais choisi automatiquement : il reste disponible dans la liste « Modèle » de la barre d’outils.</p>
           <ol class="liste-modeles" id="liste-modeles"></ol>
           <div class="config-boutons">
             <button type="button" class="btn btn-secondaire btn-petit" id="ajouter-modele">+ Nouveau modèle</button>
@@ -62,6 +67,10 @@
           </label>
           <fieldset class="champ condition">
             <legend class="champ-label">S’applique si</legend>
+            <label class="case">
+              <input type="checkbox" id="m-manuel">
+              <span>Sélection manuelle uniquement (jamais choisi automatiquement)</span>
+            </label>
             <div class="condition-ligne">
               <select id="m-critere"></select>
               <span>entre</span>
@@ -129,6 +138,22 @@
         <textarea id="texte-perso" rows="2" placeholder="Ex. : Il convient de souligner sa participation à l’organisation de la journée d’accès au droit…"></textarea>
         <span class="aide" id="aide-texte"></span>
       </div>
+    </section>
+
+    <!-- Impression en lot : cliniciens de la vue (filtres et tris Grist appliqués) -->
+    <section class="panneau-lot no-print" id="panneau-lot" hidden>
+      <div class="lot-entete">
+        <div class="lot-titre">
+          <h2>Attestations à imprimer</h2>
+          <span class="aide" id="lot-resume"></span>
+        </div>
+        <div class="lot-boutons">
+          <button type="button" class="btn btn-texte btn-petit" id="lot-tout">Tout cocher</button>
+          <button type="button" class="btn btn-texte btn-petit" id="lot-rien">Tout décocher</button>
+          <button type="button" class="btn btn-principal btn-petit" id="imprimer-lot">Imprimer la sélection</button>
+        </div>
+      </div>
+      <ul class="liste-lot" id="liste-lot"></ul>
     </section>
 
     <div class="bandeau alerte no-print" id="message" hidden></div>

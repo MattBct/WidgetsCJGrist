@@ -156,6 +156,24 @@ html, body {
     border-radius: 6px;
 }
 
+.choix-etat {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--texte-doux);
+}
+
+.choix-etat.enregistre {
+    color: var(--ok);
+}
+
+.choix-etat.erreur {
+    color: var(--clinique);
+}
+
+.choix-etat.alerte {
+    color: var(--alerte);
+}
+
 .barre-actions {
     display: flex;
     flex-wrap: wrap;
@@ -481,6 +499,25 @@ html, body {
     gap: 6px;
 }
 
+.case {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.case input {
+    accent-color: var(--clinique);
+}
+
+.condition-ligne select:disabled,
+.condition-ligne input:disabled {
+    color: var(--texte-doux);
+    background: var(--fond-doux);
+}
+
 .condition-ligne input {
     width: 72px;
 }
@@ -611,13 +648,13 @@ html, body {
     body.config-ouverte .espace {
         display: grid;
         grid-template-columns: minmax(460px, 5fr) minmax(0, 6fr);
-        grid-template-rows: auto auto auto 1fr;
+        grid-template-rows: auto auto auto auto 1fr;
         align-items: start;
     }
 
     body.config-ouverte .config {
         grid-column: 1;
-        grid-row: 1 / span 4;
+        grid-row: 1 / span 5;
         align-self: stretch;
         border-bottom: none;
         border-right: 1px solid var(--bordure);
@@ -628,6 +665,7 @@ html, body {
     }
 
     body.config-ouverte .panneau-texte,
+    body.config-ouverte .panneau-lot,
     body.config-ouverte .bandeau,
     body.config-ouverte .apercu {
         grid-column: 2;
@@ -638,6 +676,152 @@ html, body {
         top: var(--hauteur-barre, 60px);
         max-height: calc(100vh - var(--hauteur-barre, 60px));
         overflow-y: auto;
+    }
+}
+
+/* ---------- Panneau d'impression en lot ---------- */
+
+.panneau-lot {
+    padding: 10px 15px 12px;
+    background: #ffffff;
+    border-bottom: 1px solid var(--bordure);
+}
+
+.lot-entete {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 8px 14px;
+    margin-bottom: 8px;
+}
+
+.lot-titre {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.lot-titre h2 {
+    margin: 0;
+    font-family: 'Zilla Slab', serif;
+    font-size: 15px;
+}
+
+.lot-boutons {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+}
+
+.liste-lot {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 40vh;
+    overflow-y: auto;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.lot-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 5px 8px;
+    border: 1px solid var(--bordure);
+    border-radius: 6px;
+}
+
+.lot-item.courant {
+    border-color: var(--clinique);
+    background: var(--critique-fond);
+}
+
+.lot-item.sans-modele {
+    background: var(--alerte-fond);
+}
+
+.lot-case {
+    flex: none;
+    accent-color: var(--clinique);
+}
+
+.lot-texte {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.lot-nom {
+    align-self: flex-start;
+    padding: 0;
+    font: inherit;
+    font-weight: 700;
+    color: inherit;
+    text-align: left;
+    background: none;
+    border: none;
+    border-bottom: 1px dashed transparent;
+    cursor: pointer;
+    overflow-wrap: anywhere;
+}
+
+.lot-nom:hover {
+    color: var(--clinique);
+    border-bottom-color: var(--clinique);
+}
+
+.lot-info {
+    font-size: 11px;
+    color: var(--texte-doux);
+}
+
+.lot-modele {
+    flex: none;
+    max-width: 220px;
+    padding: 4px 6px;
+    font: inherit;
+    font-size: 12px;
+    color: inherit;
+    background: #ffffff;
+    border: 1px solid var(--bordure);
+    border-radius: 6px;
+}
+
+.lot-etat {
+    flex: none;
+    width: 110px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--texte-doux);
+    text-align: right;
+}
+
+.lot-item.sans-modele .lot-etat {
+    color: var(--alerte);
+}
+
+@media (max-width: 700px) {
+    .lot-item {
+        flex-wrap: wrap;
+    }
+
+    .lot-modele {
+        max-width: none;
+        flex: 1 1 140px;
+    }
+
+    .lot-etat {
+        width: auto;
+        text-align: left;
     }
 }
 
